@@ -9,7 +9,7 @@ import { Workspace } from "../workspace/manager.js";
 import { resolveLocalTarget, type LocalTargetRegistration } from "../workspace/local-target.js";
 import type { WorktreeRunner } from "../workspace/worktrees.js";
 import { AuthStore } from "../auth/store.js";
-import { loadOrCreateInstallation } from "../workspaces/installation.js";
+import { loadInstallationIfExists, loadOrCreateInstallation } from "../workspaces/installation.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -25,7 +25,8 @@ function cliEntry(): { cmd: string; args: string[] } {
 }
 
 export function installationRuntime(stateDir = getStateDir()): RuntimeState | null {
-  const installation = loadOrCreateInstallation(stateDir);
+  const installation = loadInstallationIfExists(stateDir);
+  if (!installation) return null;
   return readRuntimeState(installation.installationId);
 }
 

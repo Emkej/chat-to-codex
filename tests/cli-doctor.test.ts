@@ -113,6 +113,8 @@ describe("c2c doctor --json", () => {
     const stateDir = isolateStateDir();
     const root = makeTmpDir("doctor-json");
     write(root, "hello.txt", "hello");
+    const installationFile = path.join(stateDir, "installation.json");
+    const runtimeDir = path.join(stateDir, "runtime");
     const registryFile = path.join(stateDir, "workspaces", "registry.json");
     const sessionsFile = path.join(stateDir, "workspaces", "sessions.json");
 
@@ -131,8 +133,12 @@ describe("c2c doctor --json", () => {
 
     // without a running broker, the doctor reports honestly and fails closed
     expect(report.workspace?.ok).toBe(true);
-    expect(report.installation?.ok).toBe(true);
+    expect(report.installation?.ok).toBe(false);
+    expect(report.installation?.detail).toContain("not initialized");
     expect(report.broker?.ok).toBe(false);
+    expect(fs.readdirSync(stateDir)).toEqual([]);
+    expect(fs.existsSync(installationFile)).toBe(false);
+    expect(fs.existsSync(runtimeDir)).toBe(false);
     expect(fs.existsSync(registryFile)).toBe(false);
     expect(fs.existsSync(sessionsFile)).toBe(false);
 

@@ -468,8 +468,13 @@ program
 
     // Installation identity
     try {
-      const { loadOrCreateInstallation } = await import("../workspaces/installation.js");
-      report.installation = { ok: true, detail: loadOrCreateInstallation(getStateDir()).installationId };
+      const { loadInstallationIfExists, loadOrCreateInstallation } = await import("../workspaces/installation.js");
+      const installation = opts.fix
+        ? loadOrCreateInstallation(getStateDir())
+        : loadInstallationIfExists(getStateDir());
+      report.installation = installation
+        ? { ok: true, detail: installation.installationId }
+        : { ok: false, detail: "not initialized (c2c broker start)" };
     } catch (error) {
       report.installation = { ok: false, detail: (error as Error).message };
     }
