@@ -1,0 +1,62 @@
+{
+  "slice": "S6-follow-up-review",
+  "status": "passed-with-environment-limit",
+  "scope": [
+    "Sanitized unexpected MCP errors at the existing mapError boundary.",
+    "Verified the required Git worktree contract and fail-closed behavior without a fallback parser.",
+    "Audited and completed focused SPEC-001 regression coverage for selected worktrees and lifecycle behavior."
+  ],
+  "checks": [
+    {
+      "name": "focused SPEC-001 suites",
+      "command": "node_modules/.bin/vitest run tests/worktrees.test.ts tests/mcp-worktrees.test.ts tests/local-target.test.ts tests/broker-session-cli.test.ts tests/broker.test.ts tests/cli-doctor.test.ts tests/git.test.ts",
+      "status": "passed",
+      "details": "7 files, 52 tests"
+    },
+    {
+      "name": "final focused regression suites",
+      "command": "node_modules/.bin/vitest run tests/worktrees.test.ts tests/mcp-worktrees.test.ts tests/broker-session-cli.test.ts tests/cli-doctor.test.ts",
+      "status": "passed",
+      "details": "4 files, 18 tests"
+    },
+    {
+      "name": "full test suite",
+      "command": "node_modules/.bin/vitest run",
+      "status": "passed",
+      "details": "24 files, 202 tests; run with loopback/process access outside the sandbox"
+    },
+    {
+      "name": "typecheck",
+      "command": "node_modules/.bin/tsc --noEmit",
+      "status": "passed"
+    },
+    {
+      "name": "build",
+      "command": "node_modules/.bin/tsc -p tsconfig.json",
+      "status": "passed"
+    },
+    {
+      "name": "scoped diff check",
+      "command": "git diff --check -- README.md src/mcp/server.ts tests/worktrees.test.ts tests/mcp-worktrees.test.ts tests/broker-session-cli.test.ts tests/broker.test.ts tests/cli-doctor.test.ts",
+      "status": "passed"
+    },
+    {
+      "name": "required Git contract probe",
+      "command": "git worktree list --porcelain -z",
+      "status": "unsupported",
+      "details": "Git 2.34.1 exits 129 with unknown switch `z'"
+    }
+  ],
+  "regressions": [
+    "The MCP response for an unexpected filesystem error is INTERNAL_ERROR with a stable message and does not contain the fake path or raw error.",
+    "Typed WorkspaceError and WorktreeError mappings remain unchanged; worktree discovery remains fail-closed.",
+    "Selected worktree search, Git status/diff, execution records, traversal confinement, and sensitive-file policy are covered.",
+    "Repository identity mismatch and stale/moved selected worktrees fail closed; sibling roots are not revalidated during selected resolution.",
+    "list_worktrees requires git.read; linked-root reuse, exact linked registration, no-fix nonmutation, and concrete linked-session end are covered."
+  ],
+  "known_environment_limits": [
+    "The host Git is 2.34.1 and rejects the required --porcelain -z contract. The live test exercises fail-closed behavior here and exercises real enumeration on supporting Git versions; no human-readable fallback was added.",
+    "pnpm was not usable through the configured wrapper, so the repository's local node_modules binaries were used for test, typecheck, and build checks.",
+    "Repository-wide git diff --check still reports pre-existing CRLF findings in unrelated auth/OAuth changes; scoped task paths pass."
+  ]
+}

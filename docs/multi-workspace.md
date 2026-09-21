@@ -16,6 +16,7 @@ Claude
 C2C Workspace Broker  ── one stable MCP URL (Cloudflare Named Tunnel)
  │
  ├── Workspace Registry   workspace_id → canonical_root (local only)
+ │   └── Derived targets  worktree_id → validated linked root (live Git view)
  ├── Session Registry     session_id → workspace_id (local only)
  └── read-only MCP tools, scoped by opaque workspace_id
 ```
@@ -25,7 +26,15 @@ Security hierarchy:
 ```
 OAuth authorization  = C2C installation
 Codex boundary       = workspace/session capability
-Filesystem boundary  = canonical workspace root
+Filesystem boundary  = explicit registered root plus validated derived worktree
+```
+
+Target hierarchy:
+
+```text
+installation
+└── registered workspace
+    └── optional derived worktree target
 ```
 
 Claude authorization boundary is the installation. The individual workspace
@@ -47,9 +56,13 @@ strictly against the local Workspace Registry:
 - never convertible into arbitrary filesystem access (every path operation
   canonicalizes and confines beneath the resolved root, as today)
 - missing/unknown/unregistered workspace id → fail closed (no default)
+- an optional opaque `worktree` selector is resolved only beneath a registered
+  main worktree; paths are never accepted from the client
 
-`list_workspaces()` is the only discovery surface. Claude can enumerate ids
-and display names; roots never leave the machine.
+`list_workspaces()` enumerates registered workspace ids and
+`list_worktrees(workspace)` enumerates current derived ids beneath an eligible
+registered main. The broker returns names, branches, and commits, but roots
+never leave the machine.
 
 Rejected alternatives:
 
@@ -73,6 +86,9 @@ Rejected alternatives:
   heartbeat. Local liveness/revocation semantics for Codex activity; not a
   Claude-presented credential. Sessions may only be created for registered
   workspaces and die with them.
+- **Derived worktree target** — a live Git worktree record addressed by an
+  opaque deterministic id. It has no durable registry entry and inherits the
+  parent workspace id.
 
 ## Not exposed to Claude
 
@@ -85,12 +101,16 @@ Rejected alternatives:
 
 ## Tool surface (target)
 
-- `list_workspaces` — new, read-only, no args.
+- Broker: `list_workspaces` and `list_worktrees` plus the eight scoped readers
+  (10 read-only tools total).
+- Legacy bridge: the existing nine read-only tools remain exact-root-only; it
+  does not expose `list_worktrees`.
 - `workspace_info`, `list_directory`, `read_file`, `search_workspace`,
   `git_status`, `git_diff`, `test_status`, `execution_summary` — unchanged
-  semantics plus a required opaque `workspace` argument. Missing/unknown →
-  fail closed. `test_status`/`execution_summary` remain recorded-results
-  readers; they never execute anything.
+  semantics plus an optional opaque `worktree` selector in broker mode.
+  Missing/unknown workspace or worktree context fails closed.
+  `test_status`/`execution_summary` remain recorded-results readers; they
+  never execute anything.
 
 ## OAuth migration
 
@@ -123,6 +143,8 @@ a domain.
 5. **OAuth installation migration** — done (`c2c broker migrate-auth`, broker OAuth tests).
 6. **CLI lifecycle + stable connector UX** — done (`c2c setup --mode`, `broker tunnel`).
 7. **E2E multi-project validation + docs** — automated in broker tests; human Claude Web validation remains manual (see `docs/local-e2e.md`).
+8. **Worktree-aware broker access** — broker target selection, local CLI reuse,
+   Git hardening, and legacy compatibility are covered by SPEC-001 tests.
 
 ## Threat model answers
 
@@ -142,3 +164,6 @@ a domain.
 | 12 | Tunnel endpoint changes | With named tunnel it should not; if it does, re-add connector (existing repair flow). |
 | 13 | Named tunnel offline | Broker unreachable → Claude fails; local Codex unaffected. |
 | 14 | Tool called without/with invalid workspace context | Fail closed with an error listing nothing but the instruction to use `list_workspaces`. |
+| 15 | Registered main has linked worktrees | `list_worktrees` returns opaque current ids; scoped readers may select one and preserve the parent workspace id. |
+| 16 | Linked worktree is explicitly registered | Exact registration wins; it remains exact-root-only and does not gain peer enumeration. |
+| 17 | Worktree is moved, deleted, prunable, or stale | Re-discovery rejects the target; no fallback to the main root. |

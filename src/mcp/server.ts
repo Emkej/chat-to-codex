@@ -4,6 +4,13 @@ import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { Workspace, WorkspaceError } from "../workspace/manager.js";
 import { searchWorkspace } from "../workspace/search.js";
 import { gitDiff, gitInfo, gitStatus, type DiffMode } from "../workspace/git.js";
+import {
+  assertDerivedWorktreeCurrent,
+  discoverDerivedWorktrees,
+  resolveDerivedWorktree,
+  WorktreeError,
+  type WorktreeRunner,
+} from "../workspace/worktrees.js";
 import { latestExecutionRecord, readExecutionRecords } from "../execution/records.js";
 import type { Logger } from "../logger/index.js";
 import type { WorkspaceRegistration, WorkspaceRegistry } from "../workspaces/registry.js";
@@ -17,6 +24,7 @@ const UNTRUSTED_NOTE =
 const WORKSPACE_ARG =
   "Opaque workspace id from list_workspaces. Required when several " +
   "workspaces are registered; never a filesystem path.";
+const WORKTREE_ARG = "Opaque worktree id from list_worktrees; never a filesystem path.";
 
 type ToolResult = {
   content: { type: "text"; text: string }[];
@@ -36,7 +44,13 @@ function fail(code: string, message: string): ToolResult {
 
 function mapError(error: unknown): ToolResult {
   if (error instanceof WorkspaceError) return fail(error.code, error.message);
-  return fail("INTERNAL_ERROR", error instanceof Error ? error.message : String(error));
+  if (error instanceof WorktreeError) {
+    if (error.code === "WORKTREE_DISCOVERY_FAILED") {
+      return fail("INTERNAL_ERROR", "Worktree discovery is unavailable.");
+    }
+    return fail(error.code, error.message);
+  }
+  return fail("INTERNAL_ERROR", "An unexpected internal error occurred.");
 }
 
 function requireScope(authInfo: AuthInfo | undefined, scope: string): ToolResult | null {
@@ -62,6 +76,8 @@ export interface McpContext {
    */
   registry?: WorkspaceRegistry;
   sessions?: SessionRegistry;
+  /** Injectable only for focused domain tests; production uses the Git runner. */
+  worktreeRunner?: WorktreeRunner;
   logger: Logger;
 }
 
@@ -73,11 +89,14 @@ export interface McpContext {
  */
 function resolveTarget(
   ctx: McpContext,
-  args: { workspace?: string }
-): { workspace: Workspace; registration: WorkspaceRegistration | null } | ToolResult {
+  args: { workspace?: string; worktree?: string }
+): { workspace: Workspace; registration: WorkspaceRegistration | null; worktreeId?: string } | ToolResult {
   if (ctx.workspace) {
     if (args.workspace && args.workspace !== ctx.workspace.id) {
       return fail("UNKNOWN_WORKSPACE", `Unknown workspace id for this bridge: ${args.workspace}`);
+    }
+    if (args.worktree !== undefined) {
+      return fail("WORKTREE_UNSUPPORTED", "Worktree selection is available only through the installation broker.");
     }
     return { workspace: ctx.workspace, registration: null };
   }
@@ -99,8 +118,24 @@ function resolveTarget(
   try {
     // Constructing re-canonicalizes the root: a deleted or moved workspace
     // fails closed here instead of resolving somewhere unexpected.
-    return { workspace: new Workspace(registration.canonicalRoot), registration };
-  } catch {
+    if (args.worktree === undefined) return { workspace: new Workspace(registration.canonicalRoot), registration };
+    const selected = resolveDerivedWorktree(
+      registration.canonicalRoot,
+      args.worktree,
+      ctx.worktreeRunner
+    );
+    const workspace = new Workspace(selected.root);
+    assertDerivedWorktreeCurrent(registration.canonicalRoot, selected, ctx.worktreeRunner);
+    return {
+      workspace,
+      registration,
+      worktreeId: selected.worktreeId,
+    };
+  } catch (error) {
+    if (error instanceof WorktreeError) return mapError(error);
+    if (args.worktree !== undefined) {
+      return fail("UNKNOWN_WORKTREE", "Unknown or unavailable worktree.");
+    }
     return fail(
       "WORKSPACE_UNAVAILABLE",
       `Workspace is unavailable (moved or deleted): ${registration.displayName}`
@@ -116,6 +151,7 @@ export function createMcpServer(ctx: McpContext): McpServer {
 
   const workspaceArg = {
     workspace: z.string().optional().describe(WORKSPACE_ARG),
+    worktree: z.string().optional().describe(WORKTREE_ARG),
   };
 
   server.registerTool(
@@ -150,6 +186,44 @@ export function createMcpServer(ctx: McpContext): McpServer {
     }
   );
 
+  if (ctx.registry) {
+    server.registerTool(
+      "list_worktrees",
+      {
+        title: "List worktrees",
+        description:
+          `List the current derived Git worktrees covered by a registered main workspace. ` +
+          `Returns opaque ids only; paths and Git administrative details are never exposed. ${UNTRUSTED_NOTE}`,
+        inputSchema: {
+          workspace: z.string().optional().describe(WORKSPACE_ARG),
+        },
+        annotations: { readOnlyHint: true },
+      },
+      async (args, extra) => {
+        const denied = requireScope(extra.authInfo, "git.read");
+        if (denied) return denied;
+        const target = resolveTarget(ctx, args);
+        if ("content" in target) return target;
+        if (!target.registration) {
+          return fail("WORKTREE_UNSUPPORTED", "Worktree selection is available only through the installation broker.");
+        }
+        try {
+          const worktrees = discoverDerivedWorktrees(
+            target.registration.canonicalRoot,
+            ctx.worktreeRunner
+          ).map(({ worktreeId, branch, commit }) => ({
+            worktree_id: worktreeId,
+            branch,
+            commit,
+          }));
+          return ok({ worktrees });
+        } catch (error) {
+          return mapError(error);
+        }
+      }
+    );
+  }
+
   server.registerTool(
     "workspace_info",
     {
@@ -174,6 +248,7 @@ export function createMcpServer(ctx: McpContext): McpServer {
           // internal root-hash id stays an implementation detail.
           workspaceId: registration?.id ?? workspace.id,
           workspaceName: registration?.displayName ?? workspace.name,
+          ...(target.worktreeId ? { worktreeId: target.worktreeId } : {}),
           rootAlias: "workspace:/",
           ...project,
           git: {
@@ -353,18 +428,22 @@ export function createMcpServer(ctx: McpContext): McpServer {
       if (denied) return denied;
       const target = resolveTarget(ctx, args);
       if ("content" in target) return target;
-      const latest = latestExecutionRecord(target.workspace.id);
-      if (!latest) {
-        return ok({ available: false, message: "No execution records yet for this workspace." });
+      try {
+        const latest = latestExecutionRecord(target.workspace.id);
+        if (!latest) {
+          return ok({ available: false, message: "No execution records yet for this workspace." });
+        }
+        return ok({
+          available: true,
+          taskId: latest.taskId,
+          iteration: latest.iteration,
+          tests: latest.tests,
+          exitStatus: latest.exitStatus,
+          timestamp: latest.timestamp,
+        });
+      } catch (error) {
+        return mapError(error);
       }
-      return ok({
-        available: true,
-        taskId: latest.taskId,
-        iteration: latest.iteration,
-        tests: latest.tests,
-        exitStatus: latest.exitStatus,
-        timestamp: latest.timestamp,
-      });
     }
   );
 
@@ -386,7 +465,11 @@ export function createMcpServer(ctx: McpContext): McpServer {
       if (denied) return denied;
       const target = resolveTarget(ctx, args);
       if ("content" in target) return target;
-      return ok({ records: readExecutionRecords(target.workspace.id, args.limit) });
+      try {
+        return ok({ records: readExecutionRecords(target.workspace.id, args.limit) });
+      } catch (error) {
+        return mapError(error);
+      }
     }
   );
 

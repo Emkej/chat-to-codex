@@ -1,0 +1,47 @@
+{
+  "slice": "S5-conformance-fixes",
+  "status": "passed",
+  "scope": [
+    "Selected worktree resolution validates only the requested candidate.",
+    "MCP routing revalidates repository identity immediately before use.",
+    "Live Git worktree enumeration is covered without a text-format fallback."
+  ],
+  "checks": [
+    {
+      "name": "focused worktree tests",
+      "command": "node_modules/.bin/vitest run tests/worktrees.test.ts tests/mcp-worktrees.test.ts",
+      "status": "passed",
+      "details": "2 files, 10 tests"
+    },
+    {
+      "name": "full test suite",
+      "command": "node_modules/.bin/vitest run",
+      "status": "passed",
+      "details": "24 files, 196 tests; run with loopback/process access outside the sandbox"
+    },
+    {
+      "name": "typecheck",
+      "command": "node_modules/.bin/tsc --noEmit",
+      "status": "passed"
+    },
+    {
+      "name": "build",
+      "command": "node_modules/.bin/tsc -p tsconfig.json",
+      "status": "passed"
+    },
+    {
+      "name": "scoped diff check",
+      "command": "git diff --check -- src/mcp/server.ts src/workspace/git.ts tests/mcp-worktrees.test.ts tests/worktrees.test.ts",
+      "status": "passed"
+    }
+  ],
+  "regressions": [
+    "Unrelated sibling worktrees are not Git-validated during selected-id resolution.",
+    "A changed selected repository identity returns UNKNOWN_WORKTREE through the MCP route.",
+    "Git versions that reject --porcelain -z fail closed; supporting versions exercise live enumeration and selection."
+  ],
+  "known_environment_limits": [
+    "The host Git is 2.34.1 and rejects worktree list --porcelain -z, so the live test exercises the required fail-closed branch here; the same test exercises real enumeration on supporting Git versions.",
+    "Repository-wide git diff --check still includes pre-existing CRLF findings in unrelated auth/OAuth changes; scoped task paths pass."
+  ]
+}

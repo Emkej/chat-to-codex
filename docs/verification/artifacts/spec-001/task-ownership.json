@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "task_id": "spec-001-worktree-aware-workspace-access",
+  "repository_root": "/home/emkej/projects/chat-to-codex",
+  "worktree": "/home/emkej/projects/chat-to-codex",
+  "branch": "feat/worktree-support",
+  "head": "8712e95d092bfdfa402e749b06deae86450a2edf",
+  "captured_at_utc": "2026-09-21T11:23:31Z",
+  "capture_method": "manual-fallback",
+  "repository_tool": "tools/repo/track_dirty_paths.py (not present in repository)",
+  "paths": [
+    {"path": "bin/c2c.js", "status": "modified", "classification": "pre-existing; do not modify"},
+    {"path": "src/auth/html.ts", "status": "modified", "classification": "pre-existing; do not modify"},
+    {"path": "src/auth/oauth.ts", "status": "modified", "classification": "pre-existing; do not modify"},
+    {"path": "src/cli/index.ts", "status": "modified", "classification": "pre-existing; preserve unrelated changes; task overlap requires care"},
+    {"path": "tests/oauth.test.ts", "status": "modified", "classification": "pre-existing; do not modify"},
+    {"path": "docs/specs/spec-001-worktree-aware-workspace-access-consolidated.md", "status": "untracked", "classification": "authoritative user-provided source; do not rewrite"},
+    {"path": "docs/specs/spec-001-worktree-aware-workspace-access-consolidated.md:Zone.Identifier", "status": "untracked", "classification": "pre-existing metadata sidecar; do not modify"}
+  ],
+  "claims": [
+    {"path": "src/workspace/git.ts", "classification": "task-owned S1; existing file is clean at capture"},
+    {"path": "src/workspace/worktrees.ts", "classification": "task-owned S1; new implementation file"},
+    {"path": "tests/git.test.ts", "classification": "task-owned S1; existing file is clean at capture"},
+    {"path": "tests/worktrees.test.ts", "classification": "task-owned S1; new test file"},
+    {"path": "src/mcp/server.ts", "classification": "task-owned S2; broker-only worktree routing"},
+    {"path": "tests/broker.test.ts", "classification": "task-owned S2; broker tool-surface contract"},
+    {"path": "tests/mcp-integration.test.ts", "classification": "task-owned S2; legacy exact-root tool-surface contract"},
+    {"path": "tests/mcp-worktrees.test.ts", "classification": "task-owned S2; in-process broker/legacy selector contract"},
+    {"path": "src/workspace/local-target.ts", "classification": "task-owned S3; read-only local target resolution"},
+    {"path": "src/broker/daemon.ts", "classification": "task-owned S3; reuse parent registration for linked worktrees"},
+    {"path": "tests/local-target.test.ts", "classification": "task-owned S3; local resolver invariants"},
+    {"path": "tests/broker-session-cli.test.ts", "classification": "task-owned S3; session reuse lifecycle"},
+    {"path": "tests/cli-doctor.test.ts", "classification": "task-owned S3; doctor target reporting"},
+    {"path": "src/cli/index.ts", "classification": "task-overlap S3; preserve unrelated pre-existing changes"},
+    {"path": "docs/security.md", "classification": "task-owned S4; worktree security model"},
+    {"path": "docs/architecture.md", "classification": "task-owned S4; derived target architecture"},
+    {"path": "docs/multi-workspace.md", "classification": "task-owned S4; broker hierarchy and tool counts"},
+    {"path": "docs/local-e2e.md", "classification": "task-owned S4; broker and legacy validation workflow"},
+    {"path": "docs/protocol.md", "classification": "task-owned S4; concrete target conversation wording"},
+    {"path": "skill/SKILL.md", "classification": "task-owned S4; worktree propagation guidance"},
+    {"path": "tests/local-e2e-broker.test.ts", "classification": "task-owned S4; broker tool-count regression"}
+  ]
+}

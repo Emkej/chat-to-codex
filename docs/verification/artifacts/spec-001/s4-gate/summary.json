@@ -1,0 +1,51 @@
+{
+  "slice": "S4-docs-regression",
+  "status": "passed",
+  "checks": [
+    {
+      "name": "full test suite",
+      "command": "node_modules/.bin/vitest run",
+      "status": "passed",
+      "details": "24 files, 192 tests; run with loopback/process access outside the sandbox"
+    },
+    {
+      "name": "typecheck",
+      "command": "node_modules/.bin/tsc --noEmit",
+      "status": "passed"
+    },
+    {
+      "name": "build",
+      "command": "node_modules/.bin/tsc -p tsconfig.json",
+      "status": "passed"
+    },
+    {
+      "name": "broker and legacy compatibility suite",
+      "command": "node_modules/.bin/vitest run tests/broker.test.ts tests/mcp-integration.test.ts tests/mcp-worktrees.test.ts tests/local-e2e-broker.test.ts",
+      "status": "passed",
+      "details": "4 files, 39 tests; broker exposes 10 tools and legacy bridge remains at 9"
+    },
+    {
+      "name": "documentation and owned diff checks",
+      "command": "git diff --check -- <task-owned implementation, test, documentation, and Skill paths>",
+      "status": "passed"
+    },
+    {
+      "name": "commit isolation review",
+      "status": "not_committed",
+      "details": "The implementation branch contains unrelated pre-existing dirty paths, and src/cli/index.ts contains both user changes and this slice; no unrelated paths were staged or committed."
+    }
+  ],
+  "documentation": [
+    "docs/security.md",
+    "docs/architecture.md",
+    "docs/multi-workspace.md",
+    "docs/local-e2e.md",
+    "docs/protocol.md",
+    "skill/SKILL.md"
+  ],
+  "known_environment_limits": [
+    "pnpm is unavailable; validation used the installed node_modules/.bin binaries.",
+    "Git 2.34.1 rejects worktree list --porcelain -z, so live derived-worktree enumeration is unavailable here and the implementation fails closed as specified.",
+    "Repository-wide git diff --check still reports CRLF trailing-whitespace findings from pre-existing auth and OAuth changes; task-owned paths pass the scoped check."
+  ]
+}

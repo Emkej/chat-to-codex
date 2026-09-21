@@ -6,6 +6,8 @@ import { ensureDir, getStateDir } from "../config/paths.js";
 import { adminFetch } from "../process/daemon.js";
 import { findLiveBridge, probeBridge, readRuntimeState, type RuntimeState } from "../bridge/runtime.js";
 import { Workspace } from "../workspace/manager.js";
+import { resolveLocalTarget, type LocalTargetRegistration } from "../workspace/local-target.js";
+import type { WorktreeRunner } from "../workspace/worktrees.js";
 import { AuthStore } from "../auth/store.js";
 import { loadOrCreateInstallation } from "../workspaces/installation.js";
 
@@ -154,19 +156,29 @@ function saveBinding(stateDir: string, binding: LocalSessionBinding, workspaceKe
 export async function ensureWorkspaceSession(
   runtime: RuntimeState,
   workspaceRoot: string,
-  opts: { stateDir?: string; displayName?: string; pid?: number } = {}
-): Promise<{ workspaceId: string; displayName: string; sessionId: string; created: boolean }> {
+  opts: { stateDir?: string; displayName?: string; pid?: number; worktreeRunner?: WorktreeRunner } = {}
+): Promise<{ workspaceId: string; displayName: string; sessionId: string; created: boolean; worktreeId?: string }> {
   const stateDir = opts.stateDir ?? getStateDir();
   // Binding files are keyed by the workspace's stable root-hash id, so they
   // survive display-name changes; the registry id lives inside the binding.
-  const workspaceKey = new Workspace(workspaceRoot).id;
-  const registration = await adminFetch<{ id: string; displayName: string }>(
-    runtime,
-    "POST",
-    "/admin/workspace",
-    60_000,
-    { root: workspaceRoot, displayName: opts.displayName }
-  );
+  const workspace = new Workspace(workspaceRoot);
+  const workspaceKey = workspace.id;
+  const snapshot = await adminFetch<{ workspaces: LocalTargetRegistration[] }>(runtime, "GET", "/admin/workspaces");
+  const target = resolveLocalTarget(workspace.root, snapshot.workspaces, opts.worktreeRunner);
+  if (target.kind === "derived" && opts.displayName?.trim()) {
+    throw new Error("--name cannot rename a derived worktree; use it from the registered main workspace");
+  }
+
+  const registration =
+    target.kind === "derived"
+      ? target.registration!
+      : await adminFetch<{ id: string; displayName: string }>(
+          runtime,
+          "POST",
+          "/admin/workspace",
+          60_000,
+          { root: workspace.root, displayName: opts.displayName }
+        );
 
   const existing = loadBinding(stateDir, workspaceKey);
   if (existing && existing.workspaceId === registration.id) {
@@ -179,6 +191,7 @@ export async function ensureWorkspaceSession(
         displayName: registration.displayName,
         sessionId: existing.sessionId,
         created: false,
+        ...(target.worktreeId ? { worktreeId: target.worktreeId } : {}),
       };
     } catch {
       // expired or cleared: fall through and create a fresh session
@@ -199,6 +212,7 @@ export async function ensureWorkspaceSession(
     displayName: registration.displayName,
     sessionId: session.sessionId,
     created: true,
+    ...(target.worktreeId ? { worktreeId: target.worktreeId } : {}),
   };
 }
 

@@ -126,11 +126,13 @@ NEEDS:
 
 ### HANDOFF (Codex → new Claude conversation)
 
-One workspace keeps one long-lived C2C conversation (`c2c session get/set`).
-Codex switches to a new chat only when the user asks for it or the old chat has
-grown long enough to lag. Right after the boot prompt, Codex sends a HANDOFF so
-the new chat can continue seamlessly — a brief, never a data dump (the new chat
-re-reads code via MCP):
+Use one long-lived C2C conversation per concrete workspace target where
+practical: a registered main workspace or a selected linked worktree. The
+durable `workspaceId` identifies the parent registration and an optional
+`worktreeId` identifies the concrete target. Codex switches to a new chat only
+when the user asks for it or the old chat has grown long enough to lag. Right
+after the boot prompt, Codex sends a HANDOFF so the new chat can continue
+seamlessly — a brief, never a data dump (the new chat re-reads code via MCP):
 
 ```
 [C2C]
@@ -170,7 +172,7 @@ You are the planning and review layer of a Codex coding session.
 Codex owns execution.
 You own high-level reasoning, planning and review.
 
-You have access to the current local workspace through the
+You have access to the current concrete workspace target through the
 "Chat to Codex" MCP connector.
 
 Rules:
@@ -193,4 +195,7 @@ Rules:
 12. If you receive a HANDOFF message, this conversation continues an
     existing task. Trust the handoff brief for history, re-read any code
     you need through MCP, and resume from NEXT_EXPECTED_STEP.
+13. When a task runs in a linked worktree, preserve both the parent
+    `workspaceId` and opaque `worktreeId`; never request or transmit a
+    filesystem path.
 ```

@@ -13,10 +13,10 @@ This executes `tests/local-e2e-broker.test.ts` — OAuth (DCR + PKCE + pairing),
 workspaces, `list_workspaces`, scoped reads, session status, and sensitive-file
 denial — without a tunnel or Claude Web login.
 
-**Automated protocol result: YES.** A Claude-role MCP client can connect through
+**Automated protocol result: YES.** A remote MCP client can connect through
 the installation broker, complete OAuth (DCR + PKCE + one-time pairing), call
-all nine read-only tools with opaque workspace ids, and every mutation path
-stays with Codex.
+all ten broker read-only tools with opaque workspace and optional worktree ids,
+and every mutation path stays with Codex.
 
 **Claude Web UI clicks: not machine-verified.** The scripted connector client
 (`scripts/poc-client.mjs` and Vitest MCP integration tests) exercise the same
@@ -52,8 +52,11 @@ C2C_E2E_URL=https://your-host.example.com pnpm test:e2e:live
    `/mcp` URL → complete OAuth → enter the pairing code on the C2C page.
 4. Enable the connector and call `list_workspaces`, then scoped tools with the
    opaque `workspace` argument (e.g. `workspace_info`).
-5. **Add another project**: `cd` to it and run `c2c use` (or start Codex with
-   the skill). No new connector, OAuth, or pairing is required.
+5. **Add another project or linked worktree**: `cd` to it and run `c2c use`
+   (or start Codex with the skill). A linked worktree covered by a registered
+   main returns the parent `workspaceId` plus an opaque `worktreeId`; it does
+   not create a duplicate registration. No new connector, OAuth, or pairing
+   is required.
 6. **Codex cycle**: Codex mutates locally, records via
    `c2c record --task <id> --iteration <n> --tests …`, then Claude inspects
    through `git_status`, `git_diff`, `test_status`, and `execution_summary`.
@@ -62,10 +65,15 @@ C2C_E2E_URL=https://your-host.example.com pnpm test:e2e:live
 
 - **OAuth**: DCR, PKCE S256, pairing limits, refresh rotation, RFC 7009
   revocation, unauthenticated `/mcp` → 401 with `WWW-Authenticate`.
-- **MCP surface**: nine read-only tools (`list_workspaces` plus the eight
-  workspace-scoped readers), every one `readOnlyHint: true`, no write/exec tool.
+- **MCP surface**: ten broker read-only tools (`list_workspaces`,
+  `list_worktrees`, plus the eight workspace-scoped readers); the legacy bridge
+  remains at nine and has no `list_worktrees`. Every tool is
+  `readOnlyHint: true`; no write/exec tool exists.
 - **Multi-workspace**: cross-workspace isolation, invented ids fail closed,
   revoked workspaces fail closed, live sessions reflected in `list_workspaces`.
+- **Worktrees**: registered main + linked discovery, opaque target selection,
+  parent workspace identity preservation, stale/moved/prunable target rejection,
+  selected-root traversal confinement, and no path leakage.
 - **Boundaries**: `.env` → `ACCESS_DENIED_SENSITIVE_FILE`; path escapes →
   `PATH_OUTSIDE_WORKSPACE`; broker binds loopback only; admin API rejects
   proxy-forwarded requests; `test_status` / `execution_summary` read recorded
@@ -76,8 +84,9 @@ C2C_E2E_URL=https://your-host.example.com pnpm test:e2e:live
 ## Legacy per-project bridge
 
 `c2c start` / `c2c serve` still run a per-workspace bridge for compatibility.
-The historical Quick Tunnel + eight-tool flow documented before the broker
-migration is covered by `tests/mcp-integration.test.ts` against that bridge.
+The historical Quick Tunnel + nine-tool flow documented before the broker
+migration is covered by `tests/mcp-integration.test.ts` against that bridge;
+the legacy bridge remains exact-root-only.
 New installations should prefer `c2c setup`.
 
 ## Setup friction found (and fixed)

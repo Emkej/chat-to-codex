@@ -134,7 +134,7 @@ afterAll(async () => {
 });
 
 describe("local E2E — broker-first multi-project", () => {
-  it("lists nine read-only tools after OAuth pairing", async () => {
+  it("lists ten read-only broker tools after OAuth pairing", async () => {
     const { tools } = await client.listTools();
     const names = tools.map((t) => t.name).sort();
     expect(names).toEqual([
@@ -143,6 +143,7 @@ describe("local E2E — broker-first multi-project", () => {
       "git_status",
       "list_directory",
       "list_workspaces",
+      "list_worktrees",
       "read_file",
       "search_workspace",
       "test_status",

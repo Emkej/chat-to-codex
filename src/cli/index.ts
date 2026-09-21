@@ -9,6 +9,7 @@ import { CONNECTOR_DISPLAY_NAME } from "../broker/server.js";
 import { findLiveBridge, probeBridge, readRuntimeState, type RuntimeState } from "../bridge/runtime.js";
 import { adminFetch, ensureBridge, stopBridge } from "../process/daemon.js";
 import { Workspace } from "../workspace/manager.js";
+import { resolveLocalTarget } from "../workspace/local-target.js";
 import { AuthStore } from "../auth/store.js";
 import { appendExecutionRecord } from "../execution/records.js";
 import { detectTunnelBinaries } from "../tunnel/detect.js";
@@ -251,9 +252,9 @@ program
         say("");
       }
       const sandbox = trySandboxAllow();
-      const { ensureBroker, ensureWorkspaceSession } = await import("../broker/daemon.js");
+      const { ensureBroker, ensureWorkspaceSession, installationRuntime } = await import("../broker/daemon.js");
       const { resolveInstallationTunnel, installationTunnelPayload } = await import("../tunnel/installation.js");
-      const runtime = await ensureBroker();
+      let runtime = await ensureBroker();
       let mcpUrl: string | null = null;
       let tunnelChoice: Record<string, unknown> | undefined;
       if (opts.tunnel) {
@@ -281,6 +282,13 @@ program
           process.exitCode = 1;
           return;
         }
+        if (mode === "named") {
+          const refreshedRuntime = installationRuntime();
+          if (!refreshedRuntime) {
+            throw new Error("Installation broker stopped while establishing the named tunnel");
+          }
+          runtime = refreshedRuntime;
+        }
         mcpUrl = endpoint.mcpUrl;
         if (endpoint.fallback && endpoint.message && !opts.json) say(endpoint.message);
       }
@@ -307,6 +315,7 @@ program
             installationId: info.installationId,
             workspaceId: session.workspaceId,
             workspaceName: session.displayName,
+            ...(session.worktreeId ? { worktreeId: session.worktreeId } : {}),
             mcpUrl,
             authorized,
             pairingCode,
@@ -317,7 +326,7 @@ program
         );
         return;
       }
-      check(`Workspace registered: ${session.displayName} (${session.workspaceId})`);
+      check(`${session.worktreeId ? "Workspace ready" : "Workspace registered"}: ${session.displayName} (${session.workspaceId})`);
       check(`Broker is running (port ${runtime.port})`);
       if (mcpUrl) check(`Connector URL: ${mcpUrl}`);
       say("");
@@ -435,9 +444,24 @@ program
 
     // Workspace
     let workspace: Workspace | null = null;
+    let localTarget: ReturnType<typeof resolveLocalTarget> | null = null;
     try {
       workspace = new Workspace(root);
       report.workspace = { ok: true, detail: workspace.name };
+      try {
+        const { WorkspaceRegistry } = await import("../workspaces/registry.js");
+        localTarget = resolveLocalTarget(workspace.root, WorkspaceRegistry.load(getStateDir()).list());
+        report.registration = localTarget.registration
+          ? {
+              ok: true,
+              detail: `${localTarget.registration.displayName} (${localTarget.registration.id})${
+                localTarget.worktreeId ? `; worktree ${localTarget.worktreeId}` : ""
+              }`,
+            }
+          : { ok: false, detail: "this workspace is not registered (c2c use)" };
+      } catch (error) {
+        report.registration = { ok: false, detail: (error as Error).message };
+      }
     } catch (error) {
       report.workspace = { ok: false, detail: (error as Error).message };
     }
@@ -521,14 +545,21 @@ program
             const mcpUrl = `${tunnel.url}/mcp`;
             const previous = readLastEndpoint(runtime.workspaceId);
             const action = connectorAction(previous?.mcpUrl, mcpUrl);
-            const connectorName = persistWorkspaceEndpoint({
-              workspaceId: runtime.workspaceId,
-              workspaceName: CONNECTOR_DISPLAY_NAME,
-              port: runtime.port,
-              publicUrl: tunnel.url,
-              mcpUrl,
-              previous,
-            });
+            const connectorName = opts.fix
+              ? persistWorkspaceEndpoint({
+                  workspaceId: runtime.workspaceId,
+                  workspaceName: CONNECTOR_DISPLAY_NAME,
+                  port: runtime.port,
+                  publicUrl: tunnel.url,
+                  mcpUrl,
+                  previous,
+                })
+              : connectorNameFor({
+                  workspaceName: CONNECTOR_DISPLAY_NAME,
+                  workspaceId: runtime.workspaceId,
+                  previousName: previous?.connectorName,
+                  hadEndpointBefore: Boolean(previous),
+                });
             connectorRepair = {
               ...connectorRepair,
               needed: action === "update",
@@ -538,7 +569,7 @@ program
               previousMcpUrl: previous?.mcpUrl ?? null,
               userMessage: action === "update" ? reclaimUserMessage(connectorName) : undefined,
             };
-            if (action === "update") {
+            if (action === "update" && opts.fix) {
               try {
                 const pairing = await adminFetch<PairingResponse>(runtime, "POST", "/admin/pairing");
                 connectorRepair.pairingCode = pairing.code;
@@ -574,7 +605,10 @@ program
             const { workspaces } = await adminFetch<{
               workspaces: { id: string; displayName: string; canonicalRoot: string }[];
             }>(runtime, "GET", "/admin/workspaces");
-            registered = workspaces.find((w) => w.canonicalRoot === workspace.root) ?? null;
+            localTarget = resolveLocalTarget(workspace.root, workspaces);
+            registered = localTarget.registration
+              ? { id: localTarget.registration.id, displayName: localTarget.registration.displayName }
+              : null;
           } catch {
             // broker unreachable is already reported
           }
@@ -587,11 +621,16 @@ program
             }
           }
           report.registration = registered
-            ? { ok: true, detail: `${registered.displayName} (${registered.id})` }
+            ? {
+                ok: true,
+                detail: `${registered.displayName} (${registered.id})${
+                  localTarget?.worktreeId ? `; worktree ${localTarget.worktreeId}` : ""
+                }`,
+              }
             : { ok: false, detail: "this workspace is not registered (c2c use)" };
 
-          // Session heartbeat (best effort)
-          if (registered) {
+          // Session heartbeat (best effort, and only as part of --fix)
+          if (registered && opts.fix) {
             try {
               await ensureWorkspaceSession(runtime, root);
               results.push("Codex session is active for this workspace");
@@ -1519,10 +1558,19 @@ program
       const runtime = await ensureBroker();
       const session = await ensureWorkspaceSession(runtime, root, { displayName: opts.name, pid: process.pid });
       if (opts.json) {
-        say(JSON.stringify({ ok: true, workspaceId: session.workspaceId, displayName: session.displayName, sessionId: session.sessionId, root }));
+        say(
+          JSON.stringify({
+            ok: true,
+            workspaceId: session.workspaceId,
+            displayName: session.displayName,
+            sessionId: session.sessionId,
+            ...(session.worktreeId ? { worktreeId: session.worktreeId } : {}),
+            root,
+          })
+        );
         return;
       }
-      check(`Registered workspace "${session.displayName}" (${session.workspaceId})`);
+      check(`${session.worktreeId ? "Workspace ready" : "Registered workspace"} "${session.displayName}" (${session.workspaceId})`);
       check("Codex session is active for this workspace");
       say("Claude can now inspect it — no connector changes needed.");
     } catch (error) {

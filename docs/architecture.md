@@ -20,7 +20,8 @@
                         │  read-only
                         ▼
              ┌─────────────────────┐
-             │   Local Workspace   │
+             │ Registered Workspace│
+             │ + optional worktree │
              └──────────▲──────────┘
                         │ edit / shell / git / test
              ┌──────────┴──────────┐
@@ -34,14 +35,15 @@
 - **Conversation = control plane**: tiny `[C2C]` state messages (< 1 KB).
 - **MCP = data plane**: Claude pulls files/diffs/search results itself.
 - **Read-only by design**: no write/exec tools exist in V1 at all.
-- **Workspace is the security boundary**: one bridge = one workspace = one token audience.
+- **The registered workspace is the durable security boundary**: the broker may
+  select a validated derived worktree beneath a registered Git main worktree.
 
 ## Components (src/)
 
 | Module | Responsibility |
 | --- | --- |
 | `bridge/` | Express app assembly, loopback-only listener, port fallback, runtime state, admin API |
-| `mcp/` | McpServer with 8 read-only tools; stateless Streamable HTTP transport (fresh server per request, JSON responses) |
+| `mcp/` | Broker McpServer with 10 read-only tools (legacy bridge: 9); stateless Streamable HTTP transport (fresh server per request, JSON responses) |
 | `auth/` | OAuth 2.1 authorization server: discovery metadata (RFC 8414 + Protected Resource Metadata), dynamic client registration (RFC 7591), authorization-code + PKCE (S256 only), refresh rotation, revocation (RFC 7009). Opaque tokens stored as SHA-256 hashes |
 | `pairing/` | PairingCode lifecycle: CSPRNG generation, TTL, attempt limits, IP rate limit, one-time use |
 | `workspace/` | Canonical-path containment (realpath of deepest existing ancestor), sensitive-file policy, `.c2cignore`, paginated read/list, ripgrep search with Node fallback, git status/diff with pagination |
@@ -53,9 +55,23 @@
 
 ## Request lifecycles
 
-**MCP call**: Claude Web → tunnel (https) → bridge `/mcp` → bearer middleware
-(401/403) → stateless StreamableHTTP transport → tool handler → workspace layer
-(path containment → ignore rules → pagination) → JSON result.
+**MCP call**: remote MCP client → tunnel (https) → broker `/mcp` → bearer
+middleware (401/403) → stateless StreamableHTTP transport → broker target
+resolver (`workspace` + optional opaque `worktree`) → workspace layer (path
+containment → ignore rules → pagination) → JSON result.
+
+**Broker target model**:
+
+```text
+registered workspace
+        ↓
+optional validated derived worktree
+        ↓
+existing Workspace/read/search/Git primitives
+```
+
+The registry id and optional worktree id are the only remote selectors. Git
+worktree paths and repository identity remain local to the broker.
 
 **Authorization**: 401 with `WWW-Authenticate: resource_metadata=…` →
 `/.well-known/oauth-protected-resource/mcp` → AS metadata → DCR →

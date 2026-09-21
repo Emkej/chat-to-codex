@@ -1,0 +1,105 @@
+{
+  "contract_version": 2,
+  "name": "spec-001-s1-gate",
+  "status": "passed",
+  "counts": {
+    "passed": 4,
+    "failed": 0,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 4,
+  "skipped": 0,
+  "total": 4,
+  "results": [
+    {
+      "name": "typecheck",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 1.819,
+      "attempt": 1,
+      "argv": [
+        "node_modules/.bin/tsc",
+        "--noEmit"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/spec-001/s1-gate",
+      "stdout_log": "01-typecheck.stdout.log",
+      "stderr_log": "01-typecheck.stderr.log",
+      "error": null
+    },
+    {
+      "name": "build",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 2.421,
+      "attempt": 1,
+      "argv": [
+        "node_modules/.bin/tsc",
+        "-p",
+        "tsconfig.json"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/spec-001/s1-gate",
+      "stdout_log": "02-build.stdout.log",
+      "stderr_log": "02-build.stderr.log",
+      "error": null
+    },
+    {
+      "name": "diff-check",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.007,
+      "attempt": 1,
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        "src/workspace/git.ts",
+        "tests/git.test.ts"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/spec-001/s1-gate",
+      "stdout_log": "03-diff-check.stdout.log",
+      "stderr_log": "03-diff-check.stderr.log",
+      "error": null
+    },
+    {
+      "name": "domain-tests",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 1.825,
+      "attempt": 1,
+      "argv": [
+        "node_modules/.bin/vitest",
+        "run",
+        "tests/git.test.ts",
+        "tests/worktrees.test.ts"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/spec-001/s1-gate",
+      "stdout_log": "04-domain-tests.stdout.log",
+      "stderr_log": "04-domain-tests.stderr.log",
+      "error": null
+    }
+  ],
+  "attempts": [
+    {
+      "number": 1,
+      "checks": [
+        "typecheck",
+        "build",
+        "diff-check",
+        "domain-tests"
+      ],
+      "statuses": {
+        "typecheck": "passed",
+        "build": "passed",
+        "diff-check": "passed",
+        "domain-tests": "passed"
+      }
+    }
+  ]
+}

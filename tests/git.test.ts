@@ -37,6 +37,41 @@ describe("gitInfo", () => {
   it("handles non-repos gracefully", () => {
     expect(gitInfo(plain).isRepo).toBe(false);
   });
+
+  it("ignores inherited repository-location overrides", () => {
+    const redirected = makeTmpDir("git-redirected");
+    makeGitRepo(redirected);
+    git(redirected, "checkout", "-b", "redirected");
+    const names = [
+      "GIT_DIR",
+      "GIT_WORK_TREE",
+      "GIT_COMMON_DIR",
+      "GIT_INDEX_FILE",
+      "GIT_OBJECT_DIRECTORY",
+      "GIT_OBJECT_DIRECTORY_RELATIVE",
+      "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+      "GIT_QUARANTINE_PATH",
+    ];
+    const previous = new Map(names.map((name) => [name, process.env[name]]));
+    try {
+      process.env.GIT_DIR = path.join(redirected, ".git");
+      process.env.GIT_WORK_TREE = redirected;
+      process.env.GIT_COMMON_DIR = path.join(redirected, ".git");
+      process.env.GIT_INDEX_FILE = path.join(redirected, ".git", "index");
+      process.env.GIT_OBJECT_DIRECTORY = path.join(redirected, ".git", "objects");
+      process.env.GIT_OBJECT_DIRECTORY_RELATIVE = "objects";
+      process.env.GIT_ALTERNATE_OBJECT_DIRECTORIES = path.join(redirected, ".git", "objects");
+      process.env.GIT_QUARANTINE_PATH = path.join(redirected, ".git", "objects");
+
+      expect(gitInfo(repo).branch).toBe("main");
+    } finally {
+      for (const [name, value] of previous) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
+      cleanup(redirected);
+    }
+  });
 });
 
 describe("gitStatus", () => {

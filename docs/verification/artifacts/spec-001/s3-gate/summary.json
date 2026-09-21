@@ -1,0 +1,32 @@
+{
+  "slice": "S3-cli-lifecycle",
+  "status": "passed",
+  "checks": [
+    {
+      "name": "typecheck",
+      "command": "node_modules/.bin/tsc --noEmit",
+      "status": "passed"
+    },
+    {
+      "name": "build",
+      "command": "node_modules/.bin/tsc -p tsconfig.json",
+      "status": "passed"
+    },
+    {
+      "name": "focused lifecycle suite",
+      "command": "node_modules/.bin/vitest run tests/local-target.test.ts tests/worktrees.test.ts tests/broker-session-cli.test.ts tests/cli-doctor.test.ts",
+      "status": "passed",
+      "details": "4 files, 10 tests; broker and spawned CLI cases run with loopback access outside the sandbox"
+    },
+    {
+      "name": "owned diff check",
+      "command": "git diff --check -- src/broker/daemon.ts src/cli/index.ts tests/broker-session-cli.test.ts src/workspace/local-target.ts tests/local-target.test.ts",
+      "status": "passed"
+    }
+  ],
+  "constraints": [
+    "The existing CLI coordinator was 1585 lines before S3 and is 1626 lines after; resolver logic was extracted into src/workspace/local-target.ts.",
+    "Unrelated pre-existing changes in src/cli/index.ts were preserved.",
+    "Live Git worktree enumeration remains unavailable on the installed Git 2.34.1 because it rejects --porcelain -z."
+  ]
+}

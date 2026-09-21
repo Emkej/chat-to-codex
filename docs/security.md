@@ -5,13 +5,15 @@
 ```
 OAuth authorization  →  C2C installation (one Claude connector)
 Local capability     →  workspace / Codex session
-Filesystem boundary  →  canonical registered workspace root
+Filesystem boundary  →  explicit registered root plus validated derived worktrees
 ```
 
 1. **Installation** is the Claude authorization boundary. One OAuth relationship
    covers every registered Codex workspace on this machine.
 2. **Workspace** is the local Codex capability boundary. Sessions track liveness;
-   registry ids are opaque to Claude and map only to locally registered roots.
+   registry ids are opaque to the remote MCP client and map only to explicitly
+   registered roots. A registered Git main worktree may additionally expose
+   current, validated linked worktrees through opaque `worktreeId` values.
 3. **Workspace content is untrusted.** README, comments, diffs may contain
    prompt injection. Tool descriptions carry explicit warnings and never grant
    capabilities based on file content.
@@ -36,6 +38,9 @@ setup`, `c2c broker start`).
 | Code interception | PKCE S256 mandatory (plain rejected); authorization codes are one-time, 5-minute TTL, bound to client + redirect URI |
 | Token theft | Opaque high-entropy tokens; stored only as SHA-256 hashes; access tokens live 1 h; refresh tokens rotate on every use (replay of the old one fails); revocation endpoint + `c2c unpair` / `c2c broker` revoke |
 | Invented workspace id | Registry lookup fails closed; Claude cannot nominate arbitrary filesystem roots |
+| Invented or stale worktree id | The broker re-enumerates the registered main worktree and fails closed; it never falls back to the main root |
+| Linked-worktree overreach | A linked worktree cannot own or enumerate peers; explicit linked registration remains exact-root-only |
+| Git repository redirection | Centralized Git reads remove inherited repository-location overrides such as `GIT_DIR`, `GIT_WORK_TREE`, and object-directory variables |
 | Workspace traversal | `realpath` canonicalization; containment check against the canonical root; case-insensitive comparison on macOS/Windows |
 | Symlink escape | Canonicalization resolves symlinks before the containment check |
 | Sensitive files | Deny-by-default patterns (.env*, keys, SSH, cloud creds, keychains…) enforced at resolve time; `git diff` adds pathspec excludes; `.env.example` allowed |
@@ -52,7 +57,8 @@ Scopes: `workspace.read`, `workspace.search`, `git.read`, `execution.read`,
 `offline_access`. Tools enforce scopes individually (`INSUFFICIENT_SCOPE`).
 Access tokens: 1 hour. Refresh tokens: 30 days, rotated. Installation-level
 tokens authorize the broker; workspace access resolves through the local
-registry at request time.
+registry and, when requested, the registered main worktree's current
+Git-derived targets at request time. Worktree paths remain local-only.
 
 ## Storage
 
@@ -67,5 +73,7 @@ than OS-keychain-based. Raw tokens are never written anywhere.
 ## What Claude can never do (V1)
 
 Write files, delete files, run shell commands, commit, register workspaces,
-select arbitrary filesystem roots, or create Codex sessions — these capabilities
-do not exist on the MCP server.
+select arbitrary filesystem roots, nominate worktree paths, or create Codex
+sessions — these capabilities do not exist on the MCP server. A client may
+select only an opaque registered workspace id and an optional opaque derived
+worktree id validated by the broker.

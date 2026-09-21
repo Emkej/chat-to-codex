@@ -1,6 +1,23 @@
 import { spawnSync } from "node:child_process";
 import { IgnoreRules } from "./ignore.js";
 
+const GIT_REPOSITORY_OVERRIDE_VARS = [
+  "GIT_DIR",
+  "GIT_WORK_TREE",
+  "GIT_COMMON_DIR",
+  "GIT_INDEX_FILE",
+  "GIT_OBJECT_DIRECTORY",
+  "GIT_OBJECT_DIRECTORY_RELATIVE",
+  "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+  "GIT_QUARANTINE_PATH",
+] as const;
+
+function sanitizedGitEnvironment(): NodeJS.ProcessEnv {
+  const env = { ...process.env };
+  for (const name of GIT_REPOSITORY_OVERRIDE_VARS) delete env[name];
+  return env;
+}
+
 export interface GitCommandResult {
   ok: boolean;
   stdout: string;
@@ -12,6 +29,7 @@ export function runGit(root: string, args: string[]): GitCommandResult {
   const result = spawnSync("git", args, {
     cwd: root,
     encoding: "utf8",
+    env: sanitizedGitEnvironment(),
     maxBuffer: 64 * 1024 * 1024,
     timeout: 30_000,
   });

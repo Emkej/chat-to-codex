@@ -104,6 +104,15 @@ describe("MCP tools over Streamable HTTP", () => {
     expect(textOf(result)).toContain("PATH_OUTSIDE_WORKSPACE");
   });
 
+  it("rejects worktree selectors on the legacy exact-root bridge", async () => {
+    const result = await client.callTool({
+      name: "read_file",
+      arguments: { path: "hello.txt", worktree: "wt-invented" },
+    });
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toContain("WORKTREE_UNSUPPORTED");
+  });
+
   it("list_directory lists the tree", async () => {
     const result = await client.callTool({ name: "list_directory", arguments: { path: ".", depth: 2 } });
     const listing = jsonOf<{ entries: { path: string }[] }>(result);

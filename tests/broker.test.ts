@@ -76,7 +76,7 @@ afterAll(async () => {
 });
 
 describe("broker tool surface", () => {
-  it("exposes nine read-only tools including list_workspaces", async () => {
+  it("exposes ten read-only tools including list_workspaces and list_worktrees", async () => {
     const { tools } = await client.listTools();
     const names = tools.map((tool) => tool.name).sort();
     expect(names).toEqual([
@@ -85,6 +85,7 @@ describe("broker tool surface", () => {
       "git_status",
       "list_directory",
       "list_workspaces",
+      "list_worktrees",
       "read_file",
       "search_workspace",
       "test_status",
@@ -95,6 +96,23 @@ describe("broker tool surface", () => {
     }
     for (const forbidden of ["write_file", "delete_file", "execute_shell", "git_commit", "set_workspace", "register_workspace"]) {
       expect(names).not.toContain(forbidden);
+    }
+  });
+
+  it("requires git.read for list_worktrees", async () => {
+    const token = broker.authStore.issueTokens({ clientId: "broker-it-worktree-scope", scopes: ["workspace.read"] });
+    const limitedClient = new Client({ name: "c2c-broker-scope-test", version: "1.0.0" });
+    await limitedClient.connect(
+      new StreamableHTTPClientTransport(new URL(`${broker.localBaseUrl()}/mcp`), {
+        requestInit: { headers: { authorization: `Bearer ${token.accessToken}` } },
+      })
+    );
+    try {
+      const result = await limitedClient.callTool({ name: "list_worktrees", arguments: { workspace: flowId } });
+      expect(result.isError).toBe(true);
+      expect(jsonOf(result).error).toBe("INSUFFICIENT_SCOPE");
+    } finally {
+      await limitedClient.close();
     }
   });
 

@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "slice": "S7-doctor-fix-live",
+  "status": "passed",
+  "superseded_by": "docs/verification/artifacts/spec-001/s8-chatgpt-live/summary.json",
+  "captured_at": "2026-09-21T17:22:51+02:00",
+  "repository": {
+    "root": "/home/emkej/projects/chat-to-codex",
+    "branch": "feat/worktree-support",
+    "head": "8712e95d092bfdfa402e749b06deae86450a2edf"
+  },
+  "checks": [
+    {
+      "name": "explicit doctor --fix duplicate-registration regression",
+      "command": "node_modules/.bin/vitest run tests/cli-doctor.test.ts",
+      "status": "passed",
+      "details": "2 tests passed; the real CLI child process reused the registered main, kept one registry entry, and created the expected active session."
+    },
+    {
+      "name": "live compatible-Git linked-worktree doctor --fix",
+      "command": "node --import tsx/esm docs/verification/artifacts/spec-001/s7-doctor-fix/live-compatible-git.mjs",
+      "status": "passed",
+      "details": "Git 2.53.0.windows.3 returned worktree list --porcelain -z; doctor exited 0, reused the main registration, left the linked root unregistered, and left one active session."
+    },
+    {
+      "name": "post-S7 full test suite",
+      "command": "node_modules/.bin/vitest run",
+      "status": "passed",
+      "details": "24 files, 203 tests."
+    },
+    {
+      "name": "post-S7 typecheck",
+      "command": "node_modules/.bin/tsc --noEmit",
+      "status": "passed"
+    },
+    {
+      "name": "post-S7 build",
+      "command": "node_modules/.bin/tsc -p tsconfig.json",
+      "status": "passed"
+    },
+    {
+      "name": "host Git compatibility boundary",
+      "command": "git --version; git worktree list --porcelain -z",
+      "status": "unsupported",
+      "details": "Host Git 2.34.1 rejects -z; the implementation remains fail-closed. The compatible-Git success path is covered by the live run above."
+    }
+  ],
+  "environment": {
+    "node": "v24.15.0",
+    "runner": "WSL",
+    "fixture": "temporary Windows-mounted repository and linked worktree",
+    "network": "no external tunnel or network dependency; isolated loopback broker and verification tunnel provider"
+  }
+}

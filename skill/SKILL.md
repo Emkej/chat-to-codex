@@ -23,7 +23,8 @@ Bring your AI chat sessions to Codex.
 3. From the first project, run `c2c setup --mode quick --json` (or `c2c setup --mode named --zone <domain> --json` for a stable hostname). This starts the installation broker, establishes the public endpoint, registers the workspace, and returns `mcpUrl` plus a pairing code when the installation is not yet authorized. On first run without `--mode`, setup explains the quick vs named choice instead of silently starting a Quick Tunnel.
 4. In Claude Web open Customize > Connectors, add ONE custom connector using `mcpUrl`, and connect it with OAuth.
 5. When the C2C authorization page is open, enter the pairing code from setup (or run `c2c broker pair --json` / `c2c pair --json` for a fresh code). Mint at the moment of need; codes are single-use and expire in ~5 minutes.
-6. In Claude, enable the connector and ask it to call `list_workspaces`. Confirm the installation responds.
+6. In the remote MCP client, enable the connector and ask it to call
+   `list_workspaces`. Confirm the installation responds.
 
 If the installation already exists (Claude already has a working C2C connector), skip connector/OAuth/pairing steps.
 
@@ -33,16 +34,25 @@ Claude custom connectors are remote MCP clients: the MCP endpoint must be reacha
 
 When the user starts a session in a project, register it and learn its identity:
 
-1. Run `c2c use --json` (registers the current directory, starts a Codex session binding, and prints the opaque `workspaceId`).
+1. Run `c2c use --json` (registers the current directory when needed, starts a
+   Codex session binding, and prints the opaque `workspaceId`; a covered linked
+   worktree also returns `worktreeId`).
 2. Run `c2c broker status --json`. Do not begin the loop until the broker and its public endpoint are healthy.
-3. Remember this workspace `workspaceId` — include it whenever you tell the user what to ask Claude, and use it in INIT instructions (Claude scopes every tool call with it).
+3. Remember the `workspaceId` and optional `worktreeId`. Include both
+   whenever you tell the user what to ask the remote MCP client, and use both in
+   INIT instructions. The client should call `list_worktrees` to discover
+   current opaque targets; it must never send a filesystem path. Do not ask C2C
+   to register a linked worktree independently when its registered main already
+   covers it.
 4. When a Codex session ends, run `c2c use --end --json` to clear the local session binding.
 5. Route repairs through `c2c doctor --json` (installation-aware) or `c2c broker status`; per-project bridges (`c2c start`) are legacy compatibility only.
 6. In the Codex desktop app, sandboxed commands may fail with EPERM or `fetch failed` when they touch the broker (loopback requests, daemon spawn, state writes). The broker is a system service that is usually already running — first try `c2c broker status`; if it reports the state as unclear, rerun the command with sandbox escalation approved, or in a regular terminal. Do not conclude the broker is down from a sandboxed failure alone.
 
 ## Planning loop
 
-Use one Claude conversation per workspace when practical.
+Use one conversation per concrete workspace target when practical: the
+registered main workspace or a selected linked worktree. Keep the parent
+`workspaceId` and optional `worktreeId` together when addressing MCP tools.
 
 1. INIT — tell Claude the task and ask it to inspect the workspace through MCP.
 2. PLAN — when the user says Claude's plan is ready (they copied it in Claude
@@ -67,4 +77,8 @@ Use `c2c doctor --json` as the repair authority (installation broker, endpoint, 
 
 ## Security
 
-Claude authorizes one C2C installation. Workspace access is a local capability resolved through registered opaque ids and canonical filesystem roots. The connector remains read-only and exposes only scoped C2C tools for workspace reading/search, git inspection, and Codex execution summaries.
+The remote MCP client authorizes one C2C installation. Workspace access is a
+local capability resolved through registered opaque ids and validated derived
+worktree ids; canonical filesystem roots never cross the connector boundary.
+The connector remains read-only and exposes only scoped C2C tools for workspace
+reading/search, git inspection, and Codex execution summaries.

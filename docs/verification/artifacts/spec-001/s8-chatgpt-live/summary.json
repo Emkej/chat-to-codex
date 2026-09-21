@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "slice": "S8-chatgpt-live",
+  "status": "passed",
+  "captured_at": "2026-09-21T18:26:53+02:00",
+  "repository": {
+    "root": "/home/emkej/projects/chat-to-codex",
+    "branch": "feat/worktree-support",
+    "head": "8712e95d092bfdfa402e749b06deae86450a2edf"
+  },
+  "connector": {
+    "client": "ChatGPT",
+    "hostname": "c2c-test.emky.space",
+    "mcp_url": "https://c2c-test.emky.space/mcp",
+    "workspace_id": "chat-to-codex-aa044b94"
+  },
+  "checks": [
+    {
+      "name": "broker authorization and endpoint",
+      "status": "passed",
+      "details": "The isolated broker reported one registered workspace, an active session, two authorization tokens, and a healthy named tunnel."
+    },
+    {
+      "name": "ChatGPT list_workspaces",
+      "status": "passed",
+      "details": "The connected ChatGPT client found workspace chat-to-codex-aa044b94."
+    },
+    {
+      "name": "ChatGPT list_worktrees",
+      "status": "passed",
+      "details": "The connected ChatGPT client returned worktree_id wt-f29da4c99239d439, branch null, and commit 8712e95d092bfdfa402e749b06deae86450a2edf. No filesystem path was returned."
+    },
+    {
+      "name": "host Git compatibility fallback",
+      "status": "passed",
+      "details": "WSL Git 2.34.1 rejects worktree list -z; the implementation retries machine-readable --porcelain and the focused regression suite passed 10 tests."
+    },
+    {
+      "name": "rebuilt runtime",
+      "status": "passed",
+      "details": "The live broker was restarted from the rebuilt dist output after the fallback fix; the named endpoint remained healthy."
+    },
+    {
+      "name": "full test suite",
+      "status": "passed",
+      "details": "pnpm test completed with 24 files and 204 tests passing; pnpm typecheck and pnpm build also passed."
+    }
+  ],
+  "environment": {
+    "runner": "WSL",
+    "fixture": "temporary detached linked worktree",
+    "network": "Cloudflare named tunnel at c2c-test.emky.space"
+  }
+}
