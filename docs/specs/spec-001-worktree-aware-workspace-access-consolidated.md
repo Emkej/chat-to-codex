@@ -1328,9 +1328,9 @@ For V1:
 
 ## 37. Closeout verification
 
-The final SPEC-001 follow-up gates completed on 2026-09-21:
+The final SPEC-001 follow-up gates completed on 2026-09-22:
 
 1. `tests/cli-doctor.test.ts` contains an explicit `doctor --fix` regression that starts the real CLI child process against an in-process broker and verifies that a linked worktree reuses its registered main without a duplicate registry entry.
 2. A live linked-worktree run used Git `2.53.0.windows.3` and the required `worktree list --porcelain -z` contract. `doctor --fix` exited successfully, created one active session, and left the linked root unregistered as a separate workspace.
 3. The WSL host Git `2.34.1` rejects `-z`; discovery retries the machine-readable `--porcelain` form and the focused live fallback test passes.
-4. The live ChatGPT connector at `c2c-test.emky.space` called `list_workspaces` and `list_worktrees` successfully, returning `wt-f29da4c99239d439`, `branch: null`, and commit `8712e95d092bfdfa402e749b06deae86450a2edf`; detailed evidence is retained in `docs/verification/artifacts/spec-001/s8-chatgpt-live/summary.json`.
+4. The connected ChatGPT C2C tool returned workspace `chat-to-codex-aa044b94` and `workspace_info` reported commit `cc7e78f`. The configured public endpoint `c2c-test.emky.space` returned HTTP 530 during the rerun, so no new public `list_worktrees` success is claimed. A clean-checkout OAuth/PKCE loopback MCP probe called `list_workspaces` and `list_worktrees` successfully, returning `wt-f29da4c99239d439`, `branch: null`, and commit `cc7e78f24b7f3850a2c21db7b90f8a7b28347734`; detailed evidence is retained in `docs/verification/artifacts/spec-001/s8-chatgpt-live/summary.json`.
