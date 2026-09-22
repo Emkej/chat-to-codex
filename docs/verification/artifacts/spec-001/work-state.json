@@ -1,50 +1,30 @@
 {
   "schema_version": 1,
   "work_id": "spec-001-worktree-aware-workspace-access",
-  "task_title": "[C2C/S1/P1/chatgpt-e2e] Verify worktree visibility in ChatGPT",
+  "task_title": "[C2C/S1/P2/commit-merge] Commit verified fix and merge",
   "owner_outcome": "Implement SPEC-001 worktree-aware broker access, local lifecycle resolution, Git hardening, and aligned tests/docs while preserving unrelated existing changes.",
   "authoritative_source": "/home/emkej/projects/chat-to-codex/docs/specs/spec-001-worktree-aware-workspace-access-consolidated.md",
   "status": "Completed",
-  "handoff_reason": "Completed after explicit doctor --fix regression coverage, status synchronization, compatible-Git fallback verification, and live ChatGPT connector verification.",
+  "handoff_reason": "Completed after explicit doctor --fix and doctor --no-fix regression coverage, status synchronization, compatible-Git fallback verification, and clean-checkout live MCP worktree verification.",
   "environment": "WSL",
   "repository_root": "/home/emkej/projects/chat-to-codex",
-  "worktree": "/home/emkej/projects/chat-to-codex",
+  "worktree": "/home/emkej/projects/chat-to-codex/work/chatgpt-e2e-worktree",
   "branch": "feat/worktree-support",
-  "head": "8712e95d092bfdfa402e749b06deae86450a2edf",
-  "relevant_commits": ["8712e95d092bfdfa402e749b06deae86450a2edf"],
+  "head": "cc7e78f24b7f3850a2c21db7b90f8a7b28347734",
+  "relevant_commits": [
+    "738f2714bff66a2a6c11157a0672ffe88584d3df",
+    "cc7e78f24b7f3850a2c21db7b90f8a7b28347734"
+  ],
+  "validation_checkout": {
+    "path": "/home/emkej/projects/chat-to-codex/work/chatgpt-e2e-worktree",
+    "head": "cc7e78f24b7f3850a2c21db7b90f8a7b28347734",
+    "clean": true
+  },
   "git_state": {
     "staged": [],
-    "unstaged": [
-      "bin/c2c.js",
-      "src/auth/html.ts",
-      "src/auth/oauth.ts",
-      "src/broker/daemon.ts",
-      "src/cli/index.ts",
-      "docs/architecture.md",
-      "docs/local-e2e.md",
-      "docs/multi-workspace.md",
-      "docs/protocol.md",
-      "docs/security.md",
-      "skill/SKILL.md",
-      "src/mcp/server.ts",
-      "src/workspace/git.ts",
-      "tests/broker-session-cli.test.ts",
-      "tests/broker.test.ts",
-      "tests/git.test.ts",
-      "tests/local-e2e-broker.test.ts",
-      "tests/mcp-integration.test.ts",
-      "tests/oauth.test.ts"
-    ],
-    "untracked": [
-      "docs/verification/",
-      "docs/specs/spec-001-worktree-aware-workspace-access-consolidated.md",
-      "docs/specs/spec-001-worktree-aware-workspace-access-consolidated.md:Zone.Identifier",
-      "src/workspace/local-target.ts",
-      "src/workspace/worktrees.ts",
-      "tests/local-target.test.ts",
-      "tests/mcp-worktrees.test.ts",
-      "tests/worktrees.test.ts"
-    ]
+    "unstaged": ["pre-existing unrelated changes retained in the primary checkout"],
+    "untracked": ["docs/specs/spec-001-worktree-aware-workspace-access-consolidated.md:Zone.Identifier", "work/"],
+    "task_owned_changes_committed": true
   },
   "dirty_path_manifest": "docs/verification/artifacts/spec-001/task-ownership.json",
   "ledger": {
@@ -63,7 +43,7 @@
     "remaining_slices": []
   },
   "changed_behavior": {
-    "summary": "SPEC-001 is implemented and closeout-verified: centralized Git reads are hardened; worktree discovery and opaque IDs are validated with a NUL-preferred porcelain fallback; broker readers support optional derived targets and list_worktrees; local use/setup/doctor reuse registered main owners without changing session schemas; legacy exact-root behavior remains; canonical docs and Skill guidance are aligned; doctor --fix duplicate registration, compatible-Git behavior, and live ChatGPT connector worktree visibility are verified.",
+    "summary": "SPEC-001 is implemented and closeout-verified: centralized Git reads are hardened; worktree discovery and opaque IDs are validated with a NUL-preferred porcelain fallback; broker readers support optional derived targets and list_worktrees; local use/setup/doctor reuse registered main owners without changing session schemas; doctor diagnostics without --fix are read-only; legacy exact-root behavior remains; canonical docs and Skill guidance are aligned; doctor --fix duplicate registration, compatible-Git behavior, and clean-checkout live MCP worktree visibility are verified.",
     "files": [
       "src/workspace/git.ts",
       "src/workspace/worktrees.ts",
@@ -75,6 +55,8 @@
       "tests/mcp-worktrees.test.ts",
       "src/workspace/local-target.ts",
       "src/broker/daemon.ts",
+      "src/bridge/runtime.ts",
+      "src/workspaces/installation.ts",
       "tests/local-target.test.ts",
       "tests/broker-session-cli.test.ts",
       "tests/cli-doctor.test.ts",
@@ -94,22 +76,24 @@
     {"check": "git root, branch, HEAD, and dirty-path capture", "status": "passed", "evidence": "docs/verification/artifacts/spec-001/task-ownership.json"},
     {"check": "Node.js runtime availability", "status": "passed", "evidence": "node v24.15.0"},
     {"check": "Python runtime availability", "status": "passed", "evidence": "Python 3.10.12"},
-    {"check": "pnpm package-manager availability", "status": "failed", "evidence": "pnpm: not found; installed local binaries are available under node_modules/.bin"},
+    {"check": "pnpm package-manager availability", "status": "passed", "evidence": "pnpm v11.24.0 ran successfully in the clean cc7e78f validation worktree"},
     {"check": "S1 gate: typecheck, build, diff-check, and focused domain tests", "status": "passed", "evidence": "docs/verification/artifacts/spec-001/s1-gate/summary.json"},
     {"check": "host Git worktree discovery compatibility", "status": "passed", "evidence": "Git 2.34.1 rejects -z; discovery retries machine-readable --porcelain and the live fallback test returns the linked worktree"},
     {"check": "S2 gate: typecheck, build, in-process MCP contract, and diff-check", "status": "passed", "evidence": "docs/verification/artifacts/spec-001/s2-gate/summary.json"},
     {"check": "S3 gate: local resolver, lifecycle, doctor, typecheck, build, and owned diff-check", "status": "passed", "evidence": "docs/verification/artifacts/spec-001/s3-gate/summary.json"},
     {"check": "S4 gate: full tests, typecheck, build, compatibility suite, and documentation diff-check", "status": "passed", "evidence": "docs/verification/artifacts/spec-001/s4-gate/summary.json"},
     {"check": "S7 explicit doctor --fix duplicate-registration regression", "status": "passed", "evidence": "tests/cli-doctor.test.ts; 2 tests passed"},
+    {"check": "doctor --no-fix state mutation regression", "status": "passed", "evidence": "tests/cli-doctor.test.ts; fresh state remains without installation.json, runtime/, registry, or session files"},
     {"check": "S7 live compatible-Git linked-worktree doctor --fix run", "status": "passed", "evidence": "docs/verification/artifacts/spec-001/s7-doctor-fix/summary.json; Git 2.53.0.windows.3, exit 0, one registry entry, one active session"},
     {"check": "post-S7 full test suite", "status": "passed", "evidence": "node_modules/.bin/vitest run; 24 files, 203 tests"},
     {"check": "post-S7 typecheck and build", "status": "passed", "evidence": "node_modules/.bin/tsc --noEmit and node_modules/.bin/tsc -p tsconfig.json"},
-    {"check": "post-S8 full test suite", "status": "passed", "evidence": "pnpm test; 24 files, 204 tests"},
-    {"check": "post-S8 typecheck", "status": "passed", "evidence": "pnpm typecheck"},
-    {"check": "post-S8 build", "status": "passed", "evidence": "pnpm build"},
-    {"check": "live ChatGPT connector list_workspaces/list_worktrees", "status": "passed", "evidence": "docs/verification/artifacts/spec-001/s8-chatgpt-live/summary.json; workspace chat-to-codex-aa044b94 returned wt-f29da4c99239d439 with branch null and the expected commit"},
-    {"check": "commit isolation review", "status": "not_committed", "evidence": "pre-existing dirty-path manifest; src/cli/index.ts contains preserved unrelated changes"},
-    {"check": "full tests via pnpm", "status": "not_run", "evidence": "pnpm unavailable; equivalent installed local binaries passed"}
+    {"check": "post-S8 full test suite", "status": "passed", "evidence": "clean cc7e78f24b7f3850a2c21db7b90f8a7b28347734 checkout; pnpm test; 24 files, 204 tests"},
+    {"check": "post-S8 typecheck", "status": "passed", "evidence": "clean cc7e78f checkout; pnpm typecheck"},
+    {"check": "post-S8 build", "status": "passed", "evidence": "clean cc7e78f checkout; pnpm build"},
+    {"check": "clean-checkout live MCP list_workspaces/list_worktrees", "status": "passed", "evidence": "docs/verification/artifacts/spec-001/s8-chatgpt-live/summary.json; OAuth/PKCE loopback probe on cc7e78f returned wt-f29da4c99239d439 with branch null and commit cc7e78f24b7f3850a2c21db7b90f8a7b28347734"},
+    {"check": "ChatGPT connector list_workspaces", "status": "passed", "evidence": "docs/verification/artifacts/spec-001/s8-chatgpt-live/summary.json; connected tool returned workspace chat-to-codex-aa044b94 and workspace_info reported cc7e78f"},
+    {"check": "commit isolation review", "status": "passed", "evidence": "feature commits 738f2714 and cc7e78f; pre-existing dirty changes remain outside the task commits, including the unrelated src/cli/index.ts hunk"},
+    {"check": "full tests via pnpm", "status": "passed", "evidence": "clean cc7e78f checkout; pnpm test; 24 files, 204 tests"}
   ],
   "prerequisite_failure_cache": {
     "expensive_prerequisite": null,
@@ -129,7 +113,7 @@
     ],
     "risks": [
       "The prescribed tools/repo/track_dirty_paths.py utility is absent; the exact initial porcelain state is retained in the manual fallback manifest.",
-      "pnpm is unavailable; validation must use installed local binaries unless the environment is repaired in a separately scoped slice.",
+      "pnpm package-manager verification initially failed in the sandbox, but pnpm v11.24.0 ran successfully with the clean-checkout validation runtime.",
       "The host Git 2.34.1 cannot execute the preferred --porcelain -z form; discovery now falls back to machine-readable --porcelain without parsing human output."
     ],
     "blockers": []

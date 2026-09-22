@@ -2,53 +2,57 @@
   "schema_version": 1,
   "slice": "S8-chatgpt-live",
   "status": "passed",
-  "captured_at": "2026-09-21T18:26:53+02:00",
+  "captured_at": "2026-09-22T18:30:56+02:00",
   "repository": {
-    "root": "/home/emkej/projects/chat-to-codex",
-    "branch": "feat/worktree-support",
-    "head": "8712e95d092bfdfa402e749b06deae86450a2edf"
+    "root": "/home/emkej/projects/chat-to-codex/work/chatgpt-e2e-worktree",
+    "branch": null,
+    "head": "cc7e78f24b7f3850a2c21db7b90f8a7b28347734",
+    "clean": true
   },
   "connector": {
     "client": "ChatGPT",
     "hostname": "c2c-test.emky.space",
     "mcp_url": "https://c2c-test.emky.space/mcp",
-    "workspace_id": "chat-to-codex-aa044b94"
+    "workspace_id": "chat-to-codex-aa044b94",
+    "list_workspaces_status": "passed",
+    "list_worktrees_status": "not_rerun_public_endpoint_offline"
   },
   "checks": [
     {
       "name": "broker authorization and endpoint",
       "status": "passed",
-      "details": "The isolated broker reported one registered workspace, an active session, two authorization tokens, and a healthy named tunnel."
+      "details": "The isolated loopback broker from the clean checkout reported one registered workspace and an active session on port 37617; no public tunnel was used."
     },
     {
       "name": "ChatGPT list_workspaces",
       "status": "passed",
-      "details": "The connected ChatGPT client found workspace chat-to-codex-aa044b94."
+      "details": "The connected ChatGPT C2C tool found workspace chat-to-codex-aa044b94; workspace_info also reported commit cc7e78f."
     },
     {
       "name": "ChatGPT list_worktrees",
-      "status": "passed",
-      "details": "The connected ChatGPT client returned worktree_id wt-f29da4c99239d439, branch null, and commit 8712e95d092bfdfa402e749b06deae86450a2edf. No filesystem path was returned."
+      "status": "not_rerun",
+      "details": "The currently exposed ChatGPT connector schema did not expose list_worktrees, and the configured public URL returned HTTP 530 during the rerun. The clean-checkout OAuth/MCP probe below covered the same tool contract."
     },
     {
       "name": "host Git compatibility fallback",
       "status": "passed",
-      "details": "WSL Git 2.34.1 rejects worktree list -z; the implementation retries machine-readable --porcelain and the focused regression suite passed 10 tests."
+      "details": "WSL Git 2.34.1 rejects worktree list -z; the implementation retries machine-readable --porcelain and the focused regression suite passed 10 tests on cc7e78f."
     },
     {
-      "name": "rebuilt runtime",
+      "name": "clean-checkout OAuth/MCP list_worktrees",
       "status": "passed",
-      "details": "The live broker was restarted from the rebuilt dist output after the fallback fix; the named endpoint remained healthy."
+      "details": "An OAuth/PKCE MCP client connected to the isolated loopback broker from cc7e78f, called list_workspaces and list_worktrees, and received worktree_id wt-f29da4c99239d439, branch null, and commit cc7e78f24b7f3850a2c21db7b90f8a7b28347734. No filesystem path was returned."
     },
     {
       "name": "full test suite",
       "status": "passed",
-      "details": "pnpm test completed with 24 files and 204 tests passing; pnpm typecheck and pnpm build also passed."
+      "details": "From the clean cc7e78f checkout: pnpm test completed with 24 files and 204 tests passing; pnpm typecheck and pnpm build also passed."
     }
   ],
   "environment": {
     "runner": "WSL",
     "fixture": "temporary detached linked worktree",
-    "network": "Cloudflare named tunnel at c2c-test.emky.space"
+    "network": "loopback OAuth/MCP broker at http://127.0.0.1:37617/mcp",
+    "public_endpoint_attempt": "https://c2c-test.emky.space/mcp returned HTTP 530 before OAuth; no public tunnel was started by this validation"
   }
 }
