@@ -121,7 +121,7 @@ describe("authorization + token flow", () => {
   it("sets browser security headers on the pairing page", async () => {
     const clientId = await registerClient(); const { challenge } = pkceVerifierAndChallenge(); const response = await fetch(authorizationUrl(clientId, challenge), { redirect: "manual" });
     const scriptHash = createHash("sha256").update(PAIRING_AUTO_SUBMIT_SCRIPT).digest("base64");
-    expect(response.headers.get("content-security-policy")).toBe(`default-src 'none'; style-src 'unsafe-inline'; script-src 'sha256-${scriptHash}'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'`);
+    expect(response.headers.get("content-security-policy")).toBe(`default-src 'none'; style-src 'unsafe-inline'; script-src 'sha256-${scriptHash}'; form-action 'self' ${base} http://127.0.0.1:19999; base-uri 'none'; frame-ancestors 'none'`);
     expect(response.headers.get("x-content-type-options")).toBe("nosniff"); expect(response.headers.get("x-frame-options")).toBe("DENY"); expect(response.headers.get("referrer-policy")).toBe("no-referrer"); expect(response.headers.get("cache-control")).toBe("no-store, max-age=0");
   });
 

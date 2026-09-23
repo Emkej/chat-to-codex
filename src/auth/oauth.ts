@@ -204,13 +204,13 @@ export function createOAuthRouter(deps: OAuthDeps): Router {
     const query = req.query as Record<string, string | undefined>;
     const client = query.client_id ? deps.store.getClient(query.client_id) : undefined;
     if (!client) {
-      setAuthSecurityHeaders(res);
+      setAuthSecurityHeaders(res, { formActionOrigin: deps.getBaseUrl(req) });
       res.status(400).send("Unknown client. Please reconnect from your MCP client.");
       return;
     }
     const redirectUri = query.redirect_uri;
     if (!redirectUri || !client.redirectUris.includes(redirectUri)) {
-      setAuthSecurityHeaders(res);
+      setAuthSecurityHeaders(res, { formActionOrigin: deps.getBaseUrl(req) });
       res.status(400).send("Invalid redirect_uri.");
       return;
     }
@@ -235,7 +235,10 @@ export function createOAuthRouter(deps: OAuthDeps): Router {
       state: query.state, codeChallenge: query.code_challenge, resource: query.resource, expiresAt: Date.now() + 10 * 60_000,
     };
     pendingRequests.set(request.id, request);
-    setAuthSecurityHeaders(res, { script: PAIRING_AUTO_SUBMIT_SCRIPT });
+    setAuthSecurityHeaders(res, {
+      script: PAIRING_AUTO_SUBMIT_SCRIPT,
+      formActionOrigins: [deps.getBaseUrl(req), new URL(redirectUri).origin],
+    });
     res.status(200).type("html").send(pairingPage({
       requestId: request.id,
       workspaceName: deps.workspaceName,
@@ -249,7 +252,7 @@ export function createOAuthRouter(deps: OAuthDeps): Router {
     const body = req.body as { request_id?: string; pairing_code?: string };
     const request = body.request_id ? pendingRequests.get(body.request_id) : undefined;
     if (!request) {
-      setAuthSecurityHeaders(res);
+      setAuthSecurityHeaders(res, { formActionOrigin: deps.getBaseUrl(req) });
       res.status(400).send("This authorization request has expired. Please reconnect from your MCP client.");
       return;
     }
@@ -263,7 +266,10 @@ export function createOAuthRouter(deps: OAuthDeps): Router {
         no_active_session: "No active pairing session. Ask Codex to generate a pairing code.",
       };
       deps.logger.warn(`Pairing verification failed: ${verdict.reason}`);
-      setAuthSecurityHeaders(res, { script: PAIRING_AUTO_SUBMIT_SCRIPT });
+      setAuthSecurityHeaders(res, {
+        script: PAIRING_AUTO_SUBMIT_SCRIPT,
+        formActionOrigins: [deps.getBaseUrl(req), new URL(request.redirectUri).origin],
+      });
       const client = deps.store.getClient(request.clientId);
       res.status(verdict.reason === "invalid" ? 401 : 410).type("html").send(pairingPage({
         requestId: request.id,
