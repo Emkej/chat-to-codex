@@ -1,0 +1,109 @@
+{
+  "contract_version": 2,
+  "name": "s4-final-recheck",
+  "status": "passed",
+  "counts": {
+    "passed": 4,
+    "failed": 0,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 4,
+  "skipped": 0,
+  "total": 4,
+  "results": [
+    {
+      "name": "full-tests",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 5.559,
+      "attempt": 1,
+      "argv": [
+        "node_modules/.bin/vitest",
+        "run"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-001/s4-final-recheck",
+      "stdout_log": "01-full-tests.stdout.log",
+      "stderr_log": "01-full-tests.stderr.log",
+      "error": null
+    },
+    {
+      "name": "typecheck",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 1.618,
+      "attempt": 1,
+      "argv": [
+        "node_modules/.bin/tsc",
+        "--noEmit"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-001/s4-final-recheck",
+      "stdout_log": "02-typecheck.stdout.log",
+      "stderr_log": "02-typecheck.stderr.log",
+      "error": null
+    },
+    {
+      "name": "build",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 1.818,
+      "attempt": 1,
+      "argv": [
+        "node_modules/.bin/tsc",
+        "-p",
+        "tsconfig.json"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-001/s4-final-recheck",
+      "stdout_log": "03-build.stdout.log",
+      "stderr_log": "03-build.stderr.log",
+      "error": null
+    },
+    {
+      "name": "task-scoped-diff-check",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.01,
+      "attempt": 1,
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        "src/workspace/git.ts",
+        "src/workspace/worktrees.ts",
+        "src/mcp/server.ts",
+        "tests/worktrees.test.ts",
+        "tests/git.test.ts",
+        "tests/mcp-worktrees.test.ts",
+        "docs/specs/spec-001-worktree-aware-workspace-access-consolidated.md",
+        "docs/changes/change-001-wsl-access-to-windows-created-worktrees.md"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-001/s4-final-recheck",
+      "stdout_log": "04-task-scoped-diff-check.stdout.log",
+      "stderr_log": "04-task-scoped-diff-check.stderr.log",
+      "error": null
+    }
+  ],
+  "attempts": [
+    {
+      "number": 1,
+      "checks": [
+        "full-tests",
+        "typecheck",
+        "build",
+        "task-scoped-diff-check"
+      ],
+      "statuses": {
+        "full-tests": "passed",
+        "typecheck": "passed",
+        "build": "passed",
+        "task-scoped-diff-check": "passed"
+      }
+    }
+  ]
+}

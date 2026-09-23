@@ -1,0 +1,140 @@
+{
+  "contract_version": 2,
+  "name": "preflight",
+  "status": "passed",
+  "counts": {
+    "passed": 6,
+    "failed": 0,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 6,
+  "skipped": 0,
+  "total": 6,
+  "results": [
+    {
+      "name": "repo-state",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.01,
+      "attempt": 1,
+      "argv": [
+        "git",
+        "status",
+        "--short",
+        "--branch"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-001/preflight",
+      "stdout_log": "01-repo-state.stdout.log",
+      "stderr_log": "01-repo-state.stderr.log",
+      "error": null
+    },
+    {
+      "name": "node-runtime",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.01,
+      "attempt": 1,
+      "argv": [
+        "node",
+        "--version"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-001/preflight",
+      "stdout_log": "02-node-runtime.stdout.log",
+      "stderr_log": "02-node-runtime.stderr.log",
+      "error": null
+    },
+    {
+      "name": "git-runtime",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.004,
+      "attempt": 1,
+      "argv": [
+        "git",
+        "--version"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-001/preflight",
+      "stdout_log": "03-git-runtime.stdout.log",
+      "stderr_log": "03-git-runtime.stderr.log",
+      "error": null
+    },
+    {
+      "name": "typecheck-baseline",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 1.869,
+      "attempt": 1,
+      "argv": [
+        "node_modules/.bin/tsc",
+        "--noEmit"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-001/preflight",
+      "stdout_log": "04-typecheck-baseline.stdout.log",
+      "stderr_log": "04-typecheck-baseline.stderr.log",
+      "error": null
+    },
+    {
+      "name": "focused-baseline",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 1.919,
+      "attempt": 1,
+      "argv": [
+        "node_modules/.bin/vitest",
+        "run",
+        "tests/worktrees.test.ts",
+        "tests/git.test.ts",
+        "tests/mcp-worktrees.test.ts"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-001/preflight",
+      "stdout_log": "05-focused-baseline.stdout.log",
+      "stderr_log": "05-focused-baseline.stderr.log",
+      "error": null
+    },
+    {
+      "name": "build-baseline",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 1.969,
+      "attempt": 1,
+      "argv": [
+        "node_modules/.bin/tsc",
+        "-p",
+        "tsconfig.json"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-001/preflight",
+      "stdout_log": "06-build-baseline.stdout.log",
+      "stderr_log": "06-build-baseline.stderr.log",
+      "error": null
+    }
+  ],
+  "attempts": [
+    {
+      "number": 1,
+      "checks": [
+        "repo-state",
+        "node-runtime",
+        "git-runtime",
+        "typecheck-baseline",
+        "focused-baseline",
+        "build-baseline"
+      ],
+      "statuses": {
+        "repo-state": "passed",
+        "node-runtime": "passed",
+        "git-runtime": "passed",
+        "typecheck-baseline": "passed",
+        "focused-baseline": "passed",
+        "build-baseline": "passed"
+      }
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "nativeReverseHasGitdirPrefix": false,
+  "expected": {
+    "discoveredCount": 1,
+    "selection": "accepted"
+  },
+  "results": [
+    {
+      "form": "native-posix",
+      "explicitGitValid": true,
+      "discoveredCount": 1,
+      "selection": "accepted"
+    },
+    {
+      "form": "windows-drive",
+      "explicitGitValid": true,
+      "discoveredCount": 1,
+      "selection": "accepted"
+    },
+    {
+      "form": "current-distro-unc",
+      "explicitGitValid": true,
+      "discoveredCount": 1,
+      "selection": "accepted"
+    }
+  ]
+}

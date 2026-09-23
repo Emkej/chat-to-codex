@@ -231,7 +231,7 @@ This spec does not add:
 - MCP shell execution,
 - Git mutation,
 - generic provider renaming across the whole repository,
-- Windows ↔ WSL path translation,
+- generic or arbitrary Windows ↔ WSL path translation,
 - bare-repository worktree ownership,
 - worktree support to the legacy per-project bridge.
 
@@ -369,11 +369,15 @@ A candidate is eligible only when all of these are true:
 1. it comes from the registered main workspace's current Git worktree list,
 2. it is not the main record when resolving a derived worktree,
 3. it is not bare,
-4. it is not marked prunable,
-5. its root exists,
-6. its root canonicalizes successfully,
-7. its canonical root equals its own Git toplevel,
-8. its canonical Git common directory equals the main workspace repository identity.
+4. it is not marked prunable, or it passes the constrained WSL fallback below,
+5. its resolved root exists and canonicalizes successfully,
+6. its canonical root equals its own Git toplevel,
+7. its canonical Git common directory equals the main workspace repository identity,
+8. a `prunable` candidate is admitted only when the fallback proves the linked
+   `.git` pointer, explicit `gitDir + workTree` identity, and reverse pairing.
+
+`prunable` alone never grants access. A genuinely missing, foreign, or
+unpaired candidate remains unavailable.
 
 ### 8.3 Locked worktrees
 
@@ -950,17 +954,27 @@ Use native Windows paths returned by Git and canonicalized by Node.
 
 Use POSIX paths returned by Git inside WSL.
 
-### 28.3 No translation layer
+### 28.3 Constrained WSL fallback
 
-Do not translate:
+The normal path remains the fast path. Only broker-derived worktree resolution
+running on Linux under WSL may use this fallback:
 
-```text
-C:\...
-↔
-/mnt/c/...
-```
+1. Resolve a Windows drive path through the host's WSL conversion mechanism
+   (for example `wslpath -u`), then canonicalize the resulting local root.
+2. Accept a linked-worktree `.git` pointer only when it is a regular file with
+   the expected `gitdir:` form and the pointer is a `//wsl$/<current-distro>/…`
+   path (including its backslash form).
+3. Canonicalize the pointed-to `gitDir` and require it to be inside the
+   registered repository's linked-worktree administrative area.
+4. Validate explicit `--git-dir=<gitDir> --work-tree=<workTree>` Git output for
+   the exact worktree toplevel and registered common directory.
+5. Require `<gitDir>/gitdir`, after the same narrow normalization, to point
+   exactly to `<workTree>/.git`.
 
-If C2C and Git are operating in incompatible path namespaces and canonicalization fails, the worktree is unavailable.
+Other distros, arbitrary UNC/network paths, missing conversion targets, and
+identity or pairing failures remain unavailable. The validated root and
+`gitDir` are internal; no generic path-translation layer or remote path output
+is introduced.
 
 Fail closed.
 
@@ -1126,7 +1140,7 @@ Cover:
 1. main + linked discovery,
 2. deterministic opaque ID,
 3. detached worktree with `branch: null`,
-4. prunable/missing candidate omitted,
+4. genuinely missing prunable candidate omitted while a validated current-distro prunable candidate is accepted,
 5. linked root cannot own peers,
 6. repository identity mismatch rejected,
 7. canonical main detection.
@@ -1286,7 +1300,7 @@ SPEC-001 is conformant when all of the following are true:
 27. `workspace_info` preserves the durable parent `workspaceId`.
 28. No persistent worktree registry is introduced.
 29. No background worktree watcher/cache is introduced.
-30. No Windows/WSL path translation layer is introduced.
+30. Only the constrained broker-only WSL fallback is supported; no generic Windows/WSL path translation layer is introduced.
 31. No MCP mutation or execution capability is introduced.
 32. Worktree-specific code and docs use provider-neutral remote-client terminology.
 33. Full tests, typecheck and build pass.
@@ -1316,10 +1330,10 @@ For V1:
 - no conversation/plan migration,
 - no duplicate-registration migration,
 - no bare-owner support,
-- no Windows/WSL path conversion,
+- constrained current-distro WSL fallback only for broker-derived worktrees,
 - locked worktrees are readable when otherwise valid,
 - detached worktrees are represented by `branch: null`,
-- prunable worktrees are omitted,
+- prunable worktrees are omitted unless the fallback proves availability and exact pointer pairing,
 - exact registration wins,
 - `c2c use/setup/doctor` share one read-only local resolver,
 - local task state remains concrete-root scoped,

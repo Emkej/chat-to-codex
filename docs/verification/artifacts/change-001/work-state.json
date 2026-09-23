@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "work_id": "change-001-wsl-access-to-windows-created-worktrees",
+  "task_title": "[C2C/CH1/P1/worktree-access] Implement WSL worktree access",
+  "owner_outcome": "Make Windows-created, WSL-accessible linked worktrees available through the broker's existing read-only MCP surface without mutating worktree metadata, weakening repository identity checks, or exposing local paths.",
+  "authoritative_source": "/home/emkej/projects/chat-to-codex/docs/changes/change-001-wsl-access-to-windows-created-worktrees.md",
+  "status": "Completed",
+  "environment": "WSL",
+  "repository_root": "/home/emkej/projects/chat-to-codex",
+  "worktree": "/home/emkej/projects/chat-to-codex",
+  "branch": "feat/worktree-support",
+  "head": "5f22b8034d53d3da162ce116504c891458bf65ac",
+  "continuation_runs": 0,
+  "dirty_path_manifest": "docs/verification/artifacts/change-001/task-ownership.json",
+  "ledger": {
+    "planned_slices": [
+      {
+        "id": "S1-wsl-domain",
+        "status": "Completed",
+        "boundary": "Add the narrow WSL path/pointer resolver, optional gitDir GitTarget execution, exact repository/pairing validation, and focused domain/Git tests."
+      },
+      {
+        "id": "S2-broker-routing",
+        "status": "Completed",
+        "boundary": "Route the validated selected GitTarget through workspace_info, git_status, git_diff, and the existing file/search/execution MCP readers; retain opaque output."
+      },
+      {
+        "id": "S3-spec-alignment",
+        "status": "Completed",
+        "boundary": "Synchronize the conflicting SPEC-001 portability, prunable, and acceptance rules with the implemented constrained fallback."
+      },
+      {
+        "id": "S4-gates-live-closeout",
+        "status": "Completed",
+        "boundary": "Run focused and full validation, verify the project-local acceptance, review the isolated diff, and close the change source."
+      }
+    ],
+    "current_slice": {
+      "id": "S4-gates-live-closeout",
+      "status": "Completed",
+      "success_criteria": [
+        "Full tests, typecheck, and build pass.",
+        "Task-scoped diff hygiene passes without changing unrelated dirty paths.",
+        "The project-local broker/MCP acceptance covers the validated cross-namespace read surface."
+      ],
+      "validation_plan": [
+        "Run the full Vitest suite with loopback access",
+        "Run typecheck, build, and task-scoped diff hygiene",
+        "Run the project-local broker/MCP acceptance in tests/mcp-worktrees.test.ts"
+      ]
+    },
+    "completed_slices": ["S1-wsl-domain", "S2-broker-routing", "S3-spec-alignment", "S4-gates-live-closeout"],
+    "remaining_slices": []
+  },
+  "validation": [
+    {"check": "repository root, branch, HEAD, and dirty-path capture", "status": "passed", "evidence": "docs/verification/artifacts/change-001/task-ownership.json"},
+    {"check": "required toolchain and lockfile dependencies", "status": "passed", "evidence": "Node v24.15.0; Git 2.34.1; TypeScript 5.9.3; Vitest 3.2.7; pnpm-lock.yaml and node_modules present"},
+    {"check": "read-only repository preflight", "status": "passed", "evidence": "docs/verification/artifacts/change-001/preflight/summary.json"},
+    {"check": "focused S1 worktree/Git tests", "status": "passed", "evidence": "docs/verification/artifacts/change-001/s1-domain/summary.json; 27 tests passed"},
+    {"check": "typecheck", "status": "passed", "evidence": "docs/verification/artifacts/change-001/s1-domain/summary.json"},
+    {"check": "S2 broker/legacy contracts", "status": "passed", "evidence": "docs/verification/artifacts/change-001/s2-broker-escalated/summary.json; 33 tests passed"},
+    {"check": "S2 MCP/typecheck/build/diff gate", "status": "passed", "evidence": "docs/verification/artifacts/change-001/s2-broker-recheck/summary.json; sandbox listener failures rechecked successfully with escalation"},
+    {"check": "build", "status": "passed", "evidence": "docs/verification/artifacts/change-001/s2-broker-recheck/summary.json"},
+    {"check": "pointer-contract regression, focused domain/Git/MCP tests, and typecheck", "status": "passed", "evidence": "docs/verification/artifacts/change-001/s4-pointer-contract/summary.json"},
+    {"check": "full test suite", "status": "passed", "evidence": "docs/verification/artifacts/change-001/s4-closeout-final/summary.json; full-tests passed"},
+    {"check": "typecheck", "status": "passed", "evidence": "docs/verification/artifacts/change-001/s4-closeout-final/summary.json"},
+    {"check": "build", "status": "passed", "evidence": "docs/verification/artifacts/change-001/s4-closeout-final/summary.json"},
+    {"check": "task-scoped diff hygiene", "status": "passed", "evidence": "docs/verification/artifacts/change-001/s4-closeout-final/summary.json"},
+    {"check": "untracked change-source whitespace", "status": "passed", "evidence": "node check of docs/changes/change-001-wsl-access-to-windows-created-worktrees.md"},
+    {"check": "aggregate repository diff hygiene", "status": "failed", "evidence": "docs/verification/artifacts/change-001/s4-final/summary.json; pre-existing trailing whitespace in tests/oauth.test.ts"},
+    {"check": "project-local broker/MCP acceptance", "status": "passed", "evidence": "tests/mcp-worktrees.test.ts; docs/verification/artifacts/change-001/s4-closeout-final/summary.json"}
+  ],
+  "prerequisite_failure_cache": {
+    "expensive_prerequisite": null,
+    "last_failure_fingerprint": null,
+    "fingerprint_inputs": null,
+    "last_failure": null,
+    "cheap_recheck": null
+  },
+  "decisions_constraints_risks_blockers": {
+    "decisions": [
+      "CHANGE-001 is the authoritative work source; SPEC-001 is synchronized in a later dedicated slice.",
+      "Cross-namespace fallback is broker/MCP-only; local CLI resolution remains unchanged.",
+      "The repository dirty-path utility is absent, so the initial manifest uses the required manual fallback format."
+    ],
+    "constraints": [
+      "Preserve every pre-existing dirty path listed in the manifest.",
+      "Do not add a registry, cache, watcher, MCP schema, generic path translator, or worktree mutation.",
+      "Keep local filesystem paths internal to the broker."
+    ],
+    "risks": [
+      "Cross-namespace behavior is validated with the project-local temporary linked-worktree fixture.",
+      "The pnpm shim did not return within five seconds; installed node_modules binaries are available and are used for validation.",
+      "The original change text contained an unrelated external example; acceptance was corrected to the project-local broker/MCP fixture.",
+      "The manifest-listed pre-existing generated file work/bin/c2ct.js was absent at reconciliation; it was not recreated without a trusted original snapshot."
+    ],
+    "blockers": []
+  },
+  "metrics": {
+    "continuation_runs": 0,
+    "context_compactions": 0,
+    "failed_validation_attempts": 5,
+    "owner_decision_round_trips": 0
+  },
+  "authoritative_slice": {
+    "id": "S4-gates-live-closeout",
+    "boundary": "Complete the repository gates, reconcile evidence and dirty paths, and verify the project-local broker/MCP acceptance."
+  },
+  "first_remaining_action": [],
+  "current_blocker": "None",
+  "resume_condition": "None"
+}

@@ -1,0 +1,54 @@
+{
+  "contract_version": 2,
+  "name": "s4-task-scope",
+  "status": "passed",
+  "counts": {
+    "passed": 1,
+    "failed": 0,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 1,
+  "skipped": 0,
+  "total": 1,
+  "results": [
+    {
+      "name": "task-scoped-diff-check",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.006,
+      "attempt": 1,
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        "src/workspace/git.ts",
+        "src/workspace/worktrees.ts",
+        "src/mcp/server.ts",
+        "tests/worktrees.test.ts",
+        "tests/git.test.ts",
+        "tests/mcp-worktrees.test.ts",
+        "docs/specs/spec-001-worktree-aware-workspace-access-consolidated.md",
+        "docs/changes/change-001-wsl-access-to-windows-created-worktrees.md"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-001/s4-task-scope",
+      "stdout_log": "01-task-scoped-diff-check.stdout.log",
+      "stderr_log": "01-task-scoped-diff-check.stderr.log",
+      "error": null
+    }
+  ],
+  "attempts": [
+    {
+      "number": 1,
+      "checks": [
+        "task-scoped-diff-check"
+      ],
+      "statuses": {
+        "task-scoped-diff-check": "passed"
+      }
+    }
+  ]
+}

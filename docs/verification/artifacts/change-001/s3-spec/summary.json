@@ -1,0 +1,85 @@
+{
+  "contract_version": 2,
+  "name": "s3-spec",
+  "status": "passed",
+  "counts": {
+    "passed": 3,
+    "failed": 0,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 3,
+  "skipped": 0,
+  "total": 3,
+  "results": [
+    {
+      "name": "docs-diff-check",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.006,
+      "attempt": 1,
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        "docs/specs/spec-001-worktree-aware-workspace-access-consolidated.md"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-001/s3-spec",
+      "stdout_log": "01-docs-diff-check.stdout.log",
+      "stderr_log": "01-docs-diff-check.stderr.log",
+      "error": null
+    },
+    {
+      "name": "affected-tests",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 1.618,
+      "attempt": 1,
+      "argv": [
+        "node_modules/.bin/vitest",
+        "run",
+        "tests/worktrees.test.ts",
+        "tests/mcp-worktrees.test.ts"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-001/s3-spec",
+      "stdout_log": "02-affected-tests.stdout.log",
+      "stderr_log": "02-affected-tests.stderr.log",
+      "error": null
+    },
+    {
+      "name": "typecheck",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 1.668,
+      "attempt": 1,
+      "argv": [
+        "node_modules/.bin/tsc",
+        "--noEmit"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-001/s3-spec",
+      "stdout_log": "03-typecheck.stdout.log",
+      "stderr_log": "03-typecheck.stderr.log",
+      "error": null
+    }
+  ],
+  "attempts": [
+    {
+      "number": 1,
+      "checks": [
+        "docs-diff-check",
+        "affected-tests",
+        "typecheck"
+      ],
+      "statuses": {
+        "docs-diff-check": "passed",
+        "affected-tests": "passed",
+        "typecheck": "passed"
+      }
+    }
+  ]
+}

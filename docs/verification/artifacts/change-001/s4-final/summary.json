@@ -1,0 +1,100 @@
+{
+  "contract_version": 2,
+  "name": "s4-final",
+  "status": "failed",
+  "counts": {
+    "passed": 3,
+    "failed": 1,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 3,
+  "skipped": 0,
+  "total": 4,
+  "results": [
+    {
+      "name": "full-tests",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 5.528,
+      "attempt": 1,
+      "argv": [
+        "node_modules/.bin/vitest",
+        "run"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-001/s4-final",
+      "stdout_log": "01-full-tests.stdout.log",
+      "stderr_log": "01-full-tests.stderr.log",
+      "error": null
+    },
+    {
+      "name": "typecheck",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 1.869,
+      "attempt": 1,
+      "argv": [
+        "node_modules/.bin/tsc",
+        "--noEmit"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-001/s4-final",
+      "stdout_log": "02-typecheck.stdout.log",
+      "stderr_log": "02-typecheck.stderr.log",
+      "error": null
+    },
+    {
+      "name": "build",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 1.869,
+      "attempt": 1,
+      "argv": [
+        "node_modules/.bin/tsc",
+        "-p",
+        "tsconfig.json"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-001/s4-final",
+      "stdout_log": "03-build.stdout.log",
+      "stderr_log": "03-build.stderr.log",
+      "error": null
+    },
+    {
+      "name": "diff-check",
+      "status": "failed",
+      "exit_code": 2,
+      "duration_seconds": 0.01,
+      "attempt": 1,
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-001/s4-final",
+      "stdout_log": "04-diff-check.stdout.log",
+      "stderr_log": "04-diff-check.stderr.log",
+      "error": null
+    }
+  ],
+  "attempts": [
+    {
+      "number": 1,
+      "checks": [
+        "full-tests",
+        "typecheck",
+        "build",
+        "diff-check"
+      ],
+      "statuses": {
+        "full-tests": "passed",
+        "typecheck": "passed",
+        "build": "passed",
+        "diff-check": "failed"
+      }
+    }
+  ]
+}

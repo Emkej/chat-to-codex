@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "task_id": "change-001-wsl-access-to-windows-created-worktrees",
+  "manifest": "docs/verification/artifacts/change-001/task-ownership.json",
+  "reconciled_at": "2026-09-23T14:42:06+02:00",
+  "pre_existing_paths_preserved": [
+    "README.md",
+    "bin/c2c.js",
+    "package.json",
+    "src/auth/html.ts",
+    "src/auth/oauth.ts",
+    "src/cli/index.ts",
+    "tests/oauth.test.ts",
+    "bin/c2ct.js",
+    "docs/changes/change-001-wsl-access-to-windows-created-worktrees.md:Zone.Identifier",
+    "docs/specs/spec-001-worktree-aware-workspace-access-consolidated.md:Zone.Identifier",
+    "work/c2c-test-codex-home/config.toml",
+    "work/c2c-test-home/profiles/spec001-chatgpt/agent-sessions/aa044b947ac1.json",
+    "work/c2c-test-home/profiles/spec001-chatgpt/auth/c2c_inst_-lOMTvZdSaw_EPa5S2yrBA.json",
+    "work/c2c-test-home/profiles/spec001-chatgpt/installation.json",
+    "work/c2c-test-home/profiles/spec001-chatgpt/runtime/c2c_inst_-lOMTvZdSaw_EPa5S2yrBA.json",
+    "work/c2c-test-home/profiles/spec001-chatgpt/tunnels/installation.json",
+    "work/c2c-test-home/profiles/spec001-chatgpt/workspaces/registry.json",
+    "work/c2c-test-home/profiles/spec001-chatgpt/workspaces/sessions.json",
+    "work/chatgpt-e2e-worktree/",
+    "work/tools/cloudflared"
+  ],
+  "manifested_path_not_present_at_reconcile": [
+    "work/bin/c2ct.js"
+  ],
+  "task_owned_paths_changed": [
+    "src/workspace/worktrees.ts",
+    "src/workspace/git.ts",
+    "tests/worktrees.test.ts",
+    "tests/git.test.ts",
+    "src/mcp/server.ts",
+    "tests/mcp-worktrees.test.ts",
+    "docs/specs/spec-001-worktree-aware-workspace-access-consolidated.md",
+    "docs/changes/change-001-wsl-access-to-windows-created-worktrees.md",
+    "docs/verification/artifacts/change-001/"
+  ],
+  "repository_status_check": "passed; one manifest-listed generated file was absent and was not recreated without an original snapshot",
+  "aggregate_diff_check": "blocked by pre-existing trailing whitespace in tests/oauth.test.ts",
+  "task_scoped_diff_check": "passed",
+  "untracked_change_source_whitespace": "passed"
+}

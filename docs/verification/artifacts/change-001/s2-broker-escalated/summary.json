@@ -1,0 +1,64 @@
+{
+  "contract_version": 2,
+  "name": "s2-broker-escalated",
+  "status": "passed",
+  "counts": {
+    "passed": 2,
+    "failed": 0,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 2,
+  "skipped": 0,
+  "total": 2,
+  "results": [
+    {
+      "name": "broker-contract",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 1.774,
+      "attempt": 1,
+      "argv": [
+        "node_modules/.bin/vitest",
+        "run",
+        "tests/broker.test.ts"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-001/s2-broker-escalated",
+      "stdout_log": "01-broker-contract.stdout.log",
+      "stderr_log": "01-broker-contract.stderr.log",
+      "error": null
+    },
+    {
+      "name": "legacy-contract",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 1.719,
+      "attempt": 1,
+      "argv": [
+        "node_modules/.bin/vitest",
+        "run",
+        "tests/mcp-integration.test.ts"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-001/s2-broker-escalated",
+      "stdout_log": "02-legacy-contract.stdout.log",
+      "stderr_log": "02-legacy-contract.stderr.log",
+      "error": null
+    }
+  ],
+  "attempts": [
+    {
+      "number": 1,
+      "checks": [
+        "broker-contract",
+        "legacy-contract"
+      ],
+      "statuses": {
+        "broker-contract": "passed",
+        "legacy-contract": "passed"
+      }
+    }
+  ]
+}
