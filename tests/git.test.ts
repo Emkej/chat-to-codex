@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import fs from "node:fs";
 import path from "node:path";
 import { gitDiff, gitInfo, gitStatus } from "../src/workspace/git.js";
 import { makeTmpDir, cleanup, write, makeGitRepo, git } from "./helpers.js";
@@ -70,6 +71,36 @@ describe("gitInfo", () => {
         else process.env[name] = value;
       }
       cleanup(redirected);
+    }
+  });
+
+  it("uses an explicit linked-worktree gitDir for info, status, and diff", () => {
+    const base = makeTmpDir("git-explicit-target");
+    const linked = path.join(base, "linked");
+    fs.mkdirSync(linked, { recursive: true });
+    makeGitRepo(base);
+    let linkedAdded = false;
+    try {
+      git(base, "worktree", "add", "-b", "explicit-target", linked);
+      linkedAdded = true;
+      const rawGitDir = git(linked, "rev-parse", "--git-dir").trim();
+      const gitDir = fs.realpathSync.native(path.isAbsolute(rawGitDir) ? rawGitDir : path.resolve(linked, rawGitDir));
+
+      write(linked, "hello.txt", "explicit target change\n");
+      write(linked, "selected.txt", "selected worktree\n");
+      write(linked, ".env", "EXPLICIT_SECRET=must-not-leak\n");
+      git(linked, "add", "-f", ".env");
+
+      const target = { root: fs.realpathSync.native(linked), gitDir };
+      expect(gitInfo(target)).toMatchObject({ isRepo: true, branch: "explicit-target", dirty: true });
+      expect(gitStatus(target).untracked).toContain("selected.txt");
+      const diff = gitDiff(target, { mode: "head" });
+      expect(diff.isRepo).toBe(true);
+      expect(diff.diff).toContain("explicit target change");
+      expect(diff.diff).not.toContain("EXPLICIT_SECRET");
+    } finally {
+      if (linkedAdded) git(base, "worktree", "remove", "--force", linked);
+      cleanup(base);
     }
   });
 });

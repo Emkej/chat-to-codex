@@ -25,8 +25,28 @@ export interface GitCommandResult {
   code: number | null;
 }
 
-export function runGit(root: string, args: string[]): GitCommandResult {
-  const result = spawnSync("git", args, {
+export interface WorkspaceLike {
+  root: string;
+  ignoreRules?: IgnoreRules;
+  /** Internal-only linked-worktree administrative directory. */
+  gitDir?: string;
+}
+
+export type GitTarget = string | WorkspaceLike;
+
+export function runGit(root: string, args: string[], gitDir?: string): GitCommandResult;
+export function runGit(target: GitTarget, args: string[]): GitCommandResult;
+export function runGit(
+  targetOrRoot: GitTarget,
+  args: string[],
+  explicitGitDir?: string
+): GitCommandResult {
+  const root = typeof targetOrRoot === "string" ? targetOrRoot : targetOrRoot.root;
+  const gitDir = typeof targetOrRoot === "string" ? explicitGitDir : targetOrRoot.gitDir;
+  const gitArgs = gitDir
+    ? ["--git-dir", gitDir, "--work-tree", root, ...args]
+    : args;
+  const result = spawnSync("git", gitArgs, {
     cwd: root,
     encoding: "utf8",
     env: sanitizedGitEnvironment(),
@@ -48,16 +68,16 @@ export interface GitInfo {
   dirty: boolean;
 }
 
-export function gitInfo(root: string): GitInfo {
-  const check = runGit(root, ["rev-parse", "--is-inside-work-tree"]);
+export function gitInfo(target: GitTarget): GitInfo {
+  const check = runGit(target, ["rev-parse", "--is-inside-work-tree"]);
   if (!check.ok || check.stdout.trim() !== "true") {
     return { isRepo: false, branch: null, commit: null, dirty: false };
   }
-  const branch = runGit(root, ["rev-parse", "--abbrev-ref", "HEAD"]);
-  const commit = runGit(root, ["rev-parse", "--short", "HEAD"]);
+  const branch = runGit(target, ["rev-parse", "--abbrev-ref", "HEAD"]);
+  const commit = runGit(target, ["rev-parse", "--short", "HEAD"]);
   // Pathspec confines the result to the workspace subtree even when the
   // workspace root sits inside a larger repository.
-  const status = runGit(root, ["status", "--porcelain", "--", "."]);
+  const status = runGit(target, ["status", "--porcelain", "--", "."]);
   return {
     isRepo: true,
     branch: branch.ok ? branch.stdout.trim() : null,
@@ -78,7 +98,7 @@ export interface GitStatusResult {
   conflicted: string[];
 }
 
-export function gitStatus(root: string): GitStatusResult {
+export function gitStatus(target: GitTarget): GitStatusResult {
   const empty: GitStatusResult = {
     isRepo: false,
     branch: null,
@@ -90,7 +110,7 @@ export function gitStatus(root: string): GitStatusResult {
     untracked: [],
     conflicted: [],
   };
-  const result = runGit(root, ["status", "--porcelain=v2", "--branch", "--", "."]);
+  const result = runGit(target, ["status", "--porcelain=v2", "--branch", "--", "."]);
   if (!result.ok) return empty;
   const out: GitStatusResult = { ...empty, isRepo: true };
   for (const line of result.stdout.split("\n")) {
@@ -143,13 +163,6 @@ export interface GitDiffResult {
   nextOffset: number | null;
   diff: string;
 }
-
-export interface WorkspaceLike {
-  root: string;
-  ignoreRules?: IgnoreRules;
-}
-
-export type GitTarget = string | WorkspaceLike;
 
 function getDiffModeArgs(mode: DiffMode): string[] {
   if (mode === "staged") return ["--cached"];
@@ -212,7 +225,7 @@ export function gitDiff(
     "--",
     ".",
   ];
-  const listResult = runGit(root, listArgs);
+  const listResult = runGit(target, listArgs);
   if (!listResult.ok) {
     return {
       isRepo: false,
@@ -284,7 +297,7 @@ export function gitDiff(
       "--",
       ...pathspecs,
     ];
-    const diffResult = runGit(root, diffArgs);
+    const diffResult = runGit(target, diffArgs);
     if (!diffResult.ok) {
       // Fail closed on any batch error: never return partial silent success
       return {

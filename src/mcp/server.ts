@@ -3,12 +3,13 @@ import { z } from "zod";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { Workspace, WorkspaceError } from "../workspace/manager.js";
 import { searchWorkspace } from "../workspace/search.js";
-import { gitDiff, gitInfo, gitStatus, type DiffMode } from "../workspace/git.js";
+import { gitDiff, gitInfo, gitStatus, type DiffMode, type GitTarget } from "../workspace/git.js";
 import {
   assertDerivedWorktreeCurrent,
   discoverDerivedWorktrees,
   resolveDerivedWorktree,
   WorktreeError,
+  type WorktreeResolutionOptions,
   type WorktreeRunner,
 } from "../workspace/worktrees.js";
 import { latestExecutionRecord, readExecutionRecords } from "../execution/records.js";
@@ -78,7 +79,20 @@ export interface McpContext {
   sessions?: SessionRegistry;
   /** Injectable only for focused domain tests; production uses the Git runner. */
   worktreeRunner?: WorktreeRunner;
+  /** Injectable path/distro adapters for focused cross-namespace tests. */
+  worktreeOptions?: WorktreeResolutionOptions;
   logger: Logger;
+}
+
+type ResolvedTarget = {
+  workspace: Workspace;
+  registration: WorkspaceRegistration | null;
+  worktreeId?: string;
+  gitTarget: GitTarget;
+};
+
+function brokerWorktreeOptions(ctx: McpContext): WorktreeResolutionOptions {
+  return { ...ctx.worktreeOptions, allowCrossNamespace: true };
 }
 
 /**
@@ -90,7 +104,7 @@ export interface McpContext {
 function resolveTarget(
   ctx: McpContext,
   args: { workspace?: string; worktree?: string }
-): { workspace: Workspace; registration: WorkspaceRegistration | null; worktreeId?: string } | ToolResult {
+): ResolvedTarget | ToolResult {
   if (ctx.workspace) {
     if (args.workspace && args.workspace !== ctx.workspace.id) {
       return fail("UNKNOWN_WORKSPACE", `Unknown workspace id for this bridge: ${args.workspace}`);
@@ -98,7 +112,7 @@ function resolveTarget(
     if (args.worktree !== undefined) {
       return fail("WORKTREE_UNSUPPORTED", "Worktree selection is available only through the installation broker.");
     }
-    return { workspace: ctx.workspace, registration: null };
+    return { workspace: ctx.workspace, registration: null, gitTarget: ctx.workspace };
   }
   if (!ctx.registry) {
     return fail("NO_WORKSPACE_CONTEXT", "No workspace context is configured on this server.");
@@ -118,18 +132,30 @@ function resolveTarget(
   try {
     // Constructing re-canonicalizes the root: a deleted or moved workspace
     // fails closed here instead of resolving somewhere unexpected.
-    if (args.worktree === undefined) return { workspace: new Workspace(registration.canonicalRoot), registration };
+    if (args.worktree === undefined) {
+      const workspace = new Workspace(registration.canonicalRoot);
+      return { workspace, registration, gitTarget: workspace };
+    }
     const selected = resolveDerivedWorktree(
       registration.canonicalRoot,
       args.worktree,
-      ctx.worktreeRunner
+      ctx.worktreeRunner,
+      brokerWorktreeOptions(ctx)
     );
     const workspace = new Workspace(selected.root);
-    assertDerivedWorktreeCurrent(registration.canonicalRoot, selected, ctx.worktreeRunner);
+    assertDerivedWorktreeCurrent(
+      registration.canonicalRoot,
+      selected,
+      ctx.worktreeRunner,
+      brokerWorktreeOptions(ctx)
+    );
     return {
       workspace,
       registration,
       worktreeId: selected.worktreeId,
+      gitTarget: selected.gitDir
+        ? { root: workspace.root, ignoreRules: workspace.ignoreRules, gitDir: selected.gitDir }
+        : workspace,
     };
   } catch (error) {
     if (error instanceof WorktreeError) return mapError(error);
@@ -210,7 +236,8 @@ export function createMcpServer(ctx: McpContext): McpServer {
         try {
           const worktrees = discoverDerivedWorktrees(
             target.registration.canonicalRoot,
-            ctx.worktreeRunner
+            ctx.worktreeRunner,
+            brokerWorktreeOptions(ctx)
           ).map(({ worktreeId, branch, commit }) => ({
             worktree_id: worktreeId,
             branch,
@@ -242,7 +269,7 @@ export function createMcpServer(ctx: McpContext): McpServer {
       const { workspace, registration } = target;
       try {
         const project = workspace.detectProject();
-        const git = gitInfo(workspace.root);
+        const git = gitInfo(target.gitTarget);
         return ok({
           // Report the registry id Claude addressed (broker mode); the
           // internal root-hash id stays an implementation detail.
@@ -366,7 +393,7 @@ export function createMcpServer(ctx: McpContext): McpServer {
       const target = resolveTarget(ctx, args);
       if ("content" in target) return target;
       try {
-        return ok(gitStatus(target.workspace.root));
+        return ok(gitStatus(target.gitTarget));
       } catch (error) {
         return mapError(error);
       }
@@ -402,7 +429,7 @@ export function createMcpServer(ctx: McpContext): McpServer {
         }
         return ok(
           gitDiff(
-            workspace,
+            target.gitTarget,
             { mode: args.mode as DiffMode, offset: args.offset, maxBytes: args.max_bytes },
             relPath
           )

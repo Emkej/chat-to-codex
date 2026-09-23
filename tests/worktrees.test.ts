@@ -9,6 +9,14 @@ function result(stdout = ""): { ok: true; stdout: string; stderr: string; code: 
   return { ok: true, stdout, stderr: "", code: 0 };
 }
 
+function wslUnc(localPath: string, distro = "Ubuntu"): string {
+  return `//wsl$/${distro}${localPath}`;
+}
+
+function wslUncBackslash(localPath: string, distro = "Ubuntu"): string {
+  return wslUnc(localPath, distro).replace(/\//g, "\\");
+}
+
 describe("worktree domain", () => {
   it("parses branch, detached, locked and prunable records without paths in public metadata", () => {
     const records = parseWorktreePorcelainZ(
@@ -168,6 +176,172 @@ describe("worktree domain", () => {
       cleanup(detached);
       cleanup(locked);
       cleanup(path.dirname(missing));
+    }
+  });
+
+  it("resolves a current-distro WSL pointer for a prunable Windows-root candidate", () => {
+    const main = makeTmpDir("worktree-wsl-main");
+    const linked = makeTmpDir("worktree-wsl-linked");
+    makeGitRepo(main);
+    const repositoryIdentity = fs.realpathSync.native(path.join(main, ".git"));
+    const gitDir = path.join(repositoryIdentity, "worktrees", "cross-namespace");
+    fs.mkdirSync(gitDir, { recursive: true });
+    const windowsRoot = "C:/Users/test/.codex/worktrees/cross-namespace/repo";
+    fs.writeFileSync(path.join(linked, ".git"), `gitdir: ${wslUnc(gitDir)}\n`);
+    fs.writeFileSync(path.join(gitDir, "gitdir"), `${wslUncBackslash(path.join(linked, ".git"))}\n`);
+    const output = [
+      `worktree ${main}`,
+      "HEAD 1111111111111111111111111111111111111111",
+      "branch refs/heads/main",
+      "",
+      `worktree ${windowsRoot}`,
+      "HEAD 2222222222222222222222222222222222222222",
+      "branch refs/heads/cross-namespace",
+      "prunable C:/Users/test/.codex/worktrees/cross-namespace/repo",
+    ].join("\0");
+    const runner: WorktreeRunner = (root, args, explicitGitDir) => {
+      const command = args.join(" ");
+      if (command === "rev-parse --is-inside-work-tree") return result("true\n");
+      if (command === "worktree list --porcelain -z") return result(output);
+      if (command === "rev-parse --show-toplevel") {
+        if (root === main) return result(`${main}\n`);
+        return explicitGitDir === gitDir ? result(`${linked}\n`) : { ok: false, stdout: "", stderr: "", code: 1 };
+      }
+      if (command === "rev-parse --git-common-dir") {
+        if (root === main) return result(`${repositoryIdentity}\n`);
+        return explicitGitDir === gitDir ? result(`${repositoryIdentity}\n`) : { ok: false, stdout: "", stderr: "", code: 1 };
+      }
+      return { ok: false, stdout: "", stderr: "", code: 1 };
+    };
+    const options = {
+      allowCrossNamespace: true,
+      wslDistro: "Ubuntu",
+      resolveWslPath: (input: string) => (input === windowsRoot ? linked : null),
+    };
+
+    try {
+      const [candidate] = discoverDerivedWorktrees(main, runner, options);
+      expect(candidate).toMatchObject({ root: linked, gitDir, branch: "cross-namespace" });
+      expect(resolveDerivedWorktree(main, candidate.worktreeId, runner, options)).toMatchObject({ root: linked, gitDir });
+      expect(() => assertDerivedWorktreeCurrent(main, candidate, runner, options)).not.toThrow();
+      fs.writeFileSync(path.join(linked, ".git"), `gitdir: ${wslUnc(path.join(repositoryIdentity, "worktrees", "changed"))}\n`);
+      expect(() => assertDerivedWorktreeCurrent(main, candidate, runner, options)).toThrowError(
+        expect.objectContaining({ code: "UNKNOWN_WORKTREE" })
+      );
+      expect(discoverDerivedWorktrees(main, runner)).toEqual([]);
+    } finally {
+      cleanup(main);
+      cleanup(linked);
+    }
+  });
+
+  it("discovers a current-distro UNC root from live Git metadata", () => {
+    const base = makeTmpDir("worktree-live-unc");
+    const main = path.join(base, "main");
+    const linked = path.join(base, "linked");
+    fs.mkdirSync(main, { recursive: true });
+    makeGitRepo(main);
+    let linkedAdded = false;
+    let gitDir = "";
+    let originalWorktreeGit = "";
+    let originalAdminGitdir = "";
+
+    try {
+      git(main, "worktree", "add", "-b", "live-unc", linked);
+      linkedAdded = true;
+      const canonicalLinked = fs.realpathSync.native(linked);
+      const rawGitDir = git(linked, "rev-parse", "--git-dir").trim();
+      gitDir = fs.realpathSync.native(path.isAbsolute(rawGitDir) ? rawGitDir : path.resolve(linked, rawGitDir));
+      originalWorktreeGit = fs.readFileSync(path.join(linked, ".git"), "utf8");
+      originalAdminGitdir = fs.readFileSync(path.join(gitDir, "gitdir"), "utf8");
+      fs.writeFileSync(path.join(linked, ".git"), `gitdir: ${wslUnc(gitDir)}\n`);
+      fs.writeFileSync(path.join(gitDir, "gitdir"), `${wslUnc(path.join(canonicalLinked, ".git"))}\n`);
+
+      const [candidate] = discoverDerivedWorktrees(main, undefined, {
+        allowCrossNamespace: true,
+        wslDistro: "Ubuntu",
+      });
+      expect(candidate).toMatchObject({ root: canonicalLinked, gitDir, branch: "live-unc" });
+    } finally {
+      if (linkedAdded) {
+        fs.writeFileSync(path.join(linked, ".git"), originalWorktreeGit);
+        fs.writeFileSync(path.join(gitDir, "gitdir"), originalAdminGitdir);
+        git(main, "worktree", "remove", "--force", linked);
+      }
+      cleanup(base);
+    }
+  });
+
+  it("fails closed for missing, foreign-distro, foreign-repository, outside-admin, and mismatched pairs", () => {
+    const main = makeTmpDir("worktree-wsl-reject-main");
+    const linked = makeTmpDir("worktree-wsl-reject-linked");
+    const foreign = makeTmpDir("worktree-wsl-reject-foreign");
+    makeGitRepo(main);
+    makeGitRepo(foreign);
+    const repositoryIdentity = fs.realpathSync.native(path.join(main, ".git"));
+    const foreignIdentity = fs.realpathSync.native(path.join(foreign, ".git"));
+    const gitDir = path.join(repositoryIdentity, "worktrees", "cross-namespace");
+    const outsideGitDir = path.join(makeTmpDir("worktree-wsl-outside"), "admin");
+    fs.mkdirSync(gitDir, { recursive: true });
+    fs.mkdirSync(outsideGitDir, { recursive: true });
+    const windowsRoot = "C:/Users/test/.codex/worktrees/reject/repo";
+    const output = [
+      `worktree ${main}`,
+      "HEAD 1111111111111111111111111111111111111111",
+      "branch refs/heads/main",
+      "",
+      `worktree ${windowsRoot}`,
+      "HEAD 2222222222222222222222222222222222222222",
+      "branch refs/heads/reject",
+      "prunable C:/Users/test/.codex/worktrees/reject/repo",
+    ].join("\0");
+    const resolveRoot = (input: string): string | null => (input === windowsRoot ? linked : null);
+    const baseRunner: WorktreeRunner = (root, args, explicitGitDir) => {
+      const command = args.join(" ");
+      if (command === "rev-parse --is-inside-work-tree") return result("true\n");
+      if (command === "worktree list --porcelain -z") return result(output);
+      if (command === "rev-parse --show-toplevel") {
+        if (root === main) return result(`${main}\n`);
+        return explicitGitDir ? result(`${linked}\n`) : { ok: false, stdout: "", stderr: "", code: 1 };
+      }
+      if (command === "rev-parse --git-common-dir") {
+        if (root === main) return result(`${repositoryIdentity}\n`);
+        return explicitGitDir === foreignIdentity ? result(`${foreignIdentity}\n`) : result(`${repositoryIdentity}\n`);
+      }
+      return { ok: false, stdout: "", stderr: "", code: 1 };
+    };
+    const options = {
+      allowCrossNamespace: true,
+      wslDistro: "Ubuntu",
+      resolveWslPath: resolveRoot,
+    };
+
+    try {
+      expect(discoverDerivedWorktrees(main, baseRunner, options)).toHaveLength(0);
+
+      fs.writeFileSync(path.join(linked, ".git"), `gitdir: ${wslUnc(gitDir, "OtherDistro")}\n`);
+      fs.writeFileSync(path.join(gitDir, "gitdir"), `${wslUnc(path.join(linked, ".git"))}\n`);
+      expect(discoverDerivedWorktrees(main, baseRunner, options)).toHaveLength(0);
+
+      fs.writeFileSync(path.join(linked, ".git"), `gitdir: ${gitDir}\n`);
+      fs.writeFileSync(path.join(gitDir, "gitdir"), `${path.join(linked, ".git")}\n`);
+      expect(discoverDerivedWorktrees(main, baseRunner, options)).toHaveLength(0);
+
+      fs.writeFileSync(path.join(linked, ".git"), `gitdir: ${wslUnc(outsideGitDir)}\n`);
+      fs.writeFileSync(path.join(outsideGitDir, "gitdir"), `${wslUnc(path.join(linked, ".git"))}\n`);
+      expect(discoverDerivedWorktrees(main, baseRunner, options)).toHaveLength(0);
+
+      fs.writeFileSync(path.join(linked, ".git"), `gitdir: ${wslUnc(gitDir)}\n`);
+      fs.writeFileSync(path.join(gitDir, "gitdir"), `${wslUnc(foreign)}\n`);
+      expect(discoverDerivedWorktrees(main, baseRunner, options)).toHaveLength(0);
+
+      fs.writeFileSync(path.join(gitDir, "gitdir"), `${wslUnc(path.join(foreign, ".git"))}\n`);
+      expect(discoverDerivedWorktrees(main, baseRunner, options)).toHaveLength(0);
+    } finally {
+      cleanup(main);
+      cleanup(linked);
+      cleanup(foreign);
+      cleanup(path.dirname(outsideGitDir));
     }
   });
 
