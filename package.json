@@ -5,7 +5,8 @@
   "type": "module",
   "license": "MIT",
   "bin": {
-    "c2c": "./bin/c2c.js"
+    "c2c": "./bin/c2c.js",
+    "c2ct": "./bin/c2ct.js"
   },
   "engines": {
     "node": ">=20"

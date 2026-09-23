@@ -1223,6 +1223,10 @@ program
       for (const entry of ["dist", "bin", "skill"]) {
         fs.cpSync(path.join(appRoot, entry), path.join(homeApp, entry), { recursive: true });
       }
+      const installedLauncher = path.join(homeApp, "bin", "c2c.js");
+      const launcherText = fs.readFileSync(installedLauncher, "utf8");
+      const normalizedLauncher = launcherText.replace(/^#!\/usr\/bin\/env node\r\n/, "#!/usr/bin/env node\n");
+      if (normalizedLauncher !== launcherText) fs.writeFileSync(installedLauncher, normalizedLauncher);
       fs.copyFileSync(path.join(appRoot, "package.json"), path.join(homeApp, "package.json"));
       fs.copyFileSync(path.join(appRoot, "pnpm-lock.yaml"), path.join(homeApp, "pnpm-lock.yaml"));
       const pnpmInstall = spawnSync("pnpm", ["install", "--prod", "--frozen-lockfile"], {
@@ -1236,7 +1240,7 @@ program
         );
       }
 
-      // 2. launcher: ~/.c2c/bin/c2c -> ../app/bin/c2c.js, and the systemwide link
+      // 2. launchers: ~/.c2c/bin/c2c and ~/.c2c/bin/c2ct -> ../app/bin/*, plus systemwide links
       const launcher = path.join(homeBin, "c2c");
       fs.rmSync(launcher, { force: true });
       fs.symlinkSync("../app/bin/c2c.js", launcher);
@@ -1246,6 +1250,16 @@ program
         fs.symlinkSync(launcher, systemLink);
       } catch {
         say(`· Could not update ${systemLink} — link it manually: sudo ln -sf ${launcher} ${systemLink}`);
+      }
+      const testLauncher = path.join(homeBin, "c2ct");
+      fs.rmSync(testLauncher, { force: true });
+      fs.symlinkSync("../app/bin/c2ct.js", testLauncher);
+      const testSystemLink = "/usr/local/bin/c2ct";
+      try {
+        fs.rmSync(testSystemLink, { force: true });
+        fs.symlinkSync(testLauncher, testSystemLink);
+      } catch {
+        say(`· Could not update ${testSystemLink} — link it manually: sudo ln -sf ${testLauncher} ${testSystemLink}`);
       }
 
       // 3. non-destructive state migration from the OS-convention directory
@@ -1263,11 +1277,22 @@ program
       fs.copyFileSync(path.join(appRoot, "skill", "SKILL.md"), path.join(skillDir, "SKILL.md"));
 
       if (opts.json) {
-        say(JSON.stringify({ ok: true, home, app: homeApp, state: homeState, migrated }));
+        say(
+          JSON.stringify({
+            ok: true,
+            home,
+            app: homeApp,
+            state: homeState,
+            launcher: systemLink,
+            testLauncher: testSystemLink,
+            migrated,
+          })
+        );
         return;
       }
       check(`App installed: ${homeApp}`);
       check(`Launcher: ${systemLink} -> ${launcher}`);
+      check(`Test launcher: ${testSystemLink} -> ${testLauncher}`);
       check(`Codex skill: ${skillDir}`);
       check(migrated ? `State migrated: ${osRoot} -> ${homeState} (original kept)` : `State: ${homeState}`);
       say("");
