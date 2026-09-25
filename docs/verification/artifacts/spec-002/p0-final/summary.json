@@ -1,0 +1,103 @@
+{
+  "contract_version": 2,
+  "name": "p0-final",
+  "status": "passed",
+  "counts": {
+    "passed": 4,
+    "failed": 0,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 4,
+  "skipped": 0,
+  "total": 4,
+  "results": [
+    {
+      "name": "typecheck",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 1.972,
+      "attempt": 1,
+      "argv": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "--noEmit"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/spec-002/p0-final",
+      "stdout_log": "01-typecheck.stdout.log",
+      "stderr_log": "01-typecheck.stderr.log",
+      "error": null
+    },
+    {
+      "name": "build",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 2.123,
+      "attempt": 1,
+      "argv": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.json"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/spec-002/p0-final",
+      "stdout_log": "02-build.stdout.log",
+      "stderr_log": "02-build.stderr.log",
+      "error": null
+    },
+    {
+      "name": "tests",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 6.915,
+      "attempt": 1,
+      "argv": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/spec-002/p0-final",
+      "stdout_log": "03-tests.stdout.log",
+      "stderr_log": "03-tests.stderr.log",
+      "error": null
+    },
+    {
+      "name": "probe-surface-absent",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.034,
+      "attempt": 1,
+      "argv": [
+        "node",
+        "-e",
+        "const fs=require('fs'); const paths=['src/mcp/write-probes.ts','tests/mcp-write-probes.test.ts']; if(paths.some(fs.existsSync)) process.exit(1); console.log('probe source/test files absent');"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/spec-002/p0-final",
+      "stdout_log": "04-probe-surface-absent.stdout.log",
+      "stderr_log": "04-probe-surface-absent.stderr.log",
+      "error": null
+    }
+  ],
+  "attempts": [
+    {
+      "number": 1,
+      "checks": [
+        "typecheck",
+        "build",
+        "tests",
+        "probe-surface-absent"
+      ],
+      "statuses": {
+        "typecheck": "passed",
+        "build": "passed",
+        "tests": "passed",
+        "probe-surface-absent": "passed"
+      }
+    }
+  ]
+}

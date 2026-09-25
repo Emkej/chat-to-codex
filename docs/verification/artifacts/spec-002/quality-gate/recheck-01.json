@@ -1,0 +1,51 @@
+{
+  "reviewDate": "2026-09-23",
+  "baselineCommit": "0437169",
+  "spec": "docs/specs/spec-002-approved-local-patch-writes.md",
+  "specSha256": "6241a7cd75f88beb6a28e63fb4ced813afc227a36a9920335609af73bba17c1b",
+  "previousReview": "summary.json",
+  "verdict": "needs-two-focused-plan-corrections",
+  "scope": "Recheck of revised plan against previous findings and current target-resolution contracts; no spec or implementation edits.",
+  "previousFindings": [
+    { "id": 1, "status": "addressed-in-plan", "section": "7.3" },
+    { "id": 2, "status": "addressed-in-plan", "section": "10.3" },
+    { "id": 3, "status": "addressed-in-plan", "section": "24.2" },
+    { "id": 4, "status": "addressed-in-plan", "section": "14.4" },
+    { "id": 5, "status": "addressed-with-optional-wording-correction", "sections": ["14.3", "14.4", "32"] },
+    { "id": 6, "status": "addressed-in-plan", "section": "12" },
+    { "id": 7, "status": "partially-addressed", "remainingLines": [76, 1632] }
+  ],
+  "findings": [
+    {
+      "severity": "Important",
+      "line": 1592,
+      "problem": "Git-toplevel-first cwd selection skips an explicitly registered subdirectory and can implicitly approve a request for the parent workspace.",
+      "fix": "Preserve explicit registration precedence when resolving the containing target; use Git/worktree derivation without widening a registered subtree. Cover nested registrations, subdirectory-only registration, and derived-worktree descendants."
+    },
+    {
+      "severity": "Important",
+      "lines": [76, 1632],
+      "problem": "The summary and manual-fallback section still require both probes to be blocked, contradicting the authoritative matrix for A supported/B blocked.",
+      "fix": "Replace the duplicated condition with a reference to section 17.4: manual import ships when Probe B is blocked, regardless of Probe A."
+    },
+    {
+      "severity": "Optional",
+      "lines": [1017, 2789],
+      "problem": "Rollback wording promises unconditional protection from external edits, although a hash check followed by restore/unlink has the same check/use race documented for forward updates.",
+      "fix": "Apply the documented external-concurrency limitation to rollback as well; promise refusal on a detected mismatch rather than unconditional protection."
+    }
+  ],
+  "validation": {
+    "registeredSubdirectoryPrecedence": {
+      "method": "Initialize a disposable Git repository with a package child; register both roots; compare resolveLocalTarget(cwd) with resolveLocalTarget(gitToplevel).",
+      "result": "reproduced",
+      "gitToplevelIsParent": true,
+      "existingExactSelection": "fixture-package",
+      "specifiedGitFirstSelection": "fixture-main",
+      "cleanup": "Temporary repository removed by shell EXIT trap.",
+      "limitation": "Validates the existing resolver with inputs prescribed by the revised plan, not an implemented write CLI. Initial Node-child-process attempt hit spawnSync EPERM; shell-driven fixture completed successfully without escalation."
+    },
+    "capabilityConditions": "Static comparison found two remaining contradictory conditions at lines 76 and 1632.",
+    "notRun": ["full regression suite", "typecheck", "build", "live ChatGPT compatibility probes", "write runtime acceptance"]
+  }
+}

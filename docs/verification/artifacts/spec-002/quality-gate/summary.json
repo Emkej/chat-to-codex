@@ -1,0 +1,77 @@
+{
+  "reviewDate": "2026-09-23",
+  "baseline": {
+    "commit": "0437169",
+    "branch": "feat/worktree-support",
+    "spec": "docs/specs/spec-002-approved-local-patch-writes.md",
+    "specSha256": "e7f2e7367a52330aaba5af421298b5cc4f4217a0982a04015e9f4139939b2720"
+  },
+  "verdict": "needs-revision-before-production-write-implementation",
+  "scope": "Plan review and isolated prerequisite checks; no implementation or spec edits.",
+  "checks": [
+    {
+      "name": "singleton-with-occupied-preferred-port",
+      "method": "Occupy an ephemeral loopback port with an unrelated HTTP server, then call startBroker twice with that preferred port and the same disposable state directory.",
+      "result": "reproduced",
+      "observations": {
+        "bothHealthy": true,
+        "sameInstallation": true,
+        "distinctPorts": true,
+        "runtimePointsToSecond": true
+      },
+      "limitation": "Two broker instances in one test process; independent-process startup was not exercised. The initial sandbox attempt failed with listen EPERM; the approved isolated retry succeeded. All test listeners and temporary state were removed."
+    },
+    {
+      "name": "relocated-state-read-policy",
+      "method": "Set C2C_STATE_DIR to a custom-state child of a disposable workspace and resolve custom-state/workspaces.json through the existing Workspace policy.",
+      "result": "reproduced",
+      "observations": {
+        "targetWithinState": true,
+        "sensitive": false,
+        "containsDotC2cSegment": false
+      },
+      "limitation": "Tests the existing read policy and the proposed name-based denylist premise; no write implementation exists yet."
+    },
+    {
+      "name": "oauth-defaults",
+      "method": "Invoke the existing filterScopes with an omitted scope and an unsupported scope.",
+      "result": "reproduced",
+      "observations": {
+        "missingGetsAllSupportedScopes": true,
+        "unknownGetsAllSupportedScopes": true
+      },
+      "limitation": "workspace.write has not been added; the scope-expansion consequence is a plan-level inference."
+    },
+    {
+      "name": "cwd-resolution",
+      "method": "Resolve an exact registered disposable root and its docs child with Git discovery unavailable.",
+      "result": "reproduced",
+      "observations": {
+        "root": "exact",
+        "child": "unregistered"
+      },
+      "limitation": "Documents current root-only behavior; the planned CLI does not exist yet."
+    }
+  ],
+  "planGaps": [
+    "The process-local mutex depends on a single-instance guarantee that the current broker startup does not enforce for fallback ports.",
+    "Write-control protection must cover canonical resolved C2C state paths, including overrides and state-root workspace registrations.",
+    "OAuth must separate default read scopes from supported write scopes and update the currently unconditional read-only consent text.",
+    "Workspace mutation followed by terminal-receipt persistence has no defined handled persistence-failure outcome.",
+    "External edits during staging, replacement, or rollback are outside the mutex but are not explicitly excluded from stale-content guarantees.",
+    "Result-size caps do not bound source reads or rollback snapshot allocation before rejection.",
+    "Probe A supported / Probe B blocked contradicts acceptance criterion 57 and lacks one consistent capability matrix."
+  ],
+  "externalVerification": {
+    "developerModeDocumentation": "https://developers.openai.com/api/docs/guides/developer-mode",
+    "helpCenterDocumentation": "https://help.openai.com/en/articles/12584461-developer-mode-and-mcp-apps-in-chatgpt",
+    "finding": "Official developer documentation lists Plus/Pro write-tool support while the cited Help Center article still restricts full MCP support. Keep the real account probe and record host confirmation settings, including remembered approvals.",
+    "liveAccountProbe": "not-run"
+  },
+  "notRun": [
+    "pnpm test",
+    "pnpm typecheck",
+    "pnpm build",
+    "Production patch application or fault injection against a write implementation"
+  ]
+}

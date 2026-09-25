@@ -1,0 +1,61 @@
+{
+  "contract_version": 2,
+  "name": "p1-shared-write-domain",
+  "status": "passed",
+  "counts": {
+    "passed": 4,
+    "failed": 0,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 4,
+  "skipped": 0,
+  "total": 4,
+  "results": [
+    {
+      "name": "typecheck",
+      "status": "passed",
+      "exit_code": 0,
+      "argv": ["node", "node_modules/typescript/bin/tsc", "--noEmit"],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "details": "Completed with no diagnostics."
+    },
+    {
+      "name": "build",
+      "status": "passed",
+      "exit_code": 0,
+      "argv": ["node", "node_modules/typescript/bin/tsc", "-p", "tsconfig.json"],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "details": "Completed with no diagnostics."
+    },
+    {
+      "name": "full-tests",
+      "status": "passed",
+      "exit_code": 0,
+      "argv": ["node", "node_modules/vitest/vitest.mjs", "run"],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "details": "26 test files passed; 254 tests passed; no skips. Run with sandbox escalation for loopback and child-process coverage."
+    },
+    {
+      "name": "git-diff-check",
+      "status": "passed",
+      "exit_code": 0,
+      "argv": ["git", "diff", "--check"],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "details": "No tracked diff whitespace errors."
+    }
+  ],
+  "attempts": [
+    {
+      "number": 1,
+      "checks": ["typecheck", "build", "full-tests", "git-diff-check"],
+      "statuses": {
+        "typecheck": "passed",
+        "build": "passed",
+        "full-tests": "passed",
+        "git-diff-check": "passed"
+      }
+    }
+  ]
+}

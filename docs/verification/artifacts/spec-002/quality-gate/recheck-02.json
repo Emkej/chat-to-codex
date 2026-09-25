@@ -1,0 +1,36 @@
+{
+  "reviewDate": "2026-09-23",
+  "baselineCommit": "0437169",
+  "spec": "docs/specs/spec-002-approved-local-patch-writes.md",
+  "specSha256": "d99bcb7b9452fb9a558cd806c16f20c7e8df92066cefb2bf7c52e17e16685b42",
+  "previousReview": "recheck-01.json",
+  "verdict": "plan-quality-gate-pass-ready-for-phase-0",
+  "scope": "Focused static recheck of outstanding findings and their tests/acceptance criteria; no spec or implementation edits.",
+  "resolvedFindings": [
+    {
+      "name": "registered-subdirectory-precedence",
+      "status": "addressed-in-plan",
+      "evidenceLines": [1594, 1595, 1596, 1597, 1599, 2482, 2483, 2806],
+      "reason": "Explicit and validated worktree candidates are compared by containing-root depth; explicit registration wins equal-root ties. Nested-registration and derived-worktree tests and acceptance wording agree."
+    },
+    {
+      "name": "manual-fallback-capability-consistency",
+      "status": "addressed-in-plan",
+      "evidenceLines": [76, 1315, 1326, 1639, 2809, 2835],
+      "reason": "Both formerly contradictory passages now require manual import when Probe B is blocked regardless of Probe A, consistent with the matrix and acceptance criteria."
+    },
+    {
+      "name": "rollback-external-writer-guarantee",
+      "status": "addressed-in-plan",
+      "evidenceLines": [1017, 1019, 2422, 2798],
+      "reason": "Rollback explicitly shares the external-writer check/use limitation and promises refusal on detected mismatches; tests and acceptance criteria use the same bounded guarantee."
+    }
+  ],
+  "remainingFindings": [],
+  "validation": {
+    "method": "Static source/spec comparison and cross-reference review; earlier prerequisite reproductions were not repeated because implementation did not change.",
+    "earlierCriticalRequirements": "Exclusive installation writer ownership, canonical state-root protection, explicit OAuth scope defaults, bounded source reads, and receipt-persistence failure handling remain present.",
+    "notRun": ["full regression suite", "typecheck", "build", "live ChatGPT capability probes", "write runtime acceptance"],
+    "limitation": "This verdict assesses plan readiness, not implemented correctness or host compatibility."
+  }
+}
