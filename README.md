@@ -47,7 +47,7 @@ Every Claude-facing capability is read-only. Workspaces are registered locally b
 
 ## Quick start
 
-Requirements: Node.js ≥ 20, `git`, `cloudflared`, and Claude Web with custom connector support.
+Requirements: Node.js ≥ 20, `git`, `cloudflared`, and Claude Web with custom connector support. Worktree-aware access additionally requires a Git runtime that supports `git worktree list --porcelain -z`; older runtimes fail closed for derived-worktree discovery.
 
 ```bash
 git clone https://github.com/willio/chat-to-codex.git
