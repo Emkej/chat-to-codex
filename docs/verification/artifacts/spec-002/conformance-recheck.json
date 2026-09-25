@@ -136,10 +136,6 @@
       "summary": "Documents the Linux/WSL-only SPEC-002 V1 write scope."
     },
     {
-      "path": "docs/verification/artifacts/spec-002/work-state.json",
-      "summary": "Closes P8 with current Linux/WSL validation counts and no platform blocker or resume condition."
-    },
-    {
       "path": "docs/verification/artifacts/spec-002/p8-review-iteration-2.json",
       "summary": "Marks the earlier non-Linux validation condition as superseded by the V1 Linux/WSL-only platform contract."
     },
