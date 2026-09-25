@@ -199,3 +199,33 @@ Rules:
     `workspaceId` and opaque `worktreeId`; never request or transmit a
     filesystem path.
 ```
+
+## Approved patch lifecycle and verification
+
+When the selected host path supports proposal writes, ChatGPT may call
+`propose_patch` with the existing opaque `workspace` and optional `worktree`
+selectors. This requires explicitly authorized `workspace.write` and creates
+a pending local C2C request; the MCP call does not change project files. The
+user can inspect it with `c2c pending [request-id] --diff`, then run
+`c2c approve [request-id]` or `c2c reject [request-id]`. With no request id,
+the CLI uses the concrete target containing its current directory and fails on
+ambiguous selection rather than choosing across workspaces.
+
+```text
+APPLIED != VERIFIED != DONE
+```
+
+After approval, ChatGPT must use `list_write_requests` or `get_write_request`
+to recover the receipt, then use `read_file` and, when useful, `git_diff` to
+inspect every affected result against the intended change. A receipt hash is
+evidence of written bytes, not proof of semantic correctness. Only report DONE
+after that independent review. If review finds a mistake, submit a corrective
+proposal through the same approval path; never apply an additional unapproved
+mutation.
+
+This host's recorded gate is Probe A `BLOCKED` / Probe B `SUPPORTED`, so
+proposal plus local approval is the current path. See the [probe evidence](verification/artifacts/spec-002/mcp-write-probes.md).
+
+This SPEC-002 V1 write path is supported only on Linux/WSL. Windows support is
+deferred to separately validated future work; macOS is out of scope unless
+separately proposed.

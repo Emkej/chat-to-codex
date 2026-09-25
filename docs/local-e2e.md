@@ -2,6 +2,12 @@
 
 Recorded 2026-08-30 on macOS (arm64), Node v26, cloudflared 2026.8.2.
 Re-verified 2026-08-31 at commit `bd06466` (multi-workspace slices 1–7 complete).
+SPEC-002 host capability result rechecked 2026-09-24; see the [probe evidence](verification/artifacts/spec-002/mcp-write-probes.md).
+
+The earlier macOS record covers the pre-SPEC-002 local E2E flow. SPEC-002 V1
+write requests are supported and validated on Linux/WSL only; Windows support
+is deferred, macOS is out of scope, and neither platform's validation gates V1
+completion.
 
 Run the automated checklist:
 
@@ -14,9 +20,11 @@ workspaces, `list_workspaces`, scoped reads, session status, and sensitive-file
 denial — without a tunnel or Claude Web login.
 
 **Automated protocol result: YES.** A remote MCP client can connect through
-the installation broker, complete OAuth (DCR + PKCE + one-time pairing), call
-all ten broker read-only tools with opaque workspace and optional worktree ids,
-and every mutation path stays with Codex.
+the installation broker, complete OAuth (DCR + PKCE + one-time pairing), use
+scoped reads and receipts, and submit a pending patch proposal only with
+explicit `workspace.write`. Proposal creates C2C pending state without changing
+project files; local `c2c approve` is required before the broker applies it.
+There is no native direct `apply_patch` path or command-execution tool.
 
 **Claude Web UI clicks: not machine-verified.** The scripted connector client
 (`scripts/poc-client.mjs` and Vitest MCP integration tests) exercise the same
@@ -60,15 +68,44 @@ C2C_E2E_URL=https://your-host.example.com pnpm test:e2e:live
 6. **Codex cycle**: Codex mutates locally, records via
    `c2c record --task <id> --iteration <n> --tests …`, then Claude inspects
    through `git_status`, `git_diff`, `test_status`, and `execution_summary`.
+   When using the approved patch path below, Claude must inspect the resulting
+   files after local approval before reporting DONE.
+
+## SPEC-002 approved patch path
+
+The recorded host result is Probe A `BLOCKED` / Probe B `SUPPORTED`. The
+current path is:
+
+1. ChatGPT calls `propose_patch` with the same opaque `workspace` and optional
+   `worktree` as read tools; the call requires explicitly authorized
+   `workspace.write` and creates only a pending request.
+2. The user may inspect `c2c pending --diff`, then approves with
+   `c2c approve [request-id]` or rejects with `c2c reject [request-id]`.
+   Implicit selection uses the concrete target containing cwd and fails safely
+   when multiple requests match.
+3. After an applied receipt, ChatGPT calls `list_write_requests` or
+   `get_write_request`, independently reads each changed file, and inspects
+   `git_diff` when useful. `APPLIED` is not `VERIFIED` or `DONE`; hashes alone
+   are not semantic verification.
+4. If a precondition is stale, the broker persists a terminal stale/expired
+   receipt and does not apply the patch. A correction requires another
+   proposal and local approval.
+
+The clipboard/file/stdin `c2c patch` import is conditional on Probe B being
+blocked, so it is not part of this supported host configuration. Native
+`apply_patch` is conditional on Probe A being supported and is not shipped for
+this result.
 
 ## What automated tests validate
 
 - **OAuth**: DCR, PKCE S256, pairing limits, refresh rotation, RFC 7009
   revocation, unauthenticated `/mcp` → 401 with `WWW-Authenticate`.
-- **MCP surface**: ten broker read-only tools (`list_workspaces`,
-  `list_worktrees`, plus the eight workspace-scoped readers); the legacy bridge
-  remains at nine and has no `list_worktrees`. Every tool is
-  `readOnlyHint: true`; no write/exec tool exists.
+- **MCP surface**: ten scoped broker readers, one `propose_patch` tool
+  (`readOnlyHint: false`, `destructiveHint: false`, `openWorldHint: false`),
+  and two read-only receipt tools. Proposal requires `workspace.write`; the
+  read-only receipt tools require `workspace.read`. The legacy bridge remains
+  at nine read-only tools and exposes none of these three write-request tools.
+  Native `apply_patch` is absent for the recorded Probe A result.
 - **Multi-workspace**: cross-workspace isolation, invented ids fail closed,
   revoked workspaces fail closed, live sessions reflected in `list_workspaces`.
 - **Worktrees**: registered main + linked discovery, opaque target selection,
@@ -80,6 +117,12 @@ C2C_E2E_URL=https://your-host.example.com pnpm test:e2e:live
   JSONL only.
 - **Sessions**: admin session endpoints are loopback + admin-token only; heartbeats
   cannot create authorization for arbitrary roots (Vitest domain + broker tests).
+- **Approved patch lifecycle**: broker proposal authorization, no project
+  mutation before approval, workspace/worktree-scoped receipt privacy, local
+  approve/reject/expiry/stale behavior, and concurrent lifecycle serialization
+  are covered by `tests/mcp-write-requests.test.ts`,
+  `tests/write-request-admin.test.ts`, `tests/write-request-cli.test.ts`, and
+  `tests/write-requests.test.ts`.
 
 ## Legacy per-project bridge
 

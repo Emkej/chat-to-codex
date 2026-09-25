@@ -1,0 +1,203 @@
+{
+  "schema_version": 1,
+  "task_id": "spec-002-approved-local-patch-writes",
+  "iteration": 5,
+  "slice": "P8-conformance-follow-up",
+  "completed_on": "2026-09-25",
+  "status": "passed",
+  "platform_scope": {
+    "supported_v1": ["Linux", "WSL"],
+    "windows": "Deferred to separately implemented and validated future work.",
+    "macos": "Out of scope unless separately proposed later.",
+    "unsupported_behavior": "Write-owner acquisition returns WRITE_OWNER_UNAVAILABLE; SPEC-002 write service, MCP tools, and admin routes stay absent, while the existing read-only MCP surface may start.",
+    "non_linux_validation_required": false
+  },
+  "capability_probe": {
+    "probe_a": "BLOCKED",
+    "probe_b": "SUPPORTED",
+    "evidence": "docs/verification/artifacts/spec-002/mcp-write-probes.md"
+  },
+  "coverage": [
+    {
+      "spec_section": "§29.1.14",
+      "test": "rejects mismatched update old and new paths",
+      "file": "tests/write-requests.test.ts"
+    },
+    {
+      "spec_section": "§29.1.19",
+      "test": "resolves paired Git prefixes while preserving real a/foo and b/foo targets",
+      "file": "tests/write-requests.test.ts"
+    },
+    {
+      "spec_section": "§29.1.20",
+      "test": "treats unmatched a/ and b/ prefixes literally, rejects mismatches, and validates traversal",
+      "file": "tests/write-requests.test.ts"
+    },
+    {
+      "spec_section": "§29.2.11",
+      "test": "denies a parent symlink already present during patch preparation",
+      "file": "tests/write-requests.test.ts"
+    },
+    {
+      "spec_section": "§29.6.12",
+      "test": "directly requests legacy per-project admin route methods/paths and verifies 404 responses",
+      "file": "tests/mcp-integration.test.ts"
+    },
+    {
+      "spec_section": "§12 / §29.12.9",
+      "test": "maps an oversized MCP transport body to sanitized PATCH_TOO_LARGE with HTTP 413",
+      "file": "tests/mcp-write-requests.test.ts"
+    },
+    {
+      "spec_section": "§29.2.5 / §29.3.6",
+      "test": "denies linked-worktree .git pointer writes and marks a post-proposal leaf symlink stale",
+      "file": "tests/write-requests.test.ts"
+    },
+    {
+      "spec_section": "§29.13.5",
+      "test": "covers deterministic store/list behavior during atomic record replacement",
+      "file": "tests/write-requests.test.ts"
+    },
+    {
+      "spec_section": "§29.9 / §29.12",
+      "test": "covers main/worktree receipt scoping, latest applied receipt lookup, and protected state-root denial",
+      "file": "tests/mcp-write-requests.test.ts"
+    },
+    {
+      "spec_section": "§14 / §29.4",
+      "test": "preserves same-parent staging, rollback mode, and explicit retry after receipt-persistence rollback",
+      "file": "tests/write-requests.test.ts"
+    },
+    {
+      "spec_section": "§21.5 / §16.2",
+      "test": "documents caller-facing read-only receipt semantics and internal lazy cleanup writes",
+      "file": "docs/specs/spec-002-approved-local-patch-writes.md"
+    }
+  ],
+  "changes": [
+    {
+      "path": "src/write-requests/owner.ts",
+      "summary": "Retains Linux flock ownership and fails closed before state-directory creation on non-Linux platforms."
+    },
+    {
+      "path": "src/broker/server.ts",
+      "summary": "Creates the write service, MCP write tools, and write admin route only after Linux ownership; unsupported hosts can start the existing read-only MCP surface."
+    },
+    {
+      "path": "tests/broker.test.ts",
+      "summary": "Verifies unsupported-platform startup retains read-only MCP and omits write tools and admin routes."
+    },
+    {
+      "path": "tests/write-owner.test.ts",
+      "summary": "Verifies simulated Windows and macOS owner acquisition returns WRITE_OWNER_UNAVAILABLE without creating the state directory."
+    },
+    {
+      "path": "tests/write-requests.test.ts",
+      "summary": "Closes the remaining §29.1 and §29.2 path, prefix, and preparation-time symlink cases."
+    },
+    {
+      "path": "tests/mcp-integration.test.ts",
+      "summary": "Directly verifies legacy per-project bridge write-request admin methods and paths return 404."
+    },
+    {
+      "path": "tests/mcp-write-requests.test.ts",
+      "summary": "Covers the remaining MCP transport-size and receipt-scoping behavior."
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "summary": "Removes the Windows/macOS write-owner matrix and keeps the normal Linux CI job."
+    },
+    {
+      "path": "docs/specs/spec-002-approved-local-patch-writes.md",
+      "summary": "Records Linux/WSL-only V1 support, deferred Windows work, macOS out-of-scope status, the Linux-only completion gate, and the read-only broker fallback."
+    },
+    {
+      "path": "docs/architecture.md",
+      "summary": "Documents Linux/WSL write ownership and the unsupported-platform read-only broker fallback."
+    },
+    {
+      "path": "docs/security.md",
+      "summary": "Documents Linux/WSL write ownership and omission of write surfaces when ownership is unavailable."
+    },
+    {
+      "path": "docs/protocol.md",
+      "summary": "Documents the Linux/WSL-only SPEC-002 V1 write scope."
+    },
+    {
+      "path": "docs/local-e2e.md",
+      "summary": "Keeps prior macOS E2E evidence separate from the Linux/WSL V1 conformance scope."
+    },
+    {
+      "path": "docs/multi-workspace.md",
+      "summary": "Documents the Linux/WSL-only SPEC-002 V1 write scope."
+    },
+    {
+      "path": "skill/SKILL.md",
+      "summary": "Documents the Linux/WSL-only SPEC-002 V1 write scope."
+    },
+    {
+      "path": "docs/verification/artifacts/spec-002/work-state.json",
+      "summary": "Closes P8 with current Linux/WSL validation counts and no platform blocker or resume condition."
+    },
+    {
+      "path": "docs/verification/artifacts/spec-002/p8-review-iteration-2.json",
+      "summary": "Marks the earlier non-Linux validation condition as superseded by the V1 Linux/WSL-only platform contract."
+    },
+    {
+      "path": "docs/verification/artifacts/spec-002/p7-final/summary.json",
+      "summary": "Marks the historical non-Linux review note as superseded; it no longer gates V1 completion."
+    }
+  ],
+  "checks": [
+    {
+      "name": "Focused SPEC-002 write-request, owner, broker, MCP, and legacy bridge tests",
+      "command": "rtk proxy node node_modules/vitest/vitest.mjs run tests/write-requests.test.ts tests/write-owner.test.ts tests/mcp-write-requests.test.ts tests/mcp-integration.test.ts tests/broker.test.ts",
+      "status": "passed",
+      "files": 5,
+      "tests": 95,
+      "execution": "Linux/WSL with loopback permission."
+    },
+    {
+      "name": "§29.11 full test gate",
+      "command": "pnpm test",
+      "status": "passed",
+      "files": 29,
+      "tests": 294,
+      "execution": "Linux/WSL with loopback permission; the sandboxed attempt failed with listen EPERM, then this exact package script passed via cached Linux pnpm 11.24.0 CLI shim."
+    },
+    {
+      "name": "§29.11 typecheck gate",
+      "command": "pnpm typecheck",
+      "status": "passed",
+      "script": "tsc --noEmit",
+      "execution": "Linux/WSL via cached Linux pnpm 11.24.0 CLI shim; exit 0."
+    },
+    {
+      "name": "§29.11 build gate",
+      "command": "pnpm build",
+      "status": "passed",
+      "script": "tsc -p tsconfig.json",
+      "execution": "Linux/WSL via cached Linux pnpm 11.24.0 CLI shim; exit 0."
+    },
+    {
+      "name": "Windows-mounted PATH pnpm launcher diagnostic (superseded)",
+      "command": "rtk proxy timeout 30s pnpm typecheck; rtk proxy timeout 30s pnpm build",
+      "status": "timed_out",
+      "note": "The PATH-selected executable produced no output; pnpm --version also stalled. This launcher diagnostic was superseded by all three §29.11 gates passing via cached Linux pnpm 11.24.0 CLI shim."
+    },
+    {
+      "name": "CI workflow YAML and Linux-only job check",
+      "status": "passed"
+    },
+    {
+      "name": "git diff --check",
+      "command": "rtk proxy git diff --check",
+      "status": "passed"
+    },
+    {
+      "name": "Verification artifact JSON parse",
+      "status": "passed"
+    }
+  ],
+  "assessment": "All applicable SPEC-002 V1 conformance criteria and the §29.11 Linux/WSL pnpm completion gate pass. Probe A remains BLOCKED and Probe B remains SUPPORTED. No Windows/macOS support is claimed or required for V1 completion. Existing external-writer and TOCTOU limitations are unchanged."
+}

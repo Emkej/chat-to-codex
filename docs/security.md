@@ -49,16 +49,56 @@ setup`, `c2c broker start`).
 | Admin API abuse | Loopback-only + random admin token (0600 runtime file) + proxy-forwarded requests rejected; unauthenticated probes get 404; session/workspace admin endpoints are not reachable through the Claude MCP tunnel |
 | Stale session / revoked workspace | Session heartbeats fail closed on unknown ids; workspace removal stops new sessions; MCP reads fail closed for revoked ids |
 | Log credential leakage | Logger redacts token prefixes, bearer headers, token-like parameters, and pairing-code-shaped strings |
-| Prompt injection via repo | Tool descriptions state content is untrusted data; Claude has zero write/exec capability |
+| Prompt injection via repo | Tool descriptions state content is untrusted data; there is no direct file or command tool. `propose_patch` can only create a pending request; a local `c2c approve` is required before a workspace write. |
 
 ## Token & scope design
 
-Scopes: `workspace.read`, `workspace.search`, `git.read`, `execution.read`,
-`offline_access`. Tools enforce scopes individually (`INSUFFICIENT_SCOPE`).
+Scopes include `workspace.read`, `workspace.search`, `git.read`,
+`execution.read`, `offline_access`, and the explicitly requested
+`workspace.write`. The write scope is supported but is never part of default or
+implicit grants; only `propose_patch` requires it. Receipt tools require
+`workspace.read`. Tools enforce scopes individually (`INSUFFICIENT_SCOPE`).
 Access tokens: 1 hour. Refresh tokens: 30 days, rotated. Installation-level
 tokens authorize the broker; workspace access resolves through the local
 registry and, when requested, the registered main worktree's current
 Git-derived targets at request time. Worktree paths remain local-only.
+
+## Unified patch writes (SPEC-002 V1)
+
+SPEC-002 V1 write requests are supported only when the broker runs on Linux/WSL.
+The broker holds the installation writer with Linux `flock`; other platforms
+fail closed with `WRITE_OWNER_UNAVAILABLE`. Windows support is deferred to
+future separately validated work, and macOS is out of scope unless separately
+proposed. Neither platform's validation is a V1 completion condition.
+
+If write ownership is unavailable, the broker leaves the SPEC-002 write
+service, MCP write tools, and write-request admin router absent while retaining
+the existing read-only MCP surface.
+
+The observed ChatGPT host result is Probe A `BLOCKED` and Probe B `SUPPORTED`.
+The shipped path is `propose_patch` plus local `c2c approve`; native
+`apply_patch` and the conditional manual clipboard/file/stdin import are not
+shipped. See the [capability probe evidence](verification/artifacts/spec-002/mcp-write-probes.md).
+
+`propose_patch` accepts only a unified text patch for create/update operations
+within the selected workspace or worktree. It prepares and validates the full
+patch, then stores a pending C2C request; it does not mutate project files.
+The local broker re-resolves the target and rechecks security and content
+preconditions when `c2c approve` runs. Broker requests share one exclusive
+installation writer and serialized write lifecycle.
+
+The shared boundary rejects workspace `.git` and `.c2c` control paths,
+`.c2c.json`, `.c2cignore`, sensitive paths, symlink escapes,
+delete/rename/move, binary and mode-only changes. It also protects the
+canonical C2C installation state directory and C2C home roots. A patch is
+limited to 1 MiB, 50 files, and 1 MiB per source/result file; updates require
+the exact original-byte SHA-256 precondition. No shell or command execution is
+available. These checks serialize C2C writes and detect stale targets; they do
+not control arbitrary external filesystem writers.
+
+After an applied receipt, ChatGPT must independently re-read affected files
+and inspect the relevant diff before reporting success. A receipt or matching
+hash alone does not establish semantic correctness.
 
 ## Storage
 
@@ -70,10 +110,12 @@ tokens are persisted.
 **V1 limitation**: client registrations and token hashes are file-based rather
 than OS-keychain-based. Raw tokens are never written anywhere.
 
-## What Claude can never do (V1)
+## Direct capabilities Claude does not have
 
-Write files, delete files, run shell commands, commit, register workspaces,
-select arbitrary filesystem roots, nominate worktree paths, or create Codex
-sessions — these capabilities do not exist on the MCP server. A client may
-select only an opaque registered workspace id and an optional opaque derived
-worktree id validated by the broker.
+Claude cannot directly write/delete files, run shell commands, commit, register
+workspaces, select arbitrary filesystem roots, nominate worktree paths, or
+create Codex sessions. The broker exposes no general-purpose file writer or
+command tool. An explicitly authorized client may submit a narrow unified-text
+proposal; only the local C2C approval path applies it. A client may select only
+an opaque registered workspace id and optional opaque derived worktree id
+validated by the broker.

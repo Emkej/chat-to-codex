@@ -45,6 +45,7 @@ import {
   type LastEndpoint,
 } from "../config/endpoint.js";
 import { PRODUCT_NAME, VERSION } from "../version.js";
+import { registerWriteRequestCommands } from "./write-requests.js";
 
 const program = new Command();
 
@@ -168,6 +169,8 @@ program
     if (profile) process.env.C2C_PROFILE = profile;
   })
   .configureHelp({ sortSubcommands: true });
+
+registerWriteRequestCommands(program);
 
 // ---------------------------------------------------------------- serve (internal)
 

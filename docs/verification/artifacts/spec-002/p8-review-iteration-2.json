@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "task_id": "spec-002-approved-local-patch-writes",
+  "iteration": 2,
+  "status": "superseded",
+  "completed_on": "2026-09-24",
+  "superseded_by": "docs/verification/artifacts/spec-002/conformance-recheck.json",
+  "coverage": [
+    {
+      "spec_section": "§29.2.5",
+      "test": "denies writes to a linked-worktree .git pointer file",
+      "file": "tests/write-requests.test.ts"
+    },
+    {
+      "spec_section": "§29.3.6",
+      "test": "marks a target stale when its leaf becomes a symlink after proposal",
+      "file": "tests/write-requests.test.ts"
+    },
+    {
+      "spec_section": "§29.13.5",
+      "test": "reads the request list during atomic record replacement",
+      "file": "tests/write-requests.test.ts"
+    }
+  ],
+  "checks": [
+    {
+      "name": "Focused write-request tests",
+      "command": "rtk proxy node node_modules/vitest/vitest.mjs run tests/write-requests.test.ts",
+      "status": "passed",
+      "files": 1,
+      "tests": 43
+    },
+    {
+      "name": "Full Vitest regression suite",
+      "command": "rtk proxy node node_modules/vitest/vitest.mjs run",
+      "status": "passed",
+      "files": 29,
+      "tests": 287,
+      "execution": "Loopback-enabled sandbox retry."
+    },
+    {
+      "name": "TypeScript no-emit typecheck",
+      "command": "rtk proxy node node_modules/typescript/bin/tsc --noEmit",
+      "status": "passed"
+    },
+    {
+      "name": "TypeScript build",
+      "command": "rtk proxy node node_modules/typescript/bin/tsc -p tsconfig.json",
+      "status": "passed"
+    },
+    {
+      "name": "Non-Linux write-owner validation gate",
+      "status": "superseded",
+      "evidence": "Iteration 4 defines V1 as Linux/WSL-only and removes non-Linux owner implementations and CI jobs. No non-Linux validation is required for V1 completion."
+    }
+  ],
+  "assessment": "This iteration's Linux/WSL checks remain historical evidence. Its non-Linux validation condition is superseded by the iteration 4 V1 platform scope and is not a completion blocker."
+}

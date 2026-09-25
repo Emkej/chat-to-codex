@@ -1,4 +1,4 @@
-import express, { type Request, type Response } from "express";
+import express, { type ErrorRequestHandler, type Request, type Response } from "express";
 import type { Server } from "node:http";
 import { randomBytes } from "node:crypto";
 import path from "node:path";
@@ -13,7 +13,7 @@ import { CloudflaredNamedTunnel } from "../tunnel/cloudflared-named.js";
 import { namedTunnelBinding, readTunnelState } from "../tunnel/state.js";
 import type { TunnelProvider } from "../tunnel/provider.js";
 import { Logger, nullLogger } from "../logger/index.js";
-import { DEFAULT_HOST, DEFAULT_PORT, getStateDir } from "../config/paths.js";
+import { DEFAULT_HOST, DEFAULT_PORT, getC2cHome, getStateDir } from "../config/paths.js";
 import { SERVICE_NAME, VERSION } from "../version.js";
 import { writeRuntimeState, clearRuntimeState, probeBridge, type RuntimeState } from "../bridge/runtime.js";
 import { createAdminGuard } from "../bridge/admin-guard.js";
@@ -23,6 +23,11 @@ import {
 } from "../workspaces/installation.js";
 import { WorkspaceRegistry, RegistryError } from "../workspaces/registry.js";
 import { SessionRegistry } from "../workspaces/sessions.js";
+import { resolveRegisteredWorkspaceTarget } from "../workspaces/targets.js";
+import { acquireWriteOwner, type WriteOwnerLease } from "../write-requests/owner.js";
+import { WriteRequestService } from "../write-requests/service.js";
+import { WriteRequestStore } from "../write-requests/store.js";
+import { createWriteRequestAdminRouter } from "./write-request-admin.js";
 
 export const CONNECTOR_DISPLAY_NAME = "Chat to Codex";
 
@@ -46,6 +51,7 @@ export interface Broker {
   sessions: SessionRegistry;
   authStore: AuthStore;
   pairing: PairingManager;
+  writeRequests: WriteRequestService | undefined;
   tunnel: TunnelProvider;
   port: number;
   host: string;
@@ -96,6 +102,17 @@ function listen(app: express.Express, host: string, preferredPort: number): Prom
     tryListen(preferredPort, preferredPort !== 0);
   });
 }
+
+const mcpBodyParserErrorHandler: ErrorRequestHandler = (error, _req, res, next) => {
+  if ((error as { type?: string } | undefined)?.type !== "entity.too.large") {
+    next(error);
+    return;
+  }
+  res.status(413).json({
+    error: "PATCH_TOO_LARGE",
+    message: "Request body exceeds the MCP transport limit.",
+  });
+};
 
 /**
  * The installation-level broker: one stable MCP endpoint (one Claude
@@ -173,8 +190,11 @@ export async function startBroker(opts: BrokerOptions = {}): Promise<Broker> {
 
   // ---- MCP endpoint (bearer-protected) --------------------------------------
 
+  let writeRequests: WriteRequestService | undefined;
   const mcpHandler = createMcpHttpHandler(
-    () => createMcpServer({ registry, sessions, logger }),
+    () => {
+      return createMcpServer({ registry, sessions, ...(writeRequests ? { writeRequests } : {}), logger });
+    },
     logger
   );
   app.all(
@@ -190,6 +210,7 @@ export async function startBroker(opts: BrokerOptions = {}): Promise<Broker> {
       void mcpHandler(req, res);
     }
   );
+  app.use("/mcp", mcpBodyParserErrorHandler);
 
   // ---- Admin API (loopback + admin token only; CLI/local tooling) -----------
 
@@ -332,7 +353,37 @@ export async function startBroker(opts: BrokerOptions = {}): Promise<Broker> {
     }, 100);
   });
 
-  const { server, port } = await listen(app, host, opts.port ?? DEFAULT_PORT);
+  let writeOwner: WriteOwnerLease | undefined;
+  let lifecycle: WriteRequestService | undefined;
+  let listening: { server: Server; port: number };
+  try {
+    if (process.platform === "linux") {
+      writeOwner = await acquireWriteOwner(stateDir);
+      lifecycle = new WriteRequestService({
+        store: new WriteRequestStore(stateDir),
+        resolveTarget: (workspaceId, worktreeId) => {
+          const target = resolveRegisteredWorkspaceTarget(registry, workspaceId, worktreeId, undefined, {
+            allowCrossNamespace: true,
+          });
+          return {
+            workspace: target.workspace,
+            workspaceId: target.registration.id,
+            ...(target.worktreeId ? { worktreeId: target.worktreeId } : {}),
+          };
+        },
+        protectedRoots: [stateDir, getC2cHome()],
+      });
+      writeRequests = lifecycle;
+      app.use("/admin/write-requests", createWriteRequestAdminRouter(lifecycle, adminGuard));
+    } else {
+      logger.warn("Write-request tools are unavailable on this platform; starting the broker read-only.");
+    }
+    listening = await listen(app, host, opts.port ?? DEFAULT_PORT);
+  } catch (error) {
+    await writeOwner?.release();
+    throw error;
+  }
+  const { server, port } = listening;
   // Duplicate-daemon guard: if the preferred port was taken and we fell back
   // to an ephemeral one, refuse to shadow an already-running broker for the
   // same installation (it would split the CLI from the tunnel-bearing broker).
@@ -340,7 +391,8 @@ export async function startBroker(opts: BrokerOptions = {}): Promise<Broker> {
   if (port !== preferredPort) {
     const occupant = await probeBridge(preferredPort);
     if (occupant && occupant.workspaceId === installation.installationId) {
-      server.close();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+      await writeOwner?.release();
       throw new Error(
         `A broker for this installation is already running on port ${preferredPort}; not starting a duplicate.`
       );
@@ -367,16 +419,26 @@ export async function startBroker(opts: BrokerOptions = {}): Promise<Broker> {
     };
     writeRuntimeState(state);
   };
-  persistRuntime();
+  try {
+    persistRuntime();
+  } catch (error) {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    await writeOwner?.release();
+    throw error;
+  }
 
   let closed = false;
   const shutdown = async (): Promise<void> => {
     if (closed) return;
     closed = true;
-    await tunnel.stop().catch(() => undefined);
-    await new Promise<void>((resolve) => server.close(() => resolve()));
-    if (opts.persistRuntime !== false) clearRuntimeState(installation.installationId);
-    logger.info("Broker stopped");
+    try {
+      await tunnel.stop().catch(() => undefined);
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+      if (opts.persistRuntime !== false) clearRuntimeState(installation.installationId);
+      logger.info("Broker stopped");
+    } finally {
+      await writeOwner?.release();
+    }
   };
 
   return {
@@ -385,6 +447,7 @@ export async function startBroker(opts: BrokerOptions = {}): Promise<Broker> {
     sessions,
     authStore,
     pairing,
+    writeRequests: lifecycle,
     tunnel,
     port,
     host,

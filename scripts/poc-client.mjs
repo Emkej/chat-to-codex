@@ -64,7 +64,8 @@ authorizeUrl.searchParams.set("response_type", "code");
 authorizeUrl.searchParams.set("state", randomBytes(8).toString("hex"));
 authorizeUrl.searchParams.set("code_challenge", challenge);
 authorizeUrl.searchParams.set("code_challenge_method", "S256");
-authorizeUrl.searchParams.set("scope", asMeta.scopes_supported.join(" "));
+const readOnlyScopes = ["workspace.read", "workspace.search", "git.read", "execution.read", "offline_access"];
+authorizeUrl.searchParams.set("scope", readOnlyScopes.join(" "));
 
 const page = await fetch(authorizeUrl, { redirect: "manual" });
 const html = await page.text();

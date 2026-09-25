@@ -101,8 +101,12 @@ function pairingPage(opts: {
     "git.read": "Read git status and diffs",
     "execution.read": "Read Codex execution summaries",
     offline_access: "Stay connected between sessions",
+    "workspace.write": "Apply approved unified text patches to this workspace",
   };
   const scopeList = opts.scopes.map((scope) => `<li>${escapeHtml(scopeLabels[scope] ?? scope)}</li>`).join("");
+  const accessDescription = opts.scopes.includes("workspace.write")
+    ? "is requesting narrow C2C text-patch write access through"
+    : "is requesting read-only access through";
   const errorHtml = opts.error ? `<p class="error" role="alert">${escapeHtml(opts.error)}</p>` : "";
   const escapedProductName = escapeHtml(PRODUCT_NAME);
   const escapedWorkspaceName = escapeHtml(opts.workspaceName);
@@ -140,7 +144,7 @@ function pairingPage(opts: {
 <body>
 <div class="card">
   <h1>${escapedProductName}</h1>
-  <p class="sub">${escapedClientName} is requesting read-only access through <strong>${escapedWorkspaceName}</strong>:</p>
+  <p class="sub">${escapedClientName} ${accessDescription} <strong>${escapedWorkspaceName}</strong>:</p>
   <ul>${scopeList}</ul>
   <form method="POST" action="authorize">
     <input type="hidden" name="request_id" value="${escapedRequestId}">
@@ -230,6 +234,10 @@ export function createOAuthRouter(deps: OAuthDeps): Router {
       return;
     }
     const scopes = filterScopes(query.scope);
+    if (scopes.length === 0) {
+      fail("invalid_scope", "Requested scopes are unsupported");
+      return;
+    }
     const request: PendingAuthRequest = {
       id: randomBytes(16).toString("hex"), clientId: client.clientId, redirectUri, scopes,
       state: query.state, codeChallenge: query.code_challenge, resource: query.resource, expiresAt: Date.now() + 10 * 60_000,

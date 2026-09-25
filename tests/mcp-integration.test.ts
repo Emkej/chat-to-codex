@@ -70,8 +70,32 @@ describe("MCP tools over Streamable HTTP", () => {
       "workspace_info",
     ]);
     // no write tools in V1
-    for (const forbidden of ["write_file", "delete_file", "execute_shell", "git_commit", "install_package"]) {
+    for (const forbidden of [
+      "write_file",
+      "delete_file",
+      "execute_shell",
+      "git_commit",
+      "install_package",
+      "propose_patch",
+      "list_write_requests",
+      "get_write_request",
+    ]) {
       expect(names).not.toContain(forbidden);
+    }
+  });
+
+  it("legacy per-project bridge exposes no write-request admin routes", async () => {
+    const routes = [
+      ["GET", "/admin/write-requests"],
+      ["POST", "/admin/write-requests"],
+      ["GET", "/admin/write-requests/missing"],
+      ["POST", "/admin/write-requests/missing/approve"],
+      ["POST", "/admin/write-requests/missing/reject"],
+    ] as const;
+
+    for (const [method, route] of routes) {
+      const response = await fetch(`${bridge.localBaseUrl()}${route}`, { method });
+      expect(response.status, `${method} ${route}`).toBe(404);
     }
   });
 

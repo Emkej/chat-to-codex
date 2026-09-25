@@ -76,25 +76,41 @@ afterAll(async () => {
 });
 
 describe("broker tool surface", () => {
-  it("exposes ten read-only tools including list_workspaces and list_worktrees", async () => {
+  it("exposes the broker proposal and read-only receipt tools with truthful annotations", async () => {
     const { tools } = await client.listTools();
     const names = tools.map((tool) => tool.name).sort();
     expect(names).toEqual([
       "execution_summary",
+      "get_write_request",
       "git_diff",
       "git_status",
       "list_directory",
       "list_workspaces",
       "list_worktrees",
+      "list_write_requests",
+      "propose_patch",
       "read_file",
       "search_workspace",
       "test_status",
       "workspace_info",
     ]);
-    for (const tool of tools) {
+    for (const tool of tools.filter((item) => item.name !== "propose_patch")) {
       expect(tool.annotations?.readOnlyHint).toBe(true);
     }
-    for (const forbidden of ["write_file", "delete_file", "execute_shell", "git_commit", "set_workspace", "register_workspace"]) {
+    expect(tools.find((tool) => tool.name === "propose_patch")?.annotations).toMatchObject({
+      readOnlyHint: false,
+      destructiveHint: false,
+      openWorldHint: false,
+    });
+    for (const forbidden of [
+      "apply_patch",
+      "write_file",
+      "delete_file",
+      "execute_shell",
+      "git_commit",
+      "set_workspace",
+      "register_workspace",
+    ]) {
       expect(names).not.toContain(forbidden);
     }
   });
@@ -271,6 +287,61 @@ describe("single-workspace broker", () => {
       await solo.close();
       cleanup(soloStateDir);
       cleanup(soloRoot);
+    }
+  });
+});
+
+describe("broker without Linux write ownership", () => {
+  it("serves read-only MCP without exposing write tools or admin routes", async () => {
+    const unsupportedStateDir = makeTmpDir("broker-readonly-platform");
+    const authDir = makeTmpDir("broker-readonly-auth");
+    const platformDescriptor = Object.getOwnPropertyDescriptor(process, "platform");
+    if (!platformDescriptor) throw new Error("process.platform descriptor is unavailable");
+
+    let unsupportedBroker: Broker | undefined;
+    let unsupportedClient: Client | undefined;
+    try {
+      Object.defineProperty(process, "platform", { ...platformDescriptor, value: "win32" });
+      unsupportedBroker = await startBroker({
+        stateDir: unsupportedStateDir,
+        port: 0,
+        persistRuntime: false,
+        authStoreFile: path.join(authDir, "store.json"),
+      });
+    } finally {
+      Object.defineProperty(process, "platform", platformDescriptor);
+    }
+
+    try {
+      expect(unsupportedBroker.writeRequests).toBeUndefined();
+      const tokens = unsupportedBroker.authStore.issueTokens({
+        clientId: "broker-readonly-platform-test",
+        scopes: ["workspace.read", "git.read", "execution.read"],
+      });
+      unsupportedClient = new Client({ name: "broker-readonly-platform-test", version: "1.0.0" });
+      await unsupportedClient.connect(
+        new StreamableHTTPClientTransport(new URL(`${unsupportedBroker.localBaseUrl()}/mcp`), {
+          requestInit: { headers: { authorization: `Bearer ${tokens.accessToken}` } },
+        })
+      );
+
+      const { tools } = await unsupportedClient.listTools();
+      const names = tools.map((tool) => tool.name);
+      expect(names).toContain("list_workspaces");
+      expect(names).not.toContain("propose_patch");
+      expect(names).not.toContain("list_write_requests");
+      expect(names).not.toContain("get_write_request");
+      const workspaceList = await unsupportedClient.callTool({ name: "list_workspaces", arguments: {} });
+      expect(workspaceList.isError).not.toBe(true);
+      expect(jsonOf<{ workspaces: unknown[] }>(workspaceList).workspaces).toEqual([]);
+
+      const adminResponse = await fetch(`${unsupportedBroker.localBaseUrl()}/admin/write-requests`);
+      expect(adminResponse.status).toBe(404);
+    } finally {
+      await unsupportedClient?.close();
+      await unsupportedBroker.close();
+      cleanup(unsupportedStateDir);
+      cleanup(authDir);
     }
   });
 });

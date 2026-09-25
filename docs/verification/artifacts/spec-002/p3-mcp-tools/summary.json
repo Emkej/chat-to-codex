@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "slice": "P3-mcp-proposal-fallback-and-P5-receipt-visibility",
+  "status": "passed",
+  "completed_on": "2026-09-24",
+  "host_gate": {
+    "probe_a": "BLOCKED",
+    "probe_b": "SUPPORTED",
+    "evidence": "docs/verification/artifacts/spec-002/mcp-write-probes.md"
+  },
+  "review": {
+    "status": "passed",
+    "coverage": "Static review found no actionable issues after removing base_sha256 from remote receipts.",
+    "reviewed_paths": [
+      "src/mcp/server.ts",
+      "tests/mcp-write-requests.test.ts",
+      "tests/broker.test.ts",
+      "tests/mcp-integration.test.ts"
+    ]
+  },
+  "checks": [
+    {
+      "name": "TypeScript no-emit typecheck",
+      "command": "rtk proxy node_modules/typescript/bin/tsc --noEmit",
+      "status": "passed"
+    },
+    {
+      "name": "Broker MCP write-request and legacy bridge integration tests",
+      "command": "rtk proxy node_modules/vitest/vitest.mjs run tests/broker.test.ts tests/mcp-write-requests.test.ts tests/mcp-integration.test.ts",
+      "status": "passed",
+      "files": 3,
+      "tests": 36,
+      "execution": "Elevated sandbox permission was required for loopback listeners."
+    }
+  ],
+  "covered_contracts": [
+    "propose_patch requires workspace.write, has truthful non-destructive annotations, persists a pending request, and leaves workspace files unchanged",
+    "receipt tools require workspace.read, filter by the resolved workspace/worktree, and omit raw patches and absolute paths",
+    "remote receipts include result hashes but omit base precondition hashes",
+    "native apply_patch and write-request MCP tools are absent from the legacy bridge"
+  ],
+  "notes": [
+    "P7 documentation closeout and the final full validation matrix remain in progress."
+  ]
+}

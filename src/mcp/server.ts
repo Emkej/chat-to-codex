@@ -5,17 +5,18 @@ import { Workspace, WorkspaceError } from "../workspace/manager.js";
 import { searchWorkspace } from "../workspace/search.js";
 import { gitDiff, gitInfo, gitStatus, type DiffMode, type GitTarget } from "../workspace/git.js";
 import {
-  assertDerivedWorktreeCurrent,
   discoverDerivedWorktrees,
-  resolveDerivedWorktree,
   WorktreeError,
   type WorktreeResolutionOptions,
   type WorktreeRunner,
 } from "../workspace/worktrees.js";
 import { latestExecutionRecord, readExecutionRecords } from "../execution/records.js";
 import type { Logger } from "../logger/index.js";
-import type { WorkspaceRegistration, WorkspaceRegistry } from "../workspaces/registry.js";
+import { RegistryError, type WorkspaceRegistration, type WorkspaceRegistry } from "../workspaces/registry.js";
+import { resolveRegisteredWorkspaceTarget } from "../workspaces/targets.js";
 import type { SessionRegistry } from "../workspaces/sessions.js";
+import type { WriteRequestService } from "../write-requests/service.js";
+import { WriteRequestError, type WriteRequestReceipt } from "../write-requests/types.js";
 import { PRODUCT_NAME, VERSION } from "../version.js";
 
 const UNTRUSTED_NOTE =
@@ -44,6 +45,7 @@ function fail(code: string, message: string): ToolResult {
 }
 
 function mapError(error: unknown): ToolResult {
+  if (error instanceof WriteRequestError) return fail(error.code, error.message);
   if (error instanceof WorkspaceError) return fail(error.code, error.message);
   if (error instanceof WorktreeError) {
     if (error.code === "WORKTREE_DISCOVERY_FAILED") {
@@ -52,6 +54,43 @@ function mapError(error: unknown): ToolResult {
     return fail(error.code, error.message);
   }
   return fail("INTERNAL_ERROR", "An unexpected internal error occurred.");
+}
+
+function remoteWriteFiles(files: WriteRequestReceipt["files"], includeHashes = false) {
+  return files.map((file) => ({
+    path: file.path,
+    action: file.operation,
+    additions: file.additions,
+    deletions: file.deletions,
+    ...(includeHashes ? { result_sha256: file.resultSha256 } : {}),
+  }));
+}
+
+function toProposalResult(receipt: WriteRequestReceipt) {
+  return {
+    request_id: receipt.id,
+    status: receipt.status,
+    files: remoteWriteFiles(receipt.files),
+    ...(receipt.expiresAt ? { expires_at: receipt.expiresAt } : {}),
+  };
+}
+
+function safeResolutionCode(code: string | undefined): string | undefined {
+  return code && /^[A-Z][A-Z0-9_]{0,63}$/.test(code) ? code : undefined;
+}
+
+function toRemoteWriteReceipt(receipt: WriteRequestReceipt) {
+  const resolutionCode = safeResolutionCode(receipt.resolutionCode);
+  return {
+    request_id: receipt.id,
+    status: receipt.status,
+    approval_mode: receipt.approvalMode,
+    files: remoteWriteFiles(receipt.files, true),
+    created_at: receipt.createdAt,
+    ...(receipt.expiresAt ? { expires_at: receipt.expiresAt } : {}),
+    ...(receipt.resolvedAt ? { resolved_at: receipt.resolvedAt } : {}),
+    ...(resolutionCode ? { resolution_code: resolutionCode } : {}),
+  };
 }
 
 function requireScope(authInfo: AuthInfo | undefined, scope: string): ToolResult | null {
@@ -77,6 +116,8 @@ export interface McpContext {
    */
   registry?: WorkspaceRegistry;
   sessions?: SessionRegistry;
+  /** One broker-owned lifecycle shared by all MCP sessions and local admin routes. */
+  writeRequests?: WriteRequestService;
   /** Injectable only for focused domain tests; production uses the Git runner. */
   worktreeRunner?: WorktreeRunner;
   /** Injectable path/distro adapters for focused cross-namespace tests. */
@@ -126,38 +167,23 @@ function resolveTarget(
     );
   }
   const registration = ctx.registry.get(id);
-  if (!registration) {
-    return fail("UNKNOWN_WORKSPACE", `Unknown or revoked workspace: ${id}`);
-  }
+  if (!registration) return fail("UNKNOWN_WORKSPACE", `Unknown or revoked workspace: ${id}`);
   try {
-    // Constructing re-canonicalizes the root: a deleted or moved workspace
-    // fails closed here instead of resolving somewhere unexpected.
-    if (args.worktree === undefined) {
-      const workspace = new Workspace(registration.canonicalRoot);
-      return { workspace, registration, gitTarget: workspace };
-    }
-    const selected = resolveDerivedWorktree(
-      registration.canonicalRoot,
+    const selected = resolveRegisteredWorkspaceTarget(
+      ctx.registry,
+      id,
       args.worktree,
       ctx.worktreeRunner,
       brokerWorktreeOptions(ctx)
     );
-    const workspace = new Workspace(selected.root);
-    assertDerivedWorktreeCurrent(
-      registration.canonicalRoot,
-      selected,
-      ctx.worktreeRunner,
-      brokerWorktreeOptions(ctx)
-    );
     return {
-      workspace,
-      registration,
-      worktreeId: selected.worktreeId,
+      ...selected,
       gitTarget: selected.gitDir
-        ? { root: workspace.root, ignoreRules: workspace.ignoreRules, gitDir: selected.gitDir }
-        : workspace,
+        ? { root: selected.workspace.root, ignoreRules: selected.workspace.ignoreRules, gitDir: selected.gitDir }
+        : selected.workspace,
     };
   } catch (error) {
+    if (error instanceof RegistryError) return fail(error.code, error.message);
     if (error instanceof WorktreeError) return mapError(error);
     if (args.worktree !== undefined) {
       return fail("UNKNOWN_WORKTREE", "Unknown or unavailable worktree.");
@@ -499,6 +525,107 @@ export function createMcpServer(ctx: McpContext): McpServer {
       }
     }
   );
+
+  const writeRequests = ctx.registry ? ctx.writeRequests : undefined;
+  if (writeRequests) {
+    server.registerTool(
+      "propose_patch",
+      {
+        title: "Propose a workspace patch",
+        description:
+          `Validate a unified-text patch and save it as a pending local request for explicit approval. ` +
+          `This does not modify workspace files. Requires workspace.write. ${UNTRUSTED_NOTE}`,
+        inputSchema: {
+          ...workspaceArg,
+          patch: z.string().describe("Unified-text patch against workspace-relative paths"),
+        },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+      },
+      async (args, extra) => {
+        const denied = requireScope(extra.authInfo, "workspace.write");
+        if (denied) return denied;
+        const target = resolveTarget(ctx, args);
+        if ("content" in target) return target;
+        try {
+          const receipt = await writeRequests.createManualRequest({
+            workspaceId: target.registration?.id ?? target.workspace.id,
+            ...(target.worktreeId ? { worktreeId: target.worktreeId } : {}),
+            patch: args.patch,
+          });
+          return ok(toProposalResult(receipt));
+        } catch (error) {
+          return mapError(error);
+        }
+      }
+    );
+
+    server.registerTool(
+      "list_write_requests",
+      {
+        title: "List write requests",
+        description:
+          `List sanitized write-request receipts for the selected workspace and concrete worktree. ` +
+          `Raw patches and local absolute paths are never returned. ${UNTRUSTED_NOTE}`,
+        inputSchema: {
+          ...workspaceArg,
+          status: z.enum(["pending", "applied", "rejected", "stale", "expired", "failed"]).optional(),
+          limit: z.number().int().min(1).max(100).default(20),
+        },
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      async (args, extra) => {
+        const denied = requireScope(extra.authInfo, "workspace.read");
+        if (denied) return denied;
+        const target = resolveTarget(ctx, args);
+        if ("content" in target) return target;
+        try {
+          const requests = await writeRequests.listRequests({
+            workspaceId: target.registration?.id ?? target.workspace.id,
+            worktreeId: target.worktreeId ?? null,
+            ...(args.status ? { status: args.status } : {}),
+            limit: args.limit,
+          });
+          return ok({ requests: requests.map(toRemoteWriteReceipt) });
+        } catch (error) {
+          return mapError(error);
+        }
+      }
+    );
+
+    server.registerTool(
+      "get_write_request",
+      {
+        title: "Get a write-request receipt",
+        description:
+          `Get one sanitized write-request receipt belonging to the selected workspace and concrete worktree. ` +
+          `Raw patches and local absolute paths are never returned. ${UNTRUSTED_NOTE}`,
+        inputSchema: {
+          ...workspaceArg,
+          request_id: z.string().min(1).describe("Opaque request id returned by propose_patch or a receipt tool"),
+        },
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      async (args, extra) => {
+        const denied = requireScope(extra.authInfo, "workspace.read");
+        if (denied) return denied;
+        const target = resolveTarget(ctx, args);
+        if ("content" in target) return target;
+        try {
+          const receipt = await writeRequests.getRequest(args.request_id);
+          const workspaceId = target.registration?.id ?? target.workspace.id;
+          if (
+            receipt.workspaceId !== workspaceId ||
+            (receipt.worktreeId ?? null) !== (target.worktreeId ?? null)
+          ) {
+            return fail("WRITE_REQUEST_NOT_FOUND", "Write request was not found for this workspace and worktree.");
+          }
+          return ok(toRemoteWriteReceipt(receipt));
+        } catch (error) {
+          return mapError(error);
+        }
+      }
+    );
+  }
 
   return server;
 }

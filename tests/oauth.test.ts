@@ -3,6 +3,7 @@ import path from "node:path";
 import { createHash } from "node:crypto";
 import { startBridge, type Bridge } from "../src/bridge/server.js";
 import { PAIRING_AUTO_SUBMIT_SCRIPT } from "../src/auth/oauth.js";
+import { DEFAULT_READ_SCOPES, filterScopes } from "../src/auth/store.js";
 import { makeTmpDir, cleanup, write, isolateStateDir, pkceVerifierAndChallenge } from "./helpers.js";
 
 let root: string;
@@ -10,6 +11,16 @@ let bridge: Bridge;
 let base: string;
 
 const REDIRECT_URI = "http://127.0.0.1:19999/callback";
+
+describe("OAuth scope defaults", () => {
+  it("keeps write scope explicit and rejects unknown-only requests", () => {
+    expect(filterScopes(undefined)).toEqual([...DEFAULT_READ_SCOPES]);
+    expect(filterScopes(" ")).toEqual([...DEFAULT_READ_SCOPES]);
+    expect(filterScopes("workspace.write")).toEqual(["workspace.write"]);
+    expect(filterScopes("unknown.scope")).toEqual([]);
+    expect(filterScopes("unknown.scope workspace.read")).toEqual(["workspace.read"]);
+  });
+});
 
 beforeAll(async () => {
   isolateStateDir();
@@ -30,12 +41,12 @@ async function registerClient(clientName = "Claude"): Promise<string> {
   return ((await response.json()) as { client_id: string }).client_id;
 }
 
-function authorizationUrl(clientId: string, challenge: string): URL {
+function authorizationUrl(clientId: string, challenge: string, scope = "workspace.read workspace.search git.read execution.read offline_access"): URL {
   const url = new URL(`${base}/oauth/authorize`);
   url.searchParams.set("client_id", clientId); url.searchParams.set("redirect_uri", REDIRECT_URI);
   url.searchParams.set("response_type", "code"); url.searchParams.set("state", "st-123");
   url.searchParams.set("code_challenge", challenge); url.searchParams.set("code_challenge_method", "S256");
-  url.searchParams.set("scope", "workspace.read workspace.search git.read execution.read offline_access");
+  url.searchParams.set("scope", scope);
   return url;
 }
 
@@ -73,6 +84,7 @@ describe("discovery metadata", () => {
     expect(body.code_challenge_methods_supported).toEqual(["S256"]);
     expect(body.grant_types_supported).toEqual(["authorization_code", "refresh_token"]);
     expect(body.registration_endpoint).toContain("/oauth/register");
+    expect(body.scopes_supported).toContain("workspace.write");
   });
 });
 
@@ -91,6 +103,29 @@ describe("authorization + token flow", () => {
     const clientId = await registerClient("Claude"); const { challenge } = pkceVerifierAndChallenge();
     const response = await fetch(authorizationUrl(clientId, challenge), { redirect: "manual" }); const html = await response.text();
     expect(response.status).toBe(200); expect(html).toContain("Claude is requesting read-only access"); expect(html).not.toContain("ChatGPT is requesting access");
+  });
+
+  it("keeps omitted write scope out of consent and describes explicit write scope", async () => {
+    const clientId = await registerClient(); const { challenge } = pkceVerifierAndChallenge();
+    const readUrl = authorizationUrl(clientId, challenge); readUrl.searchParams.delete("scope");
+    const readHtml = await (await fetch(readUrl, { redirect: "manual" })).text();
+    expect(readHtml).toContain("Claude is requesting read-only access");
+    expect(readHtml).not.toContain("workspace.write");
+
+    const writeHtml = await (await fetch(authorizationUrl(clientId, challenge, "workspace.write"), { redirect: "manual" })).text();
+    expect(writeHtml).toContain("Claude is requesting narrow C2C text-patch write access");
+    expect(writeHtml).toContain("Apply approved unified text patches to this workspace");
+    expect(writeHtml).not.toContain("read-only access");
+  });
+
+  it("rejects authorization requests containing only unknown scopes", async () => {
+    const clientId = await registerClient(); const { challenge } = pkceVerifierAndChallenge();
+    const url = authorizationUrl(clientId, challenge);
+    url.searchParams.set("scope", "unknown.scope");
+    const response = await fetch(url, { redirect: "manual" });
+    expect(response.status).toBe(302);
+    const location = new URL(response.headers.get("location")!);
+    expect(location.searchParams.get("error")).toBe("invalid_scope");
   });
 
   it("escapes the registered client name", async () => {

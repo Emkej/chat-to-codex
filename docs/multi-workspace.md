@@ -18,7 +18,8 @@ C2C Workspace Broker  ── one stable MCP URL (Cloudflare Named Tunnel)
  ├── Workspace Registry   workspace_id → canonical_root (local only)
  │   └── Derived targets  worktree_id → validated linked root (live Git view)
  ├── Session Registry     session_id → workspace_id (local only)
- └── read-only MCP tools, scoped by opaque workspace_id
+ ├── Write Request Service (broker-owned, local state)
+ └── scoped MCP reads, pending patch proposals, and receipt reads
 ```
 
 Security hierarchy:
@@ -38,8 +39,15 @@ installation
 ```
 
 Claude authorization boundary is the installation. The individual workspace
-is a local Codex capability/session boundary. All mutation/execution remains
-Codex-only; the MCP surface stays read-only.
+is a local Codex capability/session boundary. The remote MCP client has no
+direct file or execution tool. When explicitly authorized with
+`workspace.write`, it may submit a narrow patch proposal; the proposal changes
+only local C2C pending state. The local `c2c approve` command is required for
+workspace mutation.
+
+SPEC-002 V1 write requests are supported only on Linux/WSL. Windows support is
+deferred to future separately validated work; macOS is out of scope unless
+separately proposed.
 
 ## Request routing (the concurrency decision)
 
@@ -58,6 +66,9 @@ strictly against the local Workspace Registry:
 - missing/unknown/unregistered workspace id → fail closed (no default)
 - an optional opaque `worktree` selector is resolved only beneath a registered
   main worktree; paths are never accepted from the client
+- patch proposals and remote receipt reads use the same resolved
+  `workspaceId` plus optional `worktreeId`; receipts are filtered to that
+  concrete target and never contain raw patch bodies or absolute paths
 
 `list_workspaces()` enumerates registered workspace ids and
 `list_worktrees(workspace)` enumerates current derived ids beneath an eligible
@@ -98,13 +109,18 @@ Rejected alternatives:
   `execute_in_workspace` …). If a Claude-side workspace *switch* is ever
   wanted, it must be a request requiring local approval — deliberately not
   built now.
+- direct file mutation and shell execution. The only shipped patch path is
+  `propose_patch` → pending local receipt → explicit `c2c approve`; Probe A
+  blocked the native `apply_patch` tool for this host. See the [capability
+  evidence](verification/artifacts/spec-002/mcp-write-probes.md).
 
 ## Tool surface (target)
 
 - Broker: `list_workspaces` and `list_worktrees` plus the eight scoped readers
-  (10 read-only tools total).
+  (10 read tools), `propose_patch` (one pending-request tool), and
+  `list_write_requests` / `get_write_request` (two read-only receipt tools).
 - Legacy bridge: the existing nine read-only tools remain exact-root-only; it
-  does not expose `list_worktrees`.
+  does not expose `list_worktrees` or any write-request tool.
 - `workspace_info`, `list_directory`, `read_file`, `search_workspace`,
   `git_status`, `git_diff`, `test_status`, `execution_summary` — unchanged
   semantics plus an optional opaque `worktree` selector in broker mode.
@@ -153,7 +169,7 @@ a domain.
 | 1 | Repo content tells Claude to switch workspaces and read secrets | Claude may select any *registered* workspace id — registry scope is the boundary; unregistered/revoked ids fail closed. No path nomination exists. |
 | 2 | `read_file(workspace, "../../../etc/passwd")` | Path canonicalization + confinement per resolved root, unchanged — `PATH_OUTSIDE_WORKSPACE`. |
 | 3 | Claude invents a workspace id | Registry lookup fails → error. |
-| 4 | Valid id from "another session" | Ids address workspaces, not sessions; reads remain read-only and confined. Session ids are never Claude-facing. |
+| 4 | Valid id from "another session" | Ids address workspaces, not sessions; reads and receipts stay scoped to the selected target. A proposal creates only local pending state and requires local approval before mutation. Session ids are never Claude-facing. |
 | 5 | Two Codex sessions simultaneously | Independent session records; no shared mutable workspace pointer. |
 | 6 | Registered workspace deleted/moved | Root no longer resolves → operations fail closed; registration can be repaired locally. |
 | 7 | OAuth token survives broker restart | By design (persisted store) — it authorizes the installation, scoped tools still confine reads. |

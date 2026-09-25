@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "slice": "P7-docs-closeout",
+  "status": "passed",
+  "completed_on": "2026-09-24",
+  "host_gate": {
+    "probe_a": "BLOCKED",
+    "probe_b": "SUPPORTED",
+    "evidence": "docs/verification/artifacts/spec-002/mcp-write-probes.md"
+  },
+  "documentation_review": {
+    "status": "passed",
+    "reviewed_paths": [
+      "docs/security.md",
+      "docs/architecture.md",
+      "docs/protocol.md",
+      "docs/local-e2e.md",
+      "docs/multi-workspace.md",
+      "skill/SKILL.md"
+    ],
+    "contracts_checked": [
+      "Probe A/B matrix and currently shipped proposal/local-approval path",
+      "workspace.write is explicit and excluded from default scopes",
+      "protected workspace controls and canonical C2C state/home roots",
+      "exclusive broker ownership and lifecycle serialization; arbitrary external writers remain outside the lock",
+      "workspace/worktree target preservation and sanitized target-scoped receipts",
+      "mandatory independent post-apply inspection before DONE",
+      "legacy bridge remains read-only"
+    ],
+    "probe_evidence_link_exists": true,
+    "notes": [
+      "Updated security wording to name the exact protected C2C path classes required by SPEC-002 §30.1."
+    ]
+  },
+  "checks": [
+    {
+      "name": "Canonical documentation consistency assertions",
+      "status": "passed",
+      "assertions": 24,
+      "evidence": "The six canonical docs were checked against shipped behavior and the authoritative SPEC-002 capability matrix."
+    },
+    {
+      "name": "Broker OAuth E2E tool discovery after correcting stale expectation",
+      "command": "rtk proxy node_modules/vitest/vitest.mjs run tests/local-e2e-broker.test.ts",
+      "status": "passed",
+      "files": 1,
+      "tests": 5,
+      "execution": "Elevated sandbox permission was required for the loopback listener."
+    },
+    {
+      "name": "TypeScript no-emit typecheck",
+      "command": "rtk proxy node_modules/typescript/bin/tsc --noEmit",
+      "status": "passed",
+      "evidence": "docs/verification/artifacts/spec-002/p7-final/01-typecheck.stdout.log and .stderr.log"
+    },
+    {
+      "name": "TypeScript build",
+      "command": "rtk proxy node_modules/typescript/bin/tsc -p tsconfig.json",
+      "status": "passed",
+      "evidence": "docs/verification/artifacts/spec-002/p7-final/02-build.stdout.log and .stderr.log"
+    },
+    {
+      "name": "Full Vitest suite",
+      "command": "rtk proxy node_modules/vitest/vitest.mjs run",
+      "status": "passed",
+      "files": 29,
+      "tests": 277,
+      "execution": "Elevated sandbox permission was required for broker loopback listeners.",
+      "evidence": "docs/verification/artifacts/spec-002/p7-final/03-tests.stdout.log and .stderr.log"
+    },
+    {
+      "name": "Git diff whitespace check",
+      "command": "rtk proxy git diff --check",
+      "status": "passed",
+      "evidence": "docs/verification/artifacts/spec-002/p7-final/04-diff-check.stdout.log and .stderr.log"
+    }
+  ],
+  "independent_review": {
+    "status": "superseded",
+    "superseded_by": "docs/verification/artifacts/spec-002/conformance-recheck.json",
+    "reviewed_scope": "Current implementation working tree against SPEC-002, including new write-request modules, broker/CLI/MCP integrations, tests, and canonical docs.",
+    "strengths": [
+      "Observed Probe A/B result selects the proposal-plus-local-approval path; native apply_patch and disposable probes are absent.",
+      "OAuth scope, broker ownership, lifecycle serialization, target scoping, patch preconditions, staging/rollback, receipt privacy, and CLI selection match the reviewed contracts."
+    ],
+    "finding": {
+      "priority": "P2",
+      "issue": "The P7 review identified owner implementations outside the validated Linux/WSL path.",
+      "evidence": "Superseded by the iteration 4 Linux/WSL-only owner implementation, platform contract, and conformance recheck.",
+      "impact": "No remaining Linux/WSL V1 conformance issue; Windows support is deferred and macOS is out of scope.",
+      "recommended_action": "None for V1. Any later Windows work requires a separate implementation and dedicated validation; macOS requires a separate scope decision.",
+      "scope": "Historical review note; superseded by the iteration 4 V1 platform contract."
+    },
+    "assessment": "This P7 review is historical and superseded. Current Linux/WSL V1 conformance is recorded in docs/verification/artifacts/spec-002/conformance-recheck.json."
+  },
+  "resolution": {
+    "finding": "The first full-suite attempt exposed an outdated E2E assertion that expected only 10 read-only broker tools.",
+    "change": "Updated the test name and expected discovery list to include propose_patch and both read-only receipt tools.",
+    "focused_recheck": "Passed 5/5 tests; final full validation matrix then passed."
+  },
+  "limitations": [
+    "The pre-existing README.md change was preserved per the task ownership manifest; its read-only-only overview remains outside the SPEC-002 canonical documentation slice.",
+    "The P7 cross-platform validation note is superseded by the explicit Linux/WSL-only V1 scope; no non-Linux validation gates completion."
+  ]
+}

@@ -134,16 +134,19 @@ afterAll(async () => {
 });
 
 describe("local E2E — broker-first multi-project", () => {
-  it("lists ten read-only broker tools after OAuth pairing", async () => {
+  it("lists ten scoped readers plus proposal and receipt tools after OAuth pairing", async () => {
     const { tools } = await client.listTools();
     const names = tools.map((t) => t.name).sort();
     expect(names).toEqual([
       "execution_summary",
+      "get_write_request",
       "git_diff",
       "git_status",
       "list_directory",
       "list_workspaces",
       "list_worktrees",
+      "list_write_requests",
+      "propose_patch",
       "read_file",
       "search_workspace",
       "test_status",
