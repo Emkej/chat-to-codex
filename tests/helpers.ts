@@ -1,27 +1,27 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { createHash, randomBytes } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { afterAll } from "vitest";
 
-const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const temporaryDirs = new Set<string>();
+let originalStateDir: string | undefined;
+let capturedStateDir = false;
 
-/**
- * Temp dirs live inside the repo (.tooling/test-tmp) so tests also run in
- * sandboxed environments where the system temp dir is not writable.
- */
+/** Create an isolated fixture in the OS temp directory. */
 export function makeTmpDir(name: string): string {
-  const dir = path.join(projectRoot, ".tooling", "test-tmp", `${name}-${randomBytes(4).toString("hex")}`);
-  fs.mkdirSync(dir, { recursive: true });
-  return fs.realpathSync.native(dir);
+  const safeName = name.replace(/[^a-zA-Z0-9_-]/g, "-");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), `c2c-${safeName}-`));
+  temporaryDirs.add(dir);
+  return dir;
 }
 
 export function cleanup(dir: string): void {
-  try {
-    fs.rmSync(dir, { recursive: true, force: true });
-  } catch {
-    // best effort
-  }
+  const resolved = path.resolve(dir);
+  if (!temporaryDirs.has(resolved)) return;
+  fs.rmSync(resolved, { recursive: true, force: true });
+  temporaryDirs.delete(resolved);
 }
 
 export function write(dir: string, rel: string, content: string): string {
@@ -57,8 +57,12 @@ export function makeGitRepo(dir: string): void {
   git(dir, "commit", "-m", "initial commit");
 }
 
-/** Point the persistent state dir at an isolated temp location. */
+/** Point profile-backed calls at a per-suite temporary location. */
 export function isolateStateDir(): string {
+  if (!capturedStateDir) {
+    originalStateDir = process.env.C2C_STATE_DIR;
+    capturedStateDir = true;
+  }
   const dir = makeTmpDir("state");
   process.env.C2C_STATE_DIR = dir;
   return dir;
@@ -69,3 +73,22 @@ export function pkceVerifierAndChallenge(): { verifier: string; challenge: strin
   const challenge = createHash("sha256").update(verifier).digest("base64url");
   return { verifier, challenge };
 }
+
+afterAll(() => {
+  if (capturedStateDir) {
+    if (originalStateDir === undefined) delete process.env.C2C_STATE_DIR;
+    else process.env.C2C_STATE_DIR = originalStateDir;
+  }
+
+  const errors: unknown[] = [];
+  for (const dir of [...temporaryDirs]) {
+    try {
+      cleanup(dir);
+    } catch (error) {
+      errors.push(error);
+    }
+  }
+  if (errors.length > 0) {
+    throw new AggregateError(errors, "Failed to remove temporary C2C test state");
+  }
+});

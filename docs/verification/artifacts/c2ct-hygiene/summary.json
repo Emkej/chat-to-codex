@@ -1,0 +1,67 @@
+{
+  "task": "c2ct-hygiene",
+  "baselineCommit": "98b8994bf0ebb32a8e7de5dab372ab96857154cf",
+  "branch": "codex/c2ct-hygiene",
+  "rootCauses": [
+    "c2ct injected --profile test but inherited C2C_STATE_DIR still took precedence, and forwarded --profile arguments could override the test profile.",
+    "Automated fixtures were created under repository-local .tooling/test-tmp; cleanup failures were swallowed and some state dirs were not explicitly registered for teardown."
+  ],
+  "workPaths": [
+    {
+      "path": "work/c2c-test-home",
+      "classification": "persistent c2ct/test-profile state",
+      "disposition": "Retained. It contains pre-existing state for the legacy named profile spec001-chatgpt, including auth/runtime/session data; no migration or deletion was performed."
+    },
+    {
+      "path": "work/c2c-test-codex-home",
+      "classification": "persistent test-profile supporting state",
+      "disposition": "Retained as pre-existing Codex configuration."
+    },
+    {
+      "path": "work/chatgpt-e2e-worktree",
+      "classification": "active/reusable validation worktree",
+      "disposition": "Retained with its installed dependencies and build output. Removed only its 189 old helper-generated .tooling/test-tmp directories (2.5 MB); no test process was active."
+    },
+    {
+      "path": "work/tools/cloudflared",
+      "classification": "reusable local tool",
+      "disposition": "Retained."
+    }
+  ],
+  "disposableState": {
+    "newLocation": "OS temporary directory via fs.mkdtempSync(os.tmpdir())",
+    "cleanup": "Explicit cleanup plus suite afterAll cleanup; failed creation/cleanup is surfaced rather than silently falling back or being ignored.",
+    "repoLocalWorkCreated": false
+  },
+  "resetCommand": "not added",
+  "validation": {
+    "focused": {
+      "command": "./node_modules/.bin/vitest run tests/c2ct.test.ts tests/helpers.test.ts tests/workspaces-domain.test.ts",
+      "result": "passed",
+      "files": 3,
+      "tests": 25
+    },
+    "fullSuite": {
+      "command": "./node_modules/.bin/vitest run",
+      "result": "passed with loopback permission",
+      "files": 31,
+      "tests": 300
+    },
+    "typecheck": {
+      "command": "./node_modules/.bin/tsc --noEmit",
+      "result": "passed"
+    },
+    "build": {
+      "command": "./node_modules/.bin/tsc -p tsconfig.json",
+      "result": "passed"
+    },
+    "postBuildProfileAndCleanup": {
+      "command": "./node_modules/.bin/vitest run tests/c2ct.test.ts tests/helpers.test.ts",
+      "result": "passed",
+      "files": 2,
+      "tests": 6
+    },
+    "diffCheck": "passed: git diff --cached --check",
+    "pnpm": "The pnpm launcher emitted no output and did not return within 30 seconds for offline install or 10 seconds for --version; equivalent installed Vitest and TypeScript binaries were used."
+  }
+}

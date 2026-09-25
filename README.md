@@ -214,6 +214,17 @@ Every command supports `--json` for tooling.
 
 For compatibility, `doctor --json` exposes the canonical `connectorRepair` field while retaining `chatgptRepair` as a deprecated alias.
 
+### Test profile
+
+`c2c` uses the normal/default installation. `c2ct` runs the same CLI with the
+isolated `test` profile, whose persistent state lives at
+`~/.c2c/profiles/test/` (or under `C2C_HOME` when that override is set). The
+wrapper forces this profile and ignores inherited `C2C_STATE_DIR` values so
+test commands cannot be redirected to default state. `c2ct install` still
+manages the shared application and launchers; profiles isolate runtime state,
+not a second application copy. Automated test fixtures use OS temporary
+directories and are removed at suite teardown.
+
 ## Compatibility
 
 Chat to Codex began from the ideas and architecture of `codex-with-chatgpt` and has since evolved into an independent implementation.
