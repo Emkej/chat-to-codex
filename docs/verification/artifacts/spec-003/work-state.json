@@ -10,9 +10,13 @@
   "repository_root": "/home/emkej/projects/chat-to-codex",
   "worktree": "/home/emkej/projects/chat-to-codex",
   "branch": "codex/spec-003-c2c-manager-mvp",
-  "head": "39108d7c4aa2285f1d97805c914d129a5d277e1d",
+  "head": "465403db0272f162bb58bfe932526d8df8726b14",
+  "review_base_head": "39108d7c4aa2285f1d97805c914d129a5d277e1d",
+  "implementation_base_head": "39108d7c4aa2285f1d97805c914d129a5d277e1d",
+  "implementation_commit": "465403db0272f162bb58bfe932526d8df8726b14",
   "dirty_path_manifest": "docs/verification/artifacts/spec-003/task-ownership.json",
   "git_state_at_capture": {
+    "head": "39108d7c4aa2285f1d97805c914d129a5d277e1d",
     "staged": [],
     "unstaged": [],
     "untracked": [
@@ -55,7 +59,7 @@
     "owner_decision_round_trips": 0
   },
   "preflight": [
-    {"check": "repository root, branch, HEAD, and dirty state", "status": "passed", "evidence": "Current worktree is /home/emkej/projects/chat-to-codex on codex/spec-003-c2c-manager-mvp at 39108d7c4aa2285f1d97805c914d129a5d277e1d; baseline dirty paths are captured in task-ownership.json."},
+    {"check": "repository root, branch, HEAD, and dirty state", "status": "passed", "evidence": "Review baseline was /home/emkej/projects/chat-to-codex on codex/spec-003-c2c-manager-mvp at 39108d7c4aa2285f1d97805c914d129a5d277e1d; the completed implementation is now committed at 465403db0272f162bb58bfe932526d8df8726b14; baseline dirty paths are captured in task-ownership.json."},
     {"check": "Node.js runtime", "status": "passed", "evidence": "node v24.15.0; package engine requires >=20."},
     {"check": "Git runtime", "status": "passed", "evidence": "git 2.34.1."},
     {"check": "root lockfile presence and production integrity", "status": "passed", "evidence": "Tracked pnpm-lock.yaml existed at the baseline; Ink 6.8.0, React 19.3.0, and @types/react 19.3.0 were added with pnpm 11.24.0. The disposable production install passed --frozen-lockfile."},

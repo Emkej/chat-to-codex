@@ -4,9 +4,12 @@
   "kind": "plan-review-recheck-final",
   "spec": "docs/specs/spec-003-c2c-manager-mvp.md",
   "specSha256": "071fd072a26b22f6a84b0fca938333ba4c9c7cf6cf23f82d2ea3c955d0dce2f1",
-  "reviewedHead": "39108d7c4aa2285f1d97805c914d129a5d277e1d",
+  "review_base_head": "39108d7c4aa2285f1d97805c914d129a5d277e1d",
+  "implementation_base_head": "39108d7c4aa2285f1d97805c914d129a5d277e1d",
+  "implementation_commit": "465403db0272f162bb58bfe932526d8df8726b14",
+  "reviewed_state": "The P0/P1 implementation was reviewed in the working tree over review_base_head; implementation_commit was created afterward.",
   "verdict": "pass",
-  "scope": "Read-only conformance review of the current SPEC-003 Phase 0 and Phase 1 implementation. Phase 2 was excluded as optional follow-up work.",
+  "scope": "Read-only conformance review of the SPEC-003 Phase 0 and Phase 1 implementation present in the working tree over review_base_head. Phase 2 was excluded as optional follow-up work.",
   "supersedes": {
     "artifact": "docs/verification/artifacts/spec-003/quality-gate/recheck-02.json",
     "previousSpecSha256": "0f95b3b0ccc96bccea373fd125542f94d6035d72432f54cf6154010da2a39467",
@@ -92,7 +95,7 @@
   },
   "readOnlyChecks": [
     "Current SPEC SHA-256 recomputed as 071fd072a26b22f6a84b0fca938333ba4c9c7cf6cf23f82d2ea3c955d0dce2f1.",
-    "Current branch and review HEAD confirmed as codex/spec-003-c2c-manager-mvp at 39108d7c4aa2285f1d97805c914d129a5d277e1d.",
+    "Review base HEAD confirmed as 39108d7c4aa2285f1d97805c914d129a5d277e1d; the implementation under review was present in the working tree over that base and was subsequently committed as 465403db0272f162bb58bfe932526d8df8726b14.",
     "No authoritative mockup path found in the current checkout or Git history/object listings.",
     "No Phase 2 implementation was started."
   ],
