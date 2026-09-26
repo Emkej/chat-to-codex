@@ -1,0 +1,138 @@
+{
+    "schema_version": 1,
+    "work_id": "change-003-c2c-manager-alternate-screen",
+    "task_title": "[CHAT/c2c-manager/P1/S3-closeout] Repair manager exit teardown",
+    "owner_outcome": "Use standard terminal alternate-screen semantics in runManager() so Manager entry, exit, and failure cleanup restore a usable terminal without changing C2C operational behavior.",
+    "authoritative_source": "/home/emkej/projects/chat-to-codex/docs/changes/change-003-c2c-manager-alternate-screen.md",
+    "status": "Completed",
+    "environment": "WSL/Linux",
+    "repository_root": "/home/emkej/projects/chat-to-codex",
+    "worktree": "/home/emkej/projects/chat-to-codex",
+    "branch": "codex/change-003-c2c-manager-alternate-screen",
+    "head": "5b888130af8f0377452f2ab2baf57d6dcb8efbef",
+    "continuation_runs": 0,
+    "context_compactions": 0,
+    "failed_validation_attempts": 4,
+    "owner_decision_round_trips": 0,
+    "dirty_path_manifest": "docs/verification/artifacts/change-003/task-ownership.json",
+    "ledger": {
+        "planned_slices": [
+            {
+                "id": "S1-lifecycle",
+                "status": "Completed",
+                "boundary": "Implement alternate-screen entry/cleanup in runManager() and focused lifecycle tests for ordering, cleanup attempts, listener removal, non-TTY safety, and failure precedence.",
+                "success_criteria": [
+                    "TTY validation occurs before any alternate-screen write.",
+                    "Entry is written before Ink render ownership begins and exit is attempted once from final cleanup.",
+                    "Manager failure takes precedence over teardown failure; teardown failure takes precedence over successful return; restoration failure is never promoted.",
+                    "Teardown, restoration, and SIGTERM listener removal are independently attempted.",
+                    "Non-TTY invocation emits no alternate-screen sequence."
+                ],
+                "validation_plan": [
+                    "Run tests/cli-manager.test.ts and the focused Manager lifecycle test.",
+                    "Run TypeScript no-emit typecheck, build, and git diff --check."
+                ]
+            },
+            {
+                "id": "S2-terminal-acceptance",
+                "status": "Completed",
+                "boundary": "Verify actual terminal/PTY behavior for q, Ctrl+C, SIGTERM, narrow/wide layouts, visible normal-screen restoration, and post-exit usability without invoking operational actions.",
+                "success_criteria": [
+                    "All three exit methods restore the normal screen and leave the terminal usable.",
+                    "Narrow and wide Manager rendering remain functional.",
+                    "Acceptance evidence records emulator, dimensions, exit methods, visible restoration, follow-up command usability, and sequence evidence."
+                ],
+                "validation_plan": [
+                    "Use disposable C2C state and controlled PTY/terminal runs.",
+                    "Retain focused evidence in docs/verification/artifacts/change-003/summary.json."
+                ]
+            },
+            {
+                "id": "S3-closeout",
+                "status": "Completed",
+                "boundary": "Review the authoritative change, isolated diff, documentation alignment, ownership classification, and final validation before closing CHANGE-003.",
+                "success_criteria": [
+                    "All change acceptance criteria are evidenced.",
+                    "No unrelated dirty path is modified or staged.",
+                    "The change source and work state are closed consistently."
+                ],
+                "validation_plan": [
+                    "Validate the dirty-path manifest and inspect the task-scoped diff.",
+                    "Run the final relevant test, typecheck, build, whitespace, and acceptance checks."
+                ]
+            }
+        ],
+        "current_slice": {
+            "id": "S3-closeout",
+            "status": "Completed",
+            "success_criteria": [
+                "All change acceptance criteria are evidenced.",
+                "No unrelated dirty path is modified or staged.",
+                "The change source and work state are closed consistently."
+            ],
+            "validation_plan": [
+                "Review the authoritative change, isolated diff, and documentation alignment.",
+                "Validate the dirty-path manifest and run the final relevant test, typecheck, build, whitespace, and acceptance checks."
+            ]
+        },
+        "completed_slices": ["S1-lifecycle", "S2-terminal-acceptance", "S3-closeout"],
+        "remaining_slices": []
+    },
+    "preflight": [
+        {"check": "repository root, branch, HEAD, and dirty-path capture", "status": "passed", "evidence": "docs/verification/artifacts/change-003/task-ownership.json"},
+        {"check": "required Node/pnpm toolchain and lockfile-defined dependencies", "status": "passed", "evidence": "Node v24.15.0; Git 2.34.1; cached pnpm 11.24.0; installed node_modules/.bin/vitest and node_modules/.bin/tsc present. The PATH-selected pnpm command stalled and was terminated after a bounded retry."},
+        {"check": "read-only baseline focused tests, typecheck, and build", "status": "passed", "evidence": "docs/verification/artifacts/change-003/preflight/summary.json; manager-focused baseline, typecheck, build, and tracked diff check passed."},
+        {"check": "required terminal/PTY validation prerequisites", "status": "passed", "evidence": "tmux 3.2a and util-linux script are installed; disposable tmux panes provided interpreted screen-state validation."}
+    ],
+    "validation": [
+        {"check": "Manager-focused baseline suites", "status": "passed", "evidence": "docs/verification/artifacts/change-003/preflight/summary.json; tests/cli-manager.test.ts, tests/manager-controller.test.ts, and tests/manager-refresh.test.ts passed."},
+        {"check": "TypeScript no-emit baseline", "status": "passed", "evidence": "docs/verification/artifacts/change-003/preflight/summary.json; cached pnpm exec tsc --noEmit exited 0."},
+        {"check": "Build baseline", "status": "passed", "evidence": "docs/verification/artifacts/change-003/preflight/summary.json; cached pnpm run build exited 0."},
+        {"check": "Tracked git diff check baseline", "status": "passed", "evidence": "docs/verification/artifacts/change-003/preflight/summary.json; git diff --check exited 0."},
+        {"check": "S1 lifecycle gate first attempt", "status": "failed", "evidence": "docs/verification/artifacts/change-003/s1-lifecycle/summary.json; focused tests, typecheck, and build passed, but git diff --check reported mixed line endings in the touched Manager entry file."},
+        {"check": "S1 lifecycle gate recheck", "status": "passed", "evidence": "docs/verification/artifacts/change-003/final-gate-recheck/summary.json; 61 focused tests, typecheck, build, and git diff --check passed."},
+        {"check": "S2 interpreted terminal acceptance", "status": "passed", "evidence": "docs/verification/artifacts/change-003/summary.json; q, Ctrl+C, SIGTERM, 80x24 narrow, and 120x24 wide runs restored the normal screen and accepted a follow-up command."},
+        {"check": "S2 failed SIGTERM harness attempt", "status": "failed", "evidence": "The initial background-process harness triggered TTY job-control stop before SIGTERM; the harness was removed and the foreground-child run passed."},
+        {"check": "Post-review final gate first attempt", "status": "failed", "evidence": "docs/verification/artifacts/change-003/final-gate-recheck/summary.json; focused tests, typecheck, and build passed, but git diff --check reported the existing CRLF line endings in the newly touched CLI test file."},
+        {"check": "Post-review final gate recheck", "status": "passed", "evidence": "docs/verification/artifacts/change-003/final-gate-recheck/summary.json; 61 focused tests, typecheck, build, and git diff --check passed."},
+        {"check": "Final lifecycle repair gate", "status": "passed", "evidence": "docs/verification/artifacts/change-003/final-lifecycle-repair/summary.json; 63 focused tests across manager-entry, cli-manager, manager-controller, and manager-refresh passed; typecheck, build, and git diff --check passed."}
+    ],
+    "prerequisite_failure_cache": {
+        "expensive_prerequisite": null,
+        "last_failure_fingerprint": null,
+        "fingerprint_inputs": null,
+        "last_failure": null,
+        "cheap_recheck": null
+    },
+    "decisions_constraints_risks_blockers": {
+        "decisions": [
+            "CHANGE-003 is the authoritative work source; SPEC-003 remains completed and unchanged.",
+            "The implementation stays local to src/manager/index.tsx and does not add a terminal abstraction or dependency.",
+            "The repository lacks tools/repo/track_dirty_paths.py, so the compatible generic tracker from /home/emkej/projects/veterinar is used as a workflow fallback; the occurrence should be recorded as tooling friction.",
+            "Existing tmux 3.2a interpreted-screen evidence is accepted as terminal acceptance for q, Ctrl+C, SIGTERM, narrow/wide behavior, normal-screen restoration, and follow-up command usability."
+        ],
+        "constraints": [
+            "Preserve every pre-existing dirty path listed in the ownership manifest.",
+            "Do not change Manager actions, state semantics, backend behavior, refresh cadence, or non-Manager commands.",
+            "Do not add production test hooks, configuration, dependencies, or an Ink snapshot framework.",
+            "Do not invoke Manager operational actions against live state for terminal validation."
+        ],
+        "risks": [
+            "The PATH-selected pnpm launcher stalled during the bounded version check; use the verified cached pnpm 11.24.0 runtime for validation."
+        ],
+        "blockers": []
+    },
+    "metrics": {
+        "continuation_runs": 0,
+        "context_compactions": 0,
+        "failed_validation_attempts": 3,
+        "owner_decision_round_trips": 0
+    },
+    "authoritative_slice": {
+        "id": "S3-closeout",
+        "boundary": "Review the authoritative change, isolated diff, documentation alignment, ownership classification, and final validation before closing CHANGE-003."
+    },
+    "first_remaining_action": [],
+    "current_blocker": null,
+    "resume_condition": "No resume required; CHANGE-003 is Completed."
+}

@@ -1,0 +1,102 @@
+{
+    "change": "CHANGE-003",
+    "status": "completed",
+    "repository": "/home/emkej/projects/chat-to-codex",
+    "branch": "codex/change-003-c2c-manager-alternate-screen",
+    "head_at_evidence": "5b888130af8f0377452f2ab2baf57d6dcb8efbef",
+    "terminal": {
+        "emulator": "tmux 3.2a terminal emulator/multiplexer interpreted panes",
+        "host_term": "xterm-256color",
+        "pty_byte_capture": "not used; sequence ordering is covered by tests/manager-entry.test.ts",
+        "disposable_state": true,
+        "operational_actions_invoked": false
+    },
+    "screen_acceptance": [
+        {
+            "exit_method": "q",
+            "dimensions": "80x24",
+            "normal_screen_marker_before_launch": "NORMAL_SCREEN_MARKER",
+            "alternate_screen_active": true,
+            "normal_screen_returned_visibly": true,
+            "post_exit_marker": "AFTER_SCREEN_MARKER",
+            "follow_up_command": "FOLLOWUP_Q_OK",
+            "terminal_usable_after_exit": true,
+            "evidence": "Interpreted tmux capture-pane showed a clean Manager viewport without the normal marker, then the normal shell buffer and FOLLOWUP_Q_OK after q."
+        },
+        {
+            "exit_method": "Ctrl+C",
+            "dimensions": "80x24",
+            "normal_screen_marker_before_launch": "NORMAL_CTRLC_MARKER",
+            "alternate_screen_active": true,
+            "normal_screen_returned_visibly": true,
+            "post_exit_marker": "AFTER_CTRLC_MARKER",
+            "follow_up_command": "FOLLOWUP_CTRLC_OK",
+            "terminal_usable_after_exit": true,
+            "evidence": "Interpreted tmux capture-pane showed a clean Manager viewport without the normal marker, then the normal shell buffer and FOLLOWUP_CTRLC_OK after Ctrl+C."
+        },
+        {
+            "exit_method": "SIGTERM",
+            "dimensions": "80x24",
+            "normal_screen_marker_before_launch": "NORMAL_SIGTERM_MARKER",
+            "alternate_screen_active": true,
+            "normal_screen_returned_visibly": true,
+            "post_exit_marker": "AFTER_SIGTERM_MARKER",
+            "follow_up_command": "FOLLOWUP_SIGTERM_OK",
+            "terminal_usable_after_exit": true,
+            "evidence": "Interpreted tmux capture-pane showed the Manager viewport before SIGTERM, then the shell's AFTER_SIGTERM_MARKER and FOLLOWUP_SIGTERM_OK after signaling the verified Node child."
+        },
+        {
+            "exit_method": "q",
+            "dimensions": "120x24",
+            "normal_screen_marker_before_launch": "NORMAL_WIDE_MARKER",
+            "alternate_screen_active": true,
+            "normal_screen_returned_visibly": true,
+            "post_exit_marker": "AFTER_WIDE_MARKER",
+            "follow_up_command": "FOLLOWUP_WIDE_OK",
+            "terminal_usable_after_exit": true,
+            "evidence": "Interpreted tmux capture-pane showed the wide split Workspaces/Health layout without the normal marker, then the normal shell buffer and FOLLOWUP_WIDE_OK after q."
+        }
+    ],
+    "validation": [
+        {
+            "check": "Focused Manager lifecycle, CLI, controller, and refresh tests",
+            "status": "passed",
+            "evidence": "docs/verification/artifacts/change-003/final-lifecycle-repair/summary.json; 63 tests passed across 4 suites, including the live onQuit and SIGTERM teardown-failure callbacks."
+        },
+        {
+            "check": "TypeScript no-emit typecheck",
+            "status": "passed",
+            "evidence": "docs/verification/artifacts/change-003/final-gate-recheck/summary.json"
+        },
+        {
+            "check": "Build",
+            "status": "passed",
+            "evidence": "docs/verification/artifacts/change-003/final-gate-recheck/summary.json"
+        },
+        {
+            "check": "git diff --check",
+            "status": "passed",
+            "evidence": "docs/verification/artifacts/change-003/final-gate-recheck/summary.json; passed on recheck after normalizing touched files to LF."
+        },
+        {
+            "check": "Non-TTY safety",
+            "status": "passed",
+            "evidence": "tests/cli-manager.test.ts and tests/manager-entry.test.ts; no alternate-screen write before the TTY guard."
+        },
+        {
+            "check": "Interpreted tmux screen acceptance",
+            "status": "passed",
+            "evidence": "This file; q, Ctrl+C, SIGTERM, 80x24 narrow, and 120x24 wide runs restored the normal screen and accepted a follow-up command."
+        },
+        {
+            "check": "Final lifecycle repair gate",
+            "status": "passed",
+            "evidence": "docs/verification/artifacts/change-003/final-lifecycle-repair/summary.json; controller.close failure no longer prevents unmount or exit-promise resolution from onQuit or SIGTERM callbacks."
+        }
+    ],
+    "notes": [
+        "The PATH-selected pnpm launcher stalled during preflight; all checks used cached pnpm 11.24.0.",
+        "The repository has no local tools/repo/track_dirty_paths.py; ownership was captured with the compatible shared tracker fallback.",
+        "The existing tmux 3.2a interpreted-screen evidence is accepted as terminal acceptance for q, Ctrl+C, SIGTERM, narrow/wide behavior, normal-screen restoration, and follow-up command usability."
+    ]
+}

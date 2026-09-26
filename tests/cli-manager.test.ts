@@ -55,6 +55,7 @@ describe("c2c manager CLI entry", () => {
     const result = await runCli(["manager"], path.join(directory, "stderr.txt"));
     expect(result.code).toBe(1);
     expect(result.output).toContain("c2c manager requires an interactive terminal (TTY).");
+    expect(result.output).not.toContain("\x1b[?1049h");
     const command = fs.readFileSync(path.join(projectRoot, "src", "cli", "manager-command.ts"), "utf8");
     expect(command).toContain("c2c manager requires an interactive terminal (TTY).");
   });

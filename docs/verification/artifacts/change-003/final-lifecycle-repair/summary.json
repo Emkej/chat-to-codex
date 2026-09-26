@@ -1,0 +1,46 @@
+{
+    "contract_version": 2,
+    "name": "change-003-final-lifecycle-repair",
+    "status": "passed",
+    "branch": "codex/change-003-c2c-manager-alternate-screen",
+    "validation": [
+        {
+            "name": "focused-manager-tests",
+            "status": "passed",
+            "command": "pnpm exec vitest run tests/manager-entry.test.ts tests/cli-manager.test.ts tests/manager-controller.test.ts tests/manager-refresh.test.ts",
+            "result": "4 test files passed; 63 tests passed."
+        },
+        {
+            "name": "typecheck",
+            "status": "passed",
+            "command": "pnpm exec tsc --noEmit"
+        },
+        {
+            "name": "build",
+            "status": "passed",
+            "command": "pnpm run build"
+        },
+        {
+            "name": "git-diff-check",
+            "status": "passed",
+            "command": "git diff --check"
+        }
+    ],
+    "callback_coverage": [
+        {
+            "callback": "ManagerApp onQuit",
+            "status": "passed",
+            "result": "controller.close failure is captured; app.unmount and exit-promise resolution are still attempted; runManager propagates the teardown failure after screen restoration and listener cleanup."
+        },
+        {
+            "callback": "registered SIGTERM handler",
+            "status": "passed",
+            "result": "The handler does not synchronously throw; Manager cleanup, alternate-screen restoration, listener removal, and teardown-failure propagation complete through runManager."
+        }
+    ],
+    "terminal_acceptance": {
+        "status": "accepted",
+        "evidence": "Existing docs/verification/artifacts/change-003/summary.json tmux 3.2a interpreted-screen runs cover q, Ctrl+C, SIGTERM, 80x24 narrow, 120x24 wide, normal-screen restoration, and follow-up command usability."
+    },
+    "spec_003": "unchanged"
+}
