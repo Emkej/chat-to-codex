@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "slice": "P1-manager-overview",
+  "recorded_at_utc": "2026-09-26T08:08:08Z",
+  "repository_root": "/home/emkej/projects/chat-to-codex",
+  "branch": "codex/spec-003-c2c-manager-mvp",
+  "head": "39108d7c4aa2285f1d97805c914d129a5d277e1d",
+  "implementation_status": "Implemented; SPEC-003 remains In progress because AC-003-29 visual-reference acceptance is unresolved.",
+  "dependencies": {
+    "ink": "6.8.0",
+    "react": "19.3.0",
+    "@types/react": "19.3.0",
+    "pnpm": "11.24.0",
+    "pnpm_source": "/home/emkej/.cache/node/corepack/v1/pnpm/11.24.0/bin/pnpm.cjs"
+  },
+  "source_layout": [
+    "src/cli/manager-command.ts: lazy command registration and stdin/stdout TTY guard",
+    "src/manager/controller.ts: serialized foreground actions, status and transient UI state",
+    "src/manager/action-policy.ts: shared shortcut/menu availability policy",
+    "src/manager/refresh-coordinator.ts: one abortable read, generation invalidation, bounded timeout, completion-driven polling",
+    "src/manager/services.ts: adapters to canonical C2C status, health, lifecycle, pairing, and connector-confirmation services",
+    "src/manager/index.tsx: Ink render and shared q/Ctrl+C/SIGTERM cleanup",
+    "src/manager/ui/: overview, health, workspace, activity, actions menu, and keyboard input panels"
+  ],
+  "behavior": {
+    "lazy_load": "The root CLI imports only the small command registration module. That module checks stdin and stdout TTY status before dynamically importing the Manager entry.",
+    "action_policy": "One available-action table backs both keyboard shortcuts and the menu. Start/Restart/Recover follow stopped/running/unknown broker state; Stop and Confirm require explicit confirmation; Fix requires a structured repairable issue. Pair uses current broker/tunnel state plus a healthy endpoint, and unavailable actions are hidden during a foreground action.",
+    "refresh": {
+      "interval_ms": 10000,
+      "read_timeout_ms": 5000,
+      "stale_status_threshold_ms": 30000,
+      "action_start": "Immediately increments the read generation and aborts an active read without waiting for it.",
+      "completion": "Keeps the foreground guard until the obsolete read retires, then performs one fresh read. Stale and late results cannot commit."
+    },
+    "pairing": "Pair requires a healthy endpoint and running broker/tunnel for initial authorization; a pending connector instruction also enables Pair while authorized. The new code remains in transient Manager state and does not clear the instruction.",
+    "confirmation": "Confirm first requires explicit y/Enter confirmation, then passes the displayed MCP URL to the canonical confirmation service. A changed endpoint is rejected and the refreshed instruction remains visible.",
+    "layout": {
+      "wide_min_columns": 90,
+      "wide": "Workspaces left; Health and Activity right.",
+      "narrow": "Panels stack vertically."
+    },
+    "exit": {
+      "q": "PTY exit status 0; terminal restored.",
+      "ctrl_c": "PTY exit status 0 through the same close path; terminal restored.",
+      "sigterm": "Manager unmounted and terminal restored in about 1.5 seconds; process returned standard signal status 143."
+    }
+  },
+  "visual_reference": {
+    "status": "unresolved",
+    "required_path": "docs/html/c2c-manager-tui-mockup.html",
+    "evidence": "The exact approved file was not present in current docs or recoverable from current git history/object listings. No replacement was fabricated and the user-provided SPEC was not changed.",
+    "acceptance_criterion": "AC-003-29 remains blocked."
+  },
+  "validation": [
+    {
+      "check": "Focused Manager/controller/refresh/CLI tests",
+      "status": "passed",
+      "result": "53 passed across 3 suites: 40 controller/policy, 9 refresh-coordinator, 4 CLI."
+    },
+    {
+      "check": "P0 regression batch",
+      "status": "passed",
+      "result": "108 passed across 10 suites with scoped elevated loopback/flock access."
+    },
+    {
+      "check": "Full Vitest suite",
+      "status": "passed",
+      "result": "407 passed across 38 files with scoped elevated loopback/flock access after the action-policy, confirmation, and latest-authorization fixes."
+    },
+    {
+      "check": "TypeScript no-emit",
+      "status": "passed",
+      "command": "rtk tsc --noEmit -p tsconfig.json"
+    },
+    {
+      "check": "Build",
+      "status": "passed",
+      "command": "rtk proxy node /home/emkej/.cache/node/corepack/v1/pnpm/11.24.0/bin/pnpm.cjs build",
+      "result": "dist/manager contains compiled JavaScript and source maps for the Manager modules and UI."
+    },
+    {
+      "check": "Frozen production install",
+      "status": "passed",
+      "command": "pnpm install --prod --frozen-lockfile --store-dir=/home/emkej/.codex-windows-launcher/wsl-browser-shared-v1/.local/share/pnpm/store",
+      "environment": "Disposable HOME and C2C_HOME under /tmp; package-copy contract reproduced because c2c install writes hard-coded /usr/local/bin symlinks.",
+      "result": "136 packages reused, 0 downloaded; Ink 6.8.0 and React 19.3.0 present in the production tree. The install was repeated after the Manager policy fixes with the exact cached pnpm CLI."
+    },
+    {
+      "check": "Installed launcher path",
+      "status": "passed",
+      "result": "Final frozen production package-copy launched through the actual bin/c2c.js entry; c2c --help lists manager and c2c --profile p1-smoke manager rejects non-TTY with the clear guard. System script PTYs at 80-column narrow and 120-column wide rendered Workspaces and Health; q exited 0. Earlier post-build production PTY validation also confirmed Ctrl+C exit 0 and SIGTERM terminal restoration within the bounded exit window (process returned standard status 143)."
+    },
+    {
+      "check": "git diff --check",
+      "status": "passed",
+      "result": "The first tracked check identified mixed CRLF endings in tsconfig.json; after normalizing that touched file, tracked git diff --check and git diff --no-index --check on 21 P1 untracked source, test, and ledger files produced no whitespace diagnostics."
+    }
+  ],
+  "environment": {
+    "node": "v24.15.0",
+    "disk_space": "No capacity blocker; preflight reported 16 GB available and the frozen install reused the existing package store.",
+    "sandbox_retry": "The default sandbox P0 run failed local binds with EPERM and runtime flock calls with ETIMEDOUT (38 failed, 51 passed, 19 skipped); the same command passed 108/108 under scoped elevated permission. Occurrence recorded in the existing codex-friction loopback-test issue."
+  },
+  "changed_paths": [
+    "package.json",
+    "pnpm-lock.yaml",
+    "tsconfig.json",
+    "src/cli/index.ts",
+    "src/cli/manager-command.ts",
+    "src/manager/action-policy.ts",
+    "src/manager/constants.ts",
+    "src/manager/controller.ts",
+    "src/manager/index.tsx",
+    "src/manager/layout.ts",
+    "src/manager/refresh-coordinator.ts",
+    "src/manager/services.ts",
+    "src/manager/types.ts",
+    "src/manager/ui/activity-panel.tsx",
+    "src/manager/ui/actions-menu.tsx",
+    "src/manager/ui/health-panel.tsx",
+    "src/manager/ui/manager-app.tsx",
+    "src/manager/ui/overview.tsx",
+    "src/manager/ui/workspace-panel.tsx",
+    "tests/cli-manager.test.ts",
+    "tests/manager-controller.test.ts",
+    "tests/manager-refresh.test.ts",
+    "docs/verification/artifacts/spec-003/p1-manager-overview/summary.json",
+    "docs/verification/artifacts/spec-003/work-state.json",
+    "docs/verification/artifacts/spec-003/task-ownership.json"
+  ],
+  "ledger_status": "In progress",
+  "push_or_pr": "None",
+  "commit": "None; changes remain uncommitted."
+}

@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import fs from "node:fs";
 import {
   CHATGPT_CREATE_CONNECTOR_URL,
   CHATGPT_DEVELOPER_MODE_URL,
@@ -12,7 +13,12 @@ import {
   mcpUrlFromPublic,
   normalizePublicUrl,
   reclaimUserMessage,
+  confirmStoredConnectorEndpoint,
+  endpointFile,
+  readLastEndpoint,
+  writeLastEndpoint,
 } from "../src/config/endpoint.js";
+import { isolateStateDir, write } from "./helpers.js";
 
 describe("connectorAction", () => {
   it("creates on the first successful URL", () => {
@@ -84,5 +90,67 @@ describe("mcpUrlFromPublic", () => {
     expect(mcpUrlFromPublic("https://A.trycloudflare.com/")).toBe("https://a.trycloudflare.com/mcp");
     expect(mcpUrlFromPublic("https://a.trycloudflare.com/mcp")).toBe("https://a.trycloudflare.com/mcp");
     expect(normalizePublicUrl("https://A.trycloudflare.com/")).toBe("https://a.trycloudflare.com");
+  });
+});
+
+describe("persisted connector endpoint confirmation", () => {
+  it("treats a legacy mcpUrl as confirmed on read and preserves pending observations across reloads", () => {
+    const stateDir = isolateStateDir();
+    const workspaceId = "c2c_inst_legacy-endpoint";
+    write(stateDir, `endpoints/${workspaceId}.json`, JSON.stringify({
+      workspaceId,
+      port: 3030,
+      publicUrl: "https://old.example",
+      mcpUrl: "https://old.example/mcp",
+      savedAt: "2026-09-01T00:00:00.000Z",
+    }));
+
+    const legacy = readLastEndpoint(workspaceId);
+    expect(legacy?.confirmedMcpUrl).toBe("https://old.example/mcp");
+    expect(JSON.parse(fs.readFileSync(endpointFile(workspaceId), "utf8")).confirmedMcpUrl).toBeUndefined();
+
+    writeLastEndpoint({
+      workspaceId,
+      port: 3030,
+      publicUrl: "https://new.example",
+      mcpUrl: "https://new.example/mcp",
+      confirmedMcpUrl: legacy?.confirmedMcpUrl ?? null,
+      connectorName: "Existing connector",
+    });
+
+    const reloaded = readLastEndpoint(workspaceId);
+    expect(reloaded?.mcpUrl).toBe("https://new.example/mcp");
+    expect(reloaded?.confirmedMcpUrl).toBe("https://old.example/mcp");
+    expect(connectorAction(reloaded?.confirmedMcpUrl, reloaded?.mcpUrl)).toBe("update");
+  });
+
+  it("confirms only the current observed endpoint and rejects a stale displayed URL", () => {
+    isolateStateDir();
+    const workspaceId = "c2c_inst_confirmation";
+    writeLastEndpoint({
+      workspaceId,
+      port: 3030,
+      publicUrl: "https://new.example",
+      mcpUrl: "https://new.example/mcp",
+      confirmedMcpUrl: "https://old.example/mcp",
+      connectorName: "Existing connector",
+    });
+
+    expect(confirmStoredConnectorEndpoint({ workspaceId, mcpUrl: "https://old.example/mcp" })).toEqual({
+      ok: false,
+      reason: "endpoint-mismatch",
+      currentMcpUrl: "https://new.example/mcp",
+    });
+    expect(readLastEndpoint(workspaceId)?.confirmedMcpUrl).toBe("https://old.example/mcp");
+
+    expect(confirmStoredConnectorEndpoint({ workspaceId, mcpUrl: "https://new.example/mcp/" })).toEqual({
+      ok: true,
+      mcpUrl: "https://new.example/mcp",
+    });
+    expect(readLastEndpoint(workspaceId)?.confirmedMcpUrl).toBe("https://new.example/mcp");
+    expect(connectorAction(
+      readLastEndpoint(workspaceId)?.confirmedMcpUrl,
+      readLastEndpoint(workspaceId)?.mcpUrl
+    )).toBe("none");
   });
 });

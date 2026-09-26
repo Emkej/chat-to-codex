@@ -171,6 +171,25 @@ describe("session registry", () => {
     expect(sessions.list()).toHaveLength(0);
   });
 
+  it("filters expired sessions in a detached snapshot without pruning persisted state", () => {
+    const stateDir = isolateStateDir();
+    const workspaces = WorkspaceRegistry.load(stateDir);
+    const sessions = SessionRegistry.load(stateDir, { workspaces });
+    const ws = workspaces.register({ root: makeRoot("snapshot") });
+    const session = sessions.create(ws.id);
+    const file = path.join(stateDir, "workspaces", "sessions.json");
+    const before = fs.readFileSync(file);
+
+    expect(sessions.sessionSnapshot(session.expiresAt)).toEqual([session]);
+    const detached = sessions.sessionSnapshot(session.expiresAt)[0]!;
+    expect(detached).not.toBe(session);
+    detached.workspaceId = "changed";
+    expect(sessions.sessionSnapshot(session.expiresAt)[0]?.workspaceId).toBe(ws.id);
+
+    expect(sessions.sessionSnapshot(session.expiresAt + 1)).toEqual([]);
+    expect(fs.readFileSync(file)).toEqual(before);
+  });
+
   it("heartbeat extends expiry", async () => {
     const stateDir = isolateStateDir();
     const workspaces = WorkspaceRegistry.load(stateDir);

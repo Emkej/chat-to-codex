@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { ensureDir, getStateDir } from "../config/paths.js";
 import { findLiveBridge, probeBridge, readRuntimeState, type RuntimeState } from "../bridge/runtime.js";
 import { Workspace } from "../workspace/manager.js";
+import { throwIfAborted } from "./abort.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -74,10 +75,14 @@ export async function adminFetch<T = unknown>(
   method: "GET" | "POST",
   route: string,
   timeoutMs = 60_000,
-  body?: unknown
+  body?: unknown,
+  signal?: AbortSignal
 ): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const onAbort = (): void => controller.abort(signal?.reason);
+  if (signal?.aborted) onAbort();
+  else signal?.addEventListener("abort", onAbort, { once: true });
   try {
     const headers: Record<string, string> = { Authorization: `Bearer ${runtime.adminToken}` };
     if (body !== undefined) headers["content-type"] = "application/json";
@@ -87,13 +92,16 @@ export async function adminFetch<T = unknown>(
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: controller.signal,
     });
+    throwIfAborted(signal);
     const parsed = (await response.json().catch(() => ({}))) as T & { message?: string };
+    throwIfAborted(signal);
     if (!response.ok) {
       throw new Error((parsed as { message?: string }).message ?? `Admin request failed (${response.status})`);
     }
     return parsed;
   } finally {
     clearTimeout(timer);
+    signal?.removeEventListener("abort", onAbort);
   }
 }
 

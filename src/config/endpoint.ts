@@ -20,23 +20,56 @@ export interface LastEndpoint {
   workspaceId: string;
   port: number;
   publicUrl: string | null;
+  /** Latest observed MCP endpoint. This is not proof that Claude was updated. */
   mcpUrl: string | null;
+  /** Endpoint the user explicitly confirmed in Claude. */
+  confirmedMcpUrl: string | null;
   connectorName?: string;
   savedAt: string;
 }
+
+export type ConnectorEndpointConfirmation =
+  | { ok: true; mcpUrl: string }
+  | { ok: false; reason: "endpoint-mismatch"; currentMcpUrl: string | null };
 
 export function endpointFile(workspaceId: string): string {
   return path.join(getStateDir(), "endpoints", `${workspaceId}.json`);
 }
 
 export function readLastEndpoint(workspaceId: string): LastEndpoint | null {
-  return readJsonIfExists<LastEndpoint>(endpointFile(workspaceId));
+  const stored = readJsonIfExists<Omit<LastEndpoint, "confirmedMcpUrl"> & { confirmedMcpUrl?: string | null }>(
+    endpointFile(workspaceId)
+  );
+  if (!stored) return null;
+
+  // Legacy files stored the last configured MCP URL in mcpUrl. Treat that
+  // value as confirmed on read; new observations always preserve this field.
+  const confirmedMcpUrl = stored.confirmedMcpUrl === undefined ? stored.mcpUrl : stored.confirmedMcpUrl;
+  return { ...stored, confirmedMcpUrl };
 }
 
 export function writeLastEndpoint(endpoint: Omit<LastEndpoint, "savedAt">): LastEndpoint {
   const saved: LastEndpoint = { ...endpoint, savedAt: new Date().toISOString() };
   writeSecureJson(endpointFile(saved.workspaceId), saved);
   return saved;
+}
+
+/** Confirm only the endpoint that is still the current observation. */
+export function confirmStoredConnectorEndpoint(opts: {
+  workspaceId: string;
+  mcpUrl: string;
+}): ConnectorEndpointConfirmation {
+  const current = readLastEndpoint(opts.workspaceId);
+  if (!current?.mcpUrl || normalizePublicUrl(current.mcpUrl) !== normalizePublicUrl(opts.mcpUrl)) {
+    return {
+      ok: false,
+      reason: "endpoint-mismatch",
+      currentMcpUrl: current?.mcpUrl ?? null,
+    };
+  }
+
+  writeLastEndpoint({ ...current, confirmedMcpUrl: current.mcpUrl });
+  return { ok: true, mcpUrl: current.mcpUrl };
 }
 
 export function normalizePublicUrl(url: string): string {

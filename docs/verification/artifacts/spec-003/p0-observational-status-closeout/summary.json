@@ -1,0 +1,129 @@
+{
+  "contract_version": 2,
+  "name": "p0-observational-status-closeout",
+  "status": "passed",
+  "counts": {
+    "passed": 4,
+    "failed": 0,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 4,
+  "skipped": 0,
+  "total": 4,
+  "results": [
+    {
+      "name": "focused-p0-suites",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 4.539,
+      "attempt": 1,
+      "argv": [
+        "rtk",
+        "proxy",
+        "node_modules/.bin/vitest",
+        "run",
+        "tests/auth-store.test.ts",
+        "tests/installation-status.test.ts",
+        "tests/cli-doctor.test.ts",
+        "tests/broker.test.ts",
+        "tests/runtime.test.ts",
+        "tests/workspaces-domain.test.ts"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/spec-003/p0-observational-status-closeout",
+      "stdout_log": "01-focused-p0-suites.stdout.log",
+      "stderr_log": "01-focused-p0-suites.stderr.log",
+      "error": null
+    },
+    {
+      "name": "typecheck",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 2.222,
+      "attempt": 1,
+      "argv": [
+        "rtk",
+        "proxy",
+        "node_modules/.bin/tsc",
+        "--noEmit"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/spec-003/p0-observational-status-closeout",
+      "stdout_log": "02-typecheck.stdout.log",
+      "stderr_log": "02-typecheck.stderr.log",
+      "error": null
+    },
+    {
+      "name": "tracked-diff-check",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.034,
+      "attempt": 2,
+      "argv": [
+        "rtk",
+        "proxy",
+        "git",
+        "diff",
+        "--check"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/spec-003/p0-observational-status-closeout",
+      "stdout_log": "03-tracked-diff-check-attempt-2.stdout.log",
+      "stderr_log": "03-tracked-diff-check-attempt-2.stderr.log",
+      "error": null
+    },
+    {
+      "name": "new-file-diff-check",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.067,
+      "attempt": 1,
+      "argv": [
+        "rtk",
+        "proxy",
+        "python3",
+        "-c",
+        "import subprocess,sys; bad=[]; paths=sys.argv[1:]; [(bad.append((p,r.returncode,r.stdout,r.stderr))) for p in paths for r in [subprocess.run([\"git\",\"diff\",\"--no-index\",\"--check\",\"/dev/null\",p],capture_output=True,text=True)] if r.returncode not in (0,1) or r.stdout or r.stderr]; print(\"untracked source/test diff checks passed\" if not bad else bad); sys.exit(bool(bad))",
+        "src/admin/installation-status.ts",
+        "tests/auth-store.test.ts",
+        "tests/installation-status.test.ts"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/spec-003/p0-observational-status-closeout",
+      "stdout_log": "04-new-file-diff-check.stdout.log",
+      "stderr_log": "04-new-file-diff-check.stderr.log",
+      "error": null
+    }
+  ],
+  "attempts": [
+    {
+      "number": 1,
+      "checks": [
+        "focused-p0-suites",
+        "typecheck",
+        "tracked-diff-check",
+        "new-file-diff-check"
+      ],
+      "statuses": {
+        "focused-p0-suites": "passed",
+        "typecheck": "passed",
+        "tracked-diff-check": "failed",
+        "new-file-diff-check": "passed"
+      }
+    },
+    {
+      "number": 2,
+      "checks": [
+        "tracked-diff-check"
+      ],
+      "statuses": {
+        "tracked-diff-check": "passed"
+      },
+      "previous_statuses": {
+        "tracked-diff-check": "failed"
+      }
+    }
+  ]
+}

@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import fs from "node:fs";
 import path from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
@@ -411,6 +412,40 @@ describe("broker admin API over HTTP", () => {
       {}
     );
     expect(after.find((w) => w.workspace_id === registration.id)?.status).toBe("available");
+  });
+
+  it("keeps admin status/session GETs observational when sessions have expired", async () => {
+    const session = broker.sessions.create(flowId);
+    const sessionsFile = path.join(stateDir, "workspaces", "sessions.json");
+    const registryFile = path.join(stateDir, "workspaces", "registry.json");
+    const sessionsBefore = fs.readFileSync(sessionsFile);
+    const registryBefore = fs.readFileSync(registryFile);
+    const clock = vi.spyOn(Date, "now").mockReturnValue(session.expiresAt + 1);
+
+    try {
+      const headers = { authorization: `Bearer ${broker.adminToken}` };
+      const infoResponse = await fetch(`${broker.localBaseUrl()}/admin/info`, { headers });
+      const workspacesResponse = await fetch(`${broker.localBaseUrl()}/admin/workspaces`, { headers });
+      const sessionsResponse = await fetch(`${broker.localBaseUrl()}/admin/sessions`, { headers });
+
+      expect(infoResponse.status).toBe(200);
+      expect(workspacesResponse.status).toBe(200);
+      expect(sessionsResponse.status).toBe(200);
+
+      const info = (await infoResponse.json()) as {
+        activeSessions: number;
+        authorization: { state: string };
+      };
+      const sessions = (await sessionsResponse.json()) as { sessions: { sessionId: string }[] };
+      expect(info.activeSessions).toBe(sessions.sessions.length);
+      expect(info.authorization.state).toBe("authorized");
+      expect(sessions.sessions.some((item) => item.sessionId === session.sessionId)).toBe(false);
+      expect(fs.readFileSync(sessionsFile)).toEqual(sessionsBefore);
+      expect(fs.readFileSync(registryFile)).toEqual(registryBefore);
+    } finally {
+      clock.mockRestore();
+      broker.sessions.end(session.sessionId);
+    }
   });
 });
 

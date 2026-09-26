@@ -1,0 +1,54 @@
+{
+  "task_id": "spec-003-c2c-manager-mvp",
+  "slice": "P0-broker-lifecycle",
+  "status": "completed",
+  "captured_at_utc": "2026-09-26T05:20:35Z",
+  "branch": "codex/spec-003-c2c-manager-mvp",
+  "head": "39108d7c4aa2285f1d97805c914d129a5d277e1d",
+  "working_tree": "intentionally dirty; no staged changes; all implementation remains uncommitted",
+  "validation": {
+    "focused_regression": {
+      "command": "rtk proxy ./node_modules/.bin/vitest run tests/installation-lifecycle.test.ts tests/broker-daemon.test.ts tests/runtime.test.ts tests/installation-health.test.ts tests/installation-status.test.ts tests/broker.test.ts tests/tunnel-installation.test.ts tests/tunnel.test.ts tests/cli-doctor.test.ts --reporter=dot",
+      "status": "passed",
+      "suites_passed": 9,
+      "tests_passed": 84,
+      "evidence": "01-focused-suites-final.stdout.log"
+    },
+    "focused_lifecycle_runtime_tunnel": {
+      "status": "passed",
+      "suites_passed": 3,
+      "tests_passed": 37
+    },
+    "typescript_no_emit": {
+      "command": "rtk proxy ./node_modules/.bin/tsc --noEmit",
+      "status": "passed",
+      "exit_code": 0,
+      "evidence": "02-typecheck-final.stdout.log"
+    },
+    "tracked_diff_check": {
+      "command": "rtk proxy git diff --check",
+      "status": "passed",
+      "exit_code": 0,
+      "evidence": "03-tracked-diff-check-final.stdout.log"
+    },
+    "new_source_test_whitespace": {
+      "status": "passed",
+      "files_checked": 10,
+      "diagnostics": 0,
+      "evidence": "04-untracked-whitespace-check.txt"
+    }
+  },
+  "read_only_review": {
+    "status": "no remaining findings",
+    "scope": "kernel lock result handling, fixed-path flock resolution, and cancellable tunnel binary detection"
+  },
+  "environment_notes": [
+    "No dependency installation or pnpm-lock.yaml mutation occurred.",
+    "The root filesystem was full and the normal sandbox could not start commands; validation ran through the elevated terminal path without clearing unrelated cache or work data.",
+    "Linux runtime record mutations use the installed util-linux flock utility; contention and helper failures fail closed."
+  ],
+  "next_expected_step": "P1-manager-overview",
+  "commit_created": false,
+  "pushed": false,
+  "pull_request_opened": false
+}

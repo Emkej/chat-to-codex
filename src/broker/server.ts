@@ -2,7 +2,7 @@ import express, { type ErrorRequestHandler, type Request, type Response } from "
 import type { Server } from "node:http";
 import { randomBytes } from "node:crypto";
 import path from "node:path";
-import { AuthStore } from "../auth/store.js";
+import { AuthStore, type AuthorizationSnapshot } from "../auth/store.js";
 import { createOAuthRouter } from "../auth/oauth.js";
 import { bearerAuth } from "../auth/middleware.js";
 import { PairingManager } from "../pairing/manager.js";
@@ -71,6 +71,7 @@ export interface BrokerInfo {
   publicUrl: string | null;
   tunnel: { running: boolean; url: string | null; provider: string };
   tokenCount: number;
+  authorization: AuthorizationSnapshot;
   pairingActive: boolean;
   pid: number;
   startedAt: string;
@@ -147,6 +148,7 @@ export async function startBroker(opts: BrokerOptions = {}): Promise<Broker> {
   const adminToken = `c2c_admin_${randomBytes(24).toString("base64url")}`;
 
   let publicBaseUrl: string | null = null;
+  let leaveRuntimeForLifecycleReconciliation = false;
 
   const app = express();
   app.set("trust proxy", true);
@@ -229,11 +231,12 @@ export async function startBroker(opts: BrokerOptions = {}): Promise<Broker> {
       installationId: installation.installationId,
       displayName: CONNECTOR_DISPLAY_NAME,
       workspaceCount: registry.list().length,
-      activeSessions: sessions.list().length,
+      activeSessions: sessions.sessionSnapshot().length,
       port,
       publicUrl: publicBaseUrl,
       tunnel: tunnel.status(),
       tokenCount: authStore.tokenCount(),
+      authorization: authStore.authorizationSnapshot(),
       pairingActive: pairing.hasActiveSession(),
       pid: process.pid,
       startedAt,
@@ -314,7 +317,7 @@ export async function startBroker(opts: BrokerOptions = {}): Promise<Broker> {
   });
 
   app.get("/admin/sessions", adminGuard, (_req, res) => {
-    res.json({ sessions: sessions.list() });
+    res.json({ sessions: sessions.sessionSnapshot() });
   });
 
   app.post("/admin/tunnel/start", adminGuard, (_req, res) => {
@@ -347,6 +350,9 @@ export async function startBroker(opts: BrokerOptions = {}): Promise<Broker> {
   });
 
   app.post("/admin/shutdown", adminGuard, (_req, res) => {
+    // Keep the runtime snapshot until the process has actually exited. A
+    // concurrent ensure/start must not mistake the acknowledgement for exit.
+    leaveRuntimeForLifecycleReconciliation = true;
     res.json({ shuttingDown: true });
     setTimeout(() => {
       void shutdown().then(() => process.exit(0));
@@ -417,7 +423,7 @@ export async function startBroker(opts: BrokerOptions = {}): Promise<Broker> {
       publicUrl: publicBaseUrl,
       startedAt,
     };
-    writeRuntimeState(state);
+    writeRuntimeState(state, stateDir);
   };
   try {
     persistRuntime();
@@ -434,7 +440,9 @@ export async function startBroker(opts: BrokerOptions = {}): Promise<Broker> {
     try {
       await tunnel.stop().catch(() => undefined);
       await new Promise<void>((resolve) => server.close(() => resolve()));
-      if (opts.persistRuntime !== false) clearRuntimeState(installation.installationId);
+      if (opts.persistRuntime !== false && !leaveRuntimeForLifecycleReconciliation) {
+        clearRuntimeState(installation.installationId, stateDir);
+      }
       logger.info("Broker stopped");
     } finally {
       await writeOwner?.release();

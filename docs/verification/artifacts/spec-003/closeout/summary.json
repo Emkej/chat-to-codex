@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-26",
+  "kind": "spec-closeout",
+  "work_id": "spec-003-c2c-manager-mvp",
+  "spec": "docs/specs/spec-003-c2c-manager-mvp.md",
+  "specSha256": "071fd072a26b22f6a84b0fca938333ba4c9c7cf6cf23f82d2ea3c955d0dce2f1",
+  "reviewedHead": "39108d7c4aa2285f1d97805c914d129a5d277e1d",
+  "branch": "codex/spec-003-c2c-manager-mvp",
+  "status": "Completed",
+  "completion_boundary": "Phase 0 + Phase 1",
+  "phase2": "Not started; optional follow-up and out of scope for this closeout.",
+  "ac00329": {
+    "status": "resolved",
+    "resolution": "The unavailable non-normative mockup was intentionally removed from the delivery requirement; visual acceptance relies on the authoritative SPEC.",
+    "change": "docs/changes/change-002-spec-003-visual-reference-removal.md",
+    "quality_gate": "docs/verification/artifacts/spec-003/quality-gate/recheck-03.json"
+  },
+  "implementation_validation": {
+    "status": "Reused successful unchanged-slice evidence",
+    "source": "docs/verification/artifacts/spec-003/p1-manager-overview/summary.json",
+    "summary": "P0/P1 focused tests, full Vitest, typecheck, build, frozen production install, installed launcher/PTY checks and diff hygiene were already passed; no expensive unchanged validation was rerun."
+  },
+  "remaining_slices": [],
+  "current_blocker": "None"
+}

@@ -1,7 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { ensureDir, getStateDir, readJsonIfExists, writeSecureJson } from "../config/paths.js";
+import { ensureDir, getStateDir, writeSecureJson } from "../config/paths.js";
 
 export const SUPPORTED_SCOPES = [
   "workspace.read",
@@ -57,6 +57,12 @@ export interface PersistedAuthState {
   tokens: TokenRecord[];
 }
 
+export type AuthorizationState = "authorized" | "unauthorized" | "unknown";
+
+export interface AuthorizationSnapshot {
+  state: AuthorizationState;
+}
+
 export type VerifyTokenResult =
   | { ok: true; record: TokenRecord }
   | { ok: false; reason: "unknown" | "expired" | "revoked" | "wrong_kind" };
@@ -85,11 +91,77 @@ export function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(bufA, bufB);
 }
 
+function isTokenRecord(value: unknown): value is TokenRecord {
+  if (!value || typeof value !== "object") return false;
+  const token = value as Partial<TokenRecord>;
+  return (
+    typeof token.hash === "string" &&
+    (token.kind === "access" || token.kind === "refresh") &&
+    typeof token.clientId === "string" &&
+    typeof token.workspaceId === "string" &&
+    Array.isArray(token.scopes) &&
+    token.scopes.every((scope) => typeof scope === "string") &&
+    typeof token.issuedAt === "number" &&
+    Number.isFinite(token.issuedAt) &&
+    typeof token.expiresAt === "number" &&
+    Number.isFinite(token.expiresAt) &&
+    typeof token.revoked === "boolean"
+  );
+}
+
+function authorizationSnapshotFromTokens(
+  tokens: readonly unknown[],
+  installationId: string,
+  now: number
+): AuthorizationSnapshot {
+  let unknownRecord = false;
+  for (const candidate of tokens) {
+    if (!isTokenRecord(candidate)) {
+      unknownRecord = true;
+      continue;
+    }
+    if (
+      candidate.workspaceId === installationId &&
+      !candidate.revoked &&
+      candidate.expiresAt > now
+    ) {
+      return { state: "authorized" };
+    }
+  }
+  return { state: unknownRecord ? "unknown" : "unauthorized" };
+}
+
+/** Read installation credentials without constructing a store or creating its directory. */
+export function readAuthorizationSnapshot(
+  stateDir: string,
+  workspaceId: string,
+  now = Date.now()
+): AuthorizationSnapshot {
+  if (!workspaceId || workspaceId === "." || workspaceId === ".." || /[\\/]/.test(workspaceId)) {
+    return { state: "unknown" };
+  }
+
+  const file = path.join(stateDir, "auth", `${workspaceId}.json`);
+  let data: unknown;
+  try {
+    data = JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return { state: "unauthorized" };
+    return { state: "unknown" };
+  }
+
+  if (!data || typeof data !== "object" || !Array.isArray((data as PersistedAuthState).tokens)) {
+    return { state: "unknown" };
+  }
+  return authorizationSnapshotFromTokens((data as PersistedAuthState).tokens, workspaceId, now);
+}
+
 export class AuthStore {
   private clients = new Map<string, ClientRegistration>();
   private tokens = new Map<string, TokenRecord>();
   private authCodes = new Map<string, AuthorizationCodeRecord>();
   private readonly file: string;
+  private authorizationStateUnknown = false;
 
   constructor(
     readonly workspaceId: string,
@@ -101,12 +173,39 @@ export class AuthStore {
   }
 
   private load(): void {
-    const data = readJsonIfExists<PersistedAuthState>(this.file);
-    if (!data) return;
+    let contents: string;
+    try {
+      contents = fs.readFileSync(this.file, "utf8");
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") this.authorizationStateUnknown = true;
+      return;
+    }
+
+    let data: unknown;
+    try {
+      data = JSON.parse(contents);
+    } catch {
+      this.authorizationStateUnknown = true;
+      return;
+    }
+    if (!data || typeof data !== "object" || !Array.isArray((data as PersistedAuthState).tokens)) {
+      this.authorizationStateUnknown = true;
+      return;
+    }
+
     const now = Date.now();
-    for (const client of data.clients ?? []) this.clients.set(client.clientId, client);
-    for (const token of data.tokens ?? []) {
-      if (!token.revoked && token.expiresAt > now) this.tokens.set(token.hash, token);
+    const clients = (data as PersistedAuthState).clients;
+    if (Array.isArray(clients)) {
+      for (const client of clients) {
+        if (client && typeof client.clientId === "string") this.clients.set(client.clientId, client);
+      }
+    }
+    for (const candidate of (data as PersistedAuthState).tokens) {
+      if (!isTokenRecord(candidate)) {
+        this.authorizationStateUnknown = true;
+        continue;
+      }
+      if (!candidate.revoked && candidate.expiresAt > now) this.tokens.set(candidate.hash, candidate);
     }
   }
 
@@ -117,6 +216,7 @@ export class AuthStore {
       tokens: [...this.tokens.values()].filter((t) => !t.revoked && t.expiresAt > now),
     };
     writeSecureJson(this.file, state);
+    this.authorizationStateUnknown = false;
   }
 
   // ---- Dynamic Client Registration -------------------------------------
@@ -267,6 +367,12 @@ export class AuthStore {
 
   tokenCount(): number {
     return this.tokens.size;
+  }
+
+  authorizationSnapshot(now = Date.now()): AuthorizationSnapshot {
+    const snapshot = authorizationSnapshotFromTokens([...this.tokens.values()], this.workspaceId, now);
+    if (snapshot.state !== "authorized" && this.authorizationStateUnknown) return { state: "unknown" };
+    return snapshot;
   }
 
   static deleteStateFile(workspaceId: string): void {

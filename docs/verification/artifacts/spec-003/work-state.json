@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "work_id": "spec-003-c2c-manager-mvp",
+  "task_title": "Continue SPEC-003 manager MVP",
+  "owner_outcome": "Deliver the SPEC-003 C2C Manager MVP inside the existing C2C package, reusing canonical C2C services and state.",
+  "authoritative_source": "/home/emkej/projects/chat-to-codex/docs/specs/spec-003-c2c-manager-mvp.md",
+  "authoritative_source_sha256": "071fd072a26b22f6a84b0fca938333ba4c9c7cf6cf23f82d2ea3c955d0dce2f1",
+  "status": "Completed",
+  "environment": "WSL/Linux",
+  "repository_root": "/home/emkej/projects/chat-to-codex",
+  "worktree": "/home/emkej/projects/chat-to-codex",
+  "branch": "codex/spec-003-c2c-manager-mvp",
+  "head": "39108d7c4aa2285f1d97805c914d129a5d277e1d",
+  "dirty_path_manifest": "docs/verification/artifacts/spec-003/task-ownership.json",
+  "git_state_at_capture": {
+    "staged": [],
+    "unstaged": [],
+    "untracked": [
+      "docs/changes/change-001-wsl-access-to-windows-created-worktrees.md:Zone.Identifier",
+      "docs/specs/spec-003-c2c-manager-mvp.md",
+      "docs/verification/artifacts/spec-002/task-ownership.json",
+      "docs/verification/artifacts/spec-002/work-state.json",
+      "docs/verification/artifacts/spec-003/",
+      "work/"
+    ]
+  },
+  "ledger": {
+    "current_slice": {
+      "id": "P1-manager-overview",
+      "status": "Completed",
+      "boundary": "Deliver the lazy-loaded Ink Manager overview and keyboard-first action menu; route actions through canonical C2C services; coordinate bounded refresh, stale-read retirement, confirmation, and shared exit behavior. P1 is complete and AC-003-29 is resolved through CHANGE-002."
+    },
+    "success_criteria": [
+      "c2c manager is listed in help, rejects non-TTY use, and lazy-loads Ink/React after the TTY guard.",
+      "Overview uses canonical installation, broker, authorization, tunnel, workspace/session, health, and connector data; unknown counts remain unknown.",
+      "One action policy backs keyboard shortcuts and the Actions menu; Stop and Confirm require explicit confirmation, and Fix/Pair use current structured prerequisites.",
+      "Status polling is completion-driven at 10 seconds, bounded at 5 seconds, preserves last valid status, rejects stale generations, and does not overlap a foreground action.",
+      "The foreground guard remains held through obsolete-read retirement and one completion refresh; q, Ctrl+C, and SIGTERM restore the terminal and cancel Manager-owned work.",
+      "The installed production tree contains Ink/React and the built launcher opens the Manager through a real PTY."
+    ],
+    "validation_plan": [
+      "Focused Manager/controller/refresh/CLI tests using controlled promises and fake timers.",
+      "Relevant P0 regression suites and the full Vitest suite.",
+      "TypeScript no-emit typecheck, pinned-pnpm build, tracked and new-file whitespace checks.",
+      "Frozen production install in a disposable HOME/C2C_HOME and installed-path help, non-TTY, and PTY exit checks.",
+      "Inspect current sources/history for the exact approved mockup; if it is unrecoverable, resolve AC-003-29 through a documented scoped CHANGE without fabricating a replacement."
+    ],
+    "completed_slices": ["P0-session-observation", "P0-authorization-snapshot", "P0-installation-status", "P0-health-and-connector-recovery", "P0-broker-lifecycle", "P1-manager-overview", "AC-003-29-visual-reference"],
+    "remaining_slices": []
+  },
+  "metrics": {
+    "continuation_runs": 3,
+    "context_compactions": 2,
+    "failed_validation_attempts": 10,
+    "owner_decision_round_trips": 0
+  },
+  "preflight": [
+    {"check": "repository root, branch, HEAD, and dirty state", "status": "passed", "evidence": "Current worktree is /home/emkej/projects/chat-to-codex on codex/spec-003-c2c-manager-mvp at 39108d7c4aa2285f1d97805c914d129a5d277e1d; baseline dirty paths are captured in task-ownership.json."},
+    {"check": "Node.js runtime", "status": "passed", "evidence": "node v24.15.0; package engine requires >=20."},
+    {"check": "Git runtime", "status": "passed", "evidence": "git 2.34.1."},
+    {"check": "root lockfile presence and production integrity", "status": "passed", "evidence": "Tracked pnpm-lock.yaml existed at the baseline; Ink 6.8.0, React 19.3.0, and @types/react 19.3.0 were added with pnpm 11.24.0. The disposable production install passed --frozen-lockfile."},
+    {"check": "installed pnpm version", "status": "passed", "evidence": "PATH-selected pnpm 11.12.1 still stalls; exact cached pnpm 11.24.0 at /home/emkej/.cache/node/corepack/v1/pnpm/11.24.0/bin/pnpm.cjs was used for lockfile mutation, build, and production install."},
+    {"check": "installed dependencies", "status": "passed", "evidence": "Root runtime dependencies include Ink 6.8.0 and React 19.3.0; dev dependency @types/react is 19.3.0. A clean disposable production tree installed 136 packages with no downloads."},
+    {"check": "SPEC-003 current-spec quality gate", "status": "passed", "evidence": "docs/verification/artifacts/spec-003/quality-gate/recheck-03.json; current spec hash 071fd072a26b22f6a84b0fca938333ba4c9c7cf6cf23f82d2ea3c955d0dce2f1 reviewed against the implemented P0/P1 acceptance criteria; no material conformance gaps found."}
+  ],
+  "validation": [
+    {"check": "SessionRegistry domain tests", "status": "passed", "evidence": "docs/verification/artifacts/spec-003/p0-session-observation/summary.json; focused domain check passed on attempt 1."},
+    {"check": "Real broker GET route tests", "status": "passed", "evidence": "docs/verification/artifacts/spec-003/p0-session-observation/summary.json; initial sandbox attempt was blocked by loopback EPERM, then attempt 2 passed 19 tests with loopback access."},
+    {"check": "TypeScript no-emit typecheck", "status": "passed", "evidence": "docs/verification/artifacts/spec-003/p0-session-observation/summary.json; tsc --noEmit exited 0."},
+    {"check": "git diff --check", "status": "passed", "evidence": "Task-owned session observation diff has no whitespace errors."}
+  ],
+  "latest_validation": [
+    {"check": "Lifecycle, broker daemon, runtime, installation health/status, broker, tunnel, and doctor regression suites", "status": "passed", "evidence": "docs/verification/artifacts/spec-003/p0-broker-lifecycle/summary.json; 84 tests passed across 9 suites; focused lifecycle/runtime/tunnel run passed 37 tests across 3 suites."},
+    {"check": "TypeScript no-emit typecheck", "status": "passed", "evidence": "docs/verification/artifacts/spec-003/p0-broker-lifecycle/02-typecheck-final.stdout.log; tsc --noEmit exited 0."},
+    {"check": "Tracked git diff --check", "status": "passed", "evidence": "docs/verification/artifacts/spec-003/p0-broker-lifecycle/03-tracked-diff-check-final.stdout.log; git diff --check exited 0."},
+    {"check": "New source/test whitespace checks", "status": "passed", "evidence": "docs/verification/artifacts/spec-003/p0-broker-lifecycle/04-untracked-whitespace-check.txt; ten no-index checks reported no whitespace diagnostics."},
+    {"check": "Focused Manager/controller/refresh/CLI tests", "status": "passed", "evidence": "docs/verification/artifacts/spec-003/p1-manager-overview/summary.json; final pass had 53 tests across 3 suites."},
+    {"check": "P0 regression batch", "status": "passed", "evidence": "docs/verification/artifacts/spec-003/p1-manager-overview/summary.json; 108 tests passed across 10 suites with scoped elevated loopback/flock access."},
+    {"check": "Full Vitest suite", "status": "passed", "evidence": "docs/verification/artifacts/spec-003/p1-manager-overview/summary.json; final post-policy-fix pass had 407 tests across 38 files."},
+    {"check": "TypeScript no-emit typecheck", "status": "passed", "evidence": "rtk tsc --noEmit -p tsconfig.json completed successfully."},
+    {"check": "Pinned-pnpm build", "status": "passed", "evidence": "pnpm 11.24.0 build completed; dist/manager includes compiled TSX modules."},
+    {"check": "Frozen production dependency install", "status": "passed", "evidence": "Disposable package-copy tree passed pnpm install --prod --frozen-lockfile; Ink and React were present in installed node_modules."},
+    {"check": "Installed launcher path and PTY", "status": "passed", "evidence": "Final frozen production package-copy launched through bin/c2c.js; built help and non-TTY/profile guards passed; 80-column narrow and 120-column wide PTYs rendered Workspaces and Health and q exited 0. Earlier post-build PTY pass also confirmed Ctrl+C exit 0 and SIGTERM terminal restoration within the bounded window."},
+    {"check": "Tracked and P1 untracked whitespace checks", "status": "passed", "evidence": "The first tracked check identified mixed CRLF endings in tsconfig.json; normalized that touched file, then git diff --check and git diff --no-index --check over all 21 P1 untracked source/test/ledger files completed without whitespace diagnostics."},
+    {"check": "AC-003-29 visual reference resolution", "status": "passed", "evidence": "docs/changes/change-002-spec-003-visual-reference-removal.md documents intentional removal of the unavailable non-normative mockup and reliance on the authoritative SPEC, as permitted by AC-003-29."},
+    {"check": "SPEC-003 closeout evidence", "status": "passed", "evidence": "docs/verification/artifacts/spec-003/closeout/summary.json references the current-spec gate and existing successful P1 validation without rerunning expensive unchanged code validation."}
+  ],
+  "decisions_constraints_risks_blockers": {
+    "decisions": [
+      "Use the registered C2C project at /home/emkej/projects/chat-to-codex; the supplied Windows launcher AGENTS context belongs to another repository.",
+      "Start Phase 0 on codex/spec-003-c2c-manager-mvp from the current main HEAD and preserve all captured pre-existing dirty paths.",
+      "Use a manual dirty-path manifest because tools/repo/track_dirty_paths.py is not present, following the repository's prior SPEC-002 fallback format.",
+      "Ink 6.8.0 was selected because it supports the package's Node >=20 floor; Ink 7.1.1 was only an initial trial and was replaced.",
+      "The dependency lockfile was updated with the exact cached pnpm 11.24.0 CLI; a disposable frozen production install passed."
+    ],
+    "constraints": [
+      "Do not modify or commit pre-existing user-authored specs, review artifacts, metadata sidecars, or generated work/ data.",
+      "Keep the Manager within the root package and use C2C as the source of truth.",
+      "Do not push, open a pull request, deploy, or broaden the spec scope."
+    ],
+    "risks": [
+      "The PATH-selected pnpm launcher remains unreliable; the cached pnpm 11.24.0 CLI is the verified workaround and the occurrence is in codex-friction.",
+      "Legacy endpoint files have no confirmation marker; migration treats their stored mcpUrl as the last user-confirmed URL, and cannot recover an older endpoint that a prior doctor run already overwrote.",
+      "The Linux runtime mutation path requires util-linux flock; missing utility or lock contention fails closed rather than writing without serialization.",
+      "PID signaling depends on Linux pidfd support through Python 3; unsupported kernels or runtimes fail closed without sending a signal."
+    ],
+    "blockers": []
+  },
+  "current_blocker": "None",
+  "first_remaining_action": []
+}

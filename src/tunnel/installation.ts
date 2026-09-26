@@ -1,6 +1,7 @@
-import { ensureBroker, ensureBrokerTunnel, stopBroker } from "../broker/daemon.js";
+import { ensureBrokerTunnel } from "../broker/daemon.js";
+import { restartBrokerRuntime } from "../broker/installation-process.js";
 import type { RuntimeState } from "../bridge/runtime.js";
-import { detectTunnelBinaries } from "./detect.js";
+import { findBinaryAsync } from "./detect.js";
 import { parseZoneInput, suggestedNamedHostname } from "./hostname.js";
 import { chooseQuickTunnel, hasCloudflaredCert, provisionNamedTunnel } from "./named-provision.js";
 import {
@@ -18,6 +19,7 @@ export interface InstallationTunnelOptions {
   zone?: string;
   hostname?: string;
   allowAutoQuick?: boolean;
+  signal?: AbortSignal;
 }
 
 export interface InstallationTunnelResult {
@@ -52,19 +54,17 @@ export function installationTunnelPayload(zoneHint?: string): Record<string, unk
   };
 }
 
-function requireCloudflared(): void {
-  if (!detectTunnelBinaries().cloudflared) {
+async function requireCloudflared(signal?: AbortSignal): Promise<void> {
+  if (!(await findBinaryAsync("cloudflared", { signal }))) {
     throw new Error(
       "NEED_CLOUDFLARED: cloudflared is not installed. Install it first (macOS: brew install cloudflared)."
     );
   }
 }
 
-async function restartBrokerTunnel(): Promise<{ runtime: RuntimeState; url: string }> {
-  await stopBroker();
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  const runtime = await ensureBroker();
-  const url = await ensureBrokerTunnel(runtime);
+async function restartBrokerTunnel(opts: { signal?: AbortSignal } = {}): Promise<{ runtime: RuntimeState; url: string }> {
+  const runtime = await restartBrokerRuntime(opts);
+  const url = await ensureBrokerTunnel(runtime, { signal: opts.signal });
   return { runtime, url };
 }
 
@@ -72,7 +72,7 @@ export async function resolveInstallationTunnel(
   runtime: RuntimeState,
   opts: InstallationTunnelOptions = {}
 ): Promise<InstallationTunnelResult> {
-  requireCloudflared();
+  await requireCloudflared(opts.signal);
   let state = readTunnelState(INSTALLATION_TUNNEL_ID);
   const zone = parseZoneInput(opts.zone ?? "") ?? state.zone ?? null;
 
@@ -106,7 +106,7 @@ export async function resolveInstallationTunnel(
       tunnelName: profile ? `c2c-installation-${profile}` : undefined,
     });
     state = result.state;
-    const { url } = await restartBrokerTunnel();
+    const { url } = await restartBrokerTunnel({ signal: opts.signal });
     return base({
       ok: true,
       url,
@@ -122,7 +122,7 @@ export async function resolveInstallationTunnel(
 
   if (opts.mode === "quick") {
     if (needsTunnelChoice(state)) chooseQuickTunnel(INSTALLATION_TUNNEL_ID);
-    const url = await ensureBrokerTunnel(runtime);
+    const url = await ensureBrokerTunnel(runtime, { signal: opts.signal });
     state = readTunnelState(INSTALLATION_TUNNEL_ID);
     return base({
       ok: true,
@@ -134,7 +134,7 @@ export async function resolveInstallationTunnel(
   }
 
   if (isNamedTunnelReady(state)) {
-    const url = await ensureBrokerTunnel(runtime);
+    const url = await ensureBrokerTunnel(runtime, { signal: opts.signal });
     return base({
       ok: true,
       url,
@@ -147,7 +147,7 @@ export async function resolveInstallationTunnel(
   }
 
   if (state.preference === "quick") {
-    const url = await ensureBrokerTunnel(runtime);
+    const url = await ensureBrokerTunnel(runtime, { signal: opts.signal });
     return base({
       ok: true,
       url,
@@ -165,7 +165,7 @@ export async function resolveInstallationTunnel(
   }
 
   if (needsTunnelChoice(state)) chooseQuickTunnel(INSTALLATION_TUNNEL_ID);
-  const url = await ensureBrokerTunnel(runtime);
+  const url = await ensureBrokerTunnel(runtime, { signal: opts.signal });
   state = readTunnelState(INSTALLATION_TUNNEL_ID);
   return base({
     ok: true,

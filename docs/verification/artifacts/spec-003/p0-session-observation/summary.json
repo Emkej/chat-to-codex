@@ -1,0 +1,94 @@
+{
+  "contract_version": 2,
+  "name": "p0-session-observation",
+  "status": "passed",
+  "counts": {
+    "passed": 3,
+    "failed": 0,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 3,
+  "skipped": 0,
+  "total": 3,
+  "results": [
+    {
+      "name": "session domain",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 2.087,
+      "attempt": 1,
+      "argv": [
+        "node_modules/.bin/vitest",
+        "run",
+        "tests/workspaces-domain.test.ts"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/spec-003/p0-session-observation",
+      "stdout_log": "01-session-domain.stdout.log",
+      "stderr_log": "01-session-domain.stderr.log",
+      "error": null
+    },
+    {
+      "name": "broker routes",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 2.072,
+      "attempt": 2,
+      "argv": [
+        "node_modules/.bin/vitest",
+        "run",
+        "tests/broker.test.ts"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/spec-003/p0-session-observation",
+      "stdout_log": "02-broker-routes-attempt-2.stdout.log",
+      "stderr_log": "02-broker-routes-attempt-2.stderr.log",
+      "error": null
+    },
+    {
+      "name": "typecheck",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 3.229,
+      "attempt": 1,
+      "argv": [
+        "node_modules/.bin/tsc",
+        "--noEmit"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/spec-003/p0-session-observation",
+      "stdout_log": "03-typecheck.stdout.log",
+      "stderr_log": "03-typecheck.stderr.log",
+      "error": null
+    }
+  ],
+  "attempts": [
+    {
+      "number": 1,
+      "checks": [
+        "session domain",
+        "broker routes",
+        "typecheck"
+      ],
+      "statuses": {
+        "session domain": "passed",
+        "broker routes": "failed",
+        "typecheck": "passed"
+      }
+    },
+    {
+      "number": 2,
+      "checks": [
+        "broker routes"
+      ],
+      "statuses": {
+        "broker routes": "passed"
+      },
+      "previous_statuses": {
+        "broker routes": "failed"
+      }
+    }
+  ]
+}

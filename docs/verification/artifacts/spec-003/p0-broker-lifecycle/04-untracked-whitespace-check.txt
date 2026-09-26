@@ -1,0 +1,3 @@
+Check: rtk proxy git diff --no-index --check /dev/null <file>
+Files checked: src/admin/installation-health.ts, src/admin/installation-lifecycle.ts, src/admin/installation-status.ts, src/broker/installation-process.ts, src/broker/process-identity.ts, src/process/abort.ts, tests/auth-store.test.ts, tests/installation-health.test.ts, tests/installation-lifecycle.test.ts, tests/installation-status.test.ts
+Result: all ten commands exited 1 with empty output. Exit 1 is the expected no-index diff status; no whitespace diagnostics were reported.

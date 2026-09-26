@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-26",
+  "kind": "plan-review-recheck-final",
+  "spec": "docs/specs/spec-003-c2c-manager-mvp.md",
+  "specSha256": "071fd072a26b22f6a84b0fca938333ba4c9c7cf6cf23f82d2ea3c955d0dce2f1",
+  "reviewedHead": "39108d7c4aa2285f1d97805c914d129a5d277e1d",
+  "verdict": "pass",
+  "scope": "Read-only conformance review of the current SPEC-003 Phase 0 and Phase 1 implementation. Phase 2 was excluded as optional follow-up work.",
+  "supersedes": {
+    "artifact": "docs/verification/artifacts/spec-003/quality-gate/recheck-02.json",
+    "previousSpecSha256": "0f95b3b0ccc96bccea373fd125542f94d6035d72432f54cf6154010da2a39467",
+    "reason": "The previous recheck covered an older authoritative SPEC hash."
+  },
+  "acceptanceReview": [
+    {
+      "criteria": ["AC-003-1", "AC-003-2", "AC-003-3", "AC-003-4", "AC-003-5"],
+      "status": "conforming",
+      "evidence": [
+        "package.json keeps one root package, pnpm@11.24.0, Ink 6.8.0 and React 19.3.0.",
+        "src/cli/manager-command.ts registers c2c manager, guards TTY use, and lazy-loads src/manager/index.tsx.",
+        "src/manager/services.ts adapts the existing admin, lifecycle, status, pairing and endpoint services.",
+        "docs/verification/artifacts/spec-003/p1-manager-overview/summary.json records profile syntax, frozen production install and installed-path validation on WSL."
+      ]
+    },
+    {
+      "criteria": ["AC-003-6", "AC-003-7", "AC-003-8", "AC-003-17", "AC-003-18", "AC-003-24"],
+      "status": "conforming",
+      "evidence": [
+        "src/admin/installation-status.ts, src/auth/store.ts and src/workspaces/sessions.ts provide non-mutating status, authorization and expired-session projections.",
+        "tests/auth-store.test.ts, tests/installation-status.test.ts, tests/workspaces-domain.test.ts, tests/broker.test.ts and tests/runtime.test.ts cover side-effect-free reads, authorization expiry/revocation/refresh-only state, unknown broker state, session counts and tunnel projection.",
+        "docs/verification/artifacts/spec-003/p0-observational-status-closeout/summary.json and p0-authorization-snapshot/summary.json passed their focused checks."
+      ]
+    },
+    {
+      "criteria": ["AC-003-9", "AC-003-10", "AC-003-11", "AC-003-12", "AC-003-13", "AC-003-14", "AC-003-15", "AC-003-16", "AC-003-16A", "AC-003-19"],
+      "status": "conforming",
+      "evidence": [
+        "src/admin/installation-health.ts and src/admin/installation-lifecycle.ts preserve structured health, connector and pairing results and route repair/lifecycle operations through canonical services.",
+        "src/broker/process-identity.ts and src/broker/installation-process.ts enforce verified ownership, PID-reuse protection, actual termination and bounded cancellation before replacement.",
+        "src/tunnel/detect.ts exposes bounded asynchronous cancellable binary detection; src/config/endpoint.ts separates observed and explicitly confirmed MCP URLs.",
+        "tests/installation-health.test.ts, tests/installation-lifecycle.test.ts, tests/endpoint.test.ts and tests/tunnel-installation.test.ts cover the required P0 boundaries.",
+        "docs/verification/artifacts/spec-003/p0-health-and-connector-recovery/summary.json and p0-broker-lifecycle/summary.json passed."
+      ]
+    },
+    {
+      "criteria": ["AC-003-20", "AC-003-21", "AC-003-22"],
+      "status": "conforming",
+      "evidence": [
+        "src/manager/action-policy.ts is the shared shortcut/menu action table for broker state, confirmation, Fix, Pair and connector confirmation.",
+        "src/manager/refresh-coordinator.ts and src/manager/controller.ts invalidate generations, allow obsolete reads to retire, prevent overlap, bound reads and run one completion refresh after retirement.",
+        "src/manager/index.tsx and ManagerController.close() share bounded q/Ctrl+C/SIGTERM terminal cleanup.",
+        "tests/manager-controller.test.ts and tests/manager-refresh.test.ts passed the 53-test focused Manager/controller/refresh/CLI validation recorded in the P1 summary."
+      ]
+    },
+    {
+      "criteria": ["AC-003-23", "AC-003-24", "AC-003-25", "AC-003-26", "AC-003-27"],
+      "status": "conforming",
+      "evidence": [
+        "src/manager/layout.ts and src/manager/ui/overview.tsx implement the 90-column wide split and narrow stacked layout; the health, workspace and activity panels preserve degraded data.",
+        "src/cli/manager-command.ts and tests/cli-manager.test.ts cover the non-TTY guard and lazy import boundary.",
+        "package.json has no codex-multi-account-manager runtime dependency.",
+        "The P1 summary records 80-column and 120-column PTY rendering, q/Ctrl+C/SIGTERM cleanup, the full Vitest suite (407 tests) and the build/install gates as passed."
+      ]
+    },
+    {
+      "criteria": ["AC-003-28"],
+      "status": "conforming",
+      "evidence": [
+        "The current SPEC explicitly makes Phase 2 optional and defines Phase 0 plus Phase 1 as the completion boundary.",
+        "The reviewed implementation paths and P1 changed-path evidence contain no Phase 2 workspace/worktree-detail slice."
+      ]
+    },
+    {
+      "criteria": ["AC-003-29"],
+      "status": "resolved-by-documented-removal",
+      "evidence": [
+        "docs/html/c2c-manager-tui-mockup.html is absent from the checkout and repository file search.",
+        "The current worktree list, reachable Git history/object listing, and unreachable commit/tree object scan contain no authoritative copy.",
+        "docs/changes/change-002-spec-003-visual-reference-removal.md documents intentional removal of the non-normative reference and reliance on the authoritative SPEC, as permitted by AC-003-29."
+      ]
+    }
+  ],
+  "importantFindings": [],
+  "validationReuse": {
+    "status": "passed",
+    "reason": "Implementation sources are unchanged since the successful P0/P1 validation; expensive code/build/install/PTY validation was not rerun.",
+    "evidence": [
+      "docs/verification/artifacts/spec-003/p1-manager-overview/summary.json: 53 focused Manager tests, 108 P0 regression tests, 407 full-suite tests, typecheck, build, frozen production install, installed launcher/PTY checks and diff hygiene passed.",
+      "docs/verification/artifacts/spec-003/p0-session-observation/summary.json, p0-authorization-snapshot/summary.json, p0-observational-status-closeout/summary.json, p0-health-and-connector-recovery/summary.json and p0-broker-lifecycle/summary.json record the P0 validation passes."
+    ]
+  },
+  "readOnlyChecks": [
+    "Current SPEC SHA-256 recomputed as 071fd072a26b22f6a84b0fca938333ba4c9c7cf6cf23f82d2ea3c955d0dce2f1.",
+    "Current branch and review HEAD confirmed as codex/spec-003-c2c-manager-mvp at 39108d7c4aa2285f1d97805c914d129a5d277e1d.",
+    "No authoritative mockup path found in the current checkout or Git history/object listings.",
+    "No Phase 2 implementation was started."
+  ],
+  "limitations": [
+    "This is a conformance recheck, not a new live-installation or expensive runtime validation run.",
+    "The user-authored SPEC remains unchanged and is intentionally the visual acceptance authority for this closeout."
+  ]
+}

@@ -1,17 +1,20 @@
-import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { ensureDir, getStateDir } from "../config/paths.js";
 import { adminFetch } from "../process/daemon.js";
-import { findLiveBridge, probeBridge, readRuntimeState, type RuntimeState } from "../bridge/runtime.js";
+import { readRuntimeState, type RuntimeState } from "../bridge/runtime.js";
 import { Workspace } from "../workspace/manager.js";
 import { resolveLocalTarget, type LocalTargetRegistration } from "../workspace/local-target.js";
 import type { WorktreeRunner } from "../workspace/worktrees.js";
 import { AuthStore } from "../auth/store.js";
 import { loadInstallationIfExists, loadOrCreateInstallation } from "../workspaces/installation.js";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import {
+  ensureBrokerRuntime,
+  recoverBrokerRuntime,
+  restartBrokerRuntime,
+  stopBrokerRuntime,
+  type BrokerProcessLifecycleOptions,
+} from "./installation-process.js";
 
 /** Path to the CLI entry, works from dist/ and from tsx dev runs. */
 function cliEntry(): { cmd: string; args: string[] } {
@@ -27,87 +30,43 @@ function cliEntry(): { cmd: string; args: string[] } {
 export function installationRuntime(stateDir = getStateDir()): RuntimeState | null {
   const installation = loadInstallationIfExists(stateDir);
   if (!installation) return null;
-  return readRuntimeState(installation.installationId);
+  return readRuntimeState(installation.installationId, stateDir);
 }
 
-/**
- * Ensure the installation-level broker daemon is running. Reuses a live
- * instance, otherwise spawns a detached daemon and waits for it to become
- * healthy. Unlike per-workspace bridges, the broker is one per installation
- * and serves every registered workspace.
- */
-export async function ensureBroker(opts: { stateDir?: string } = {}): Promise<RuntimeState> {
-  const stateDir = opts.stateDir ?? getStateDir();
-  const installation = loadOrCreateInstallation(stateDir);
-  const live = await findLiveBridge(installation.installationId);
-  if (live) return live;
-
-  const logDir = ensureDir(path.join(stateDir, "logs"));
-  const logFile = path.join(logDir, "broker.out.log");
-  let out: number;
-  try {
-    out = fs.openSync(logFile, "a", 0o600);
-  } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code ?? "";
-    throw new Error(
-      `Cannot write broker log ${logFile} (${code || (error as Error).message}). ` +
-        "Starting the broker spawns a system daemon — run this command outside the agent sandbox " +
-        "(approve escalation) or in a regular terminal. " +
-        "If the broker is already running, no action is needed; check with `c2c broker status` in a regular terminal."
-    );
-  }
-  const { cmd, args } = cliEntry();
-  const child = spawn(cmd, [...args, "broker-serve"], {
-    detached: true,
-    stdio: ["ignore", out, out],
-    env: { ...process.env },
-  });
-  child.unref();
-  fs.closeSync(out);
-
-  const deadline = Date.now() + 20_000;
-  while (Date.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    const runtime = await findLiveBridge(installation.installationId);
-    if (runtime) return runtime;
-    if (child.exitCode !== null && child.exitCode !== 0) {
-      throw new Error(`Broker process exited with code ${child.exitCode}. See ${logFile}`);
-    }
-  }
-  throw new Error(`Broker did not become healthy within 20s. See ${logFile}`);
+/** Ensure an installation broker through verified runtime ownership checks. */
+export async function ensureBroker(opts: BrokerProcessLifecycleOptions = {}): Promise<RuntimeState> {
+  return ensureBrokerRuntime(opts);
 }
 
-/** Stop the installation broker, if one is running. */
-export async function stopBroker(opts: { stateDir?: string } = {}): Promise<boolean> {
-  const stateDir = opts.stateDir ?? getStateDir();
-  const installation = loadOrCreateInstallation(stateDir);
-  const runtime = readRuntimeState(installation.installationId);
-  if (!runtime) return false;
-  const healthy = await probeBridge(runtime.port);
-  if (healthy && healthy.workspaceId === installation.installationId) {
-    try {
-      await adminFetch(runtime, "POST", "/admin/shutdown", 5000);
-      return true;
-    } catch {
-      // fall through to kill
-    }
-  }
-  try {
-    process.kill(runtime.pid, "SIGTERM");
-    return true;
-  } catch {
-    return false;
-  }
+/** Restart through one verified termination/start transition. */
+export async function restartBroker(opts: BrokerProcessLifecycleOptions = {}): Promise<RuntimeState> {
+  return restartBrokerRuntime(opts);
+}
+
+/** Recover a broker through the same verified transition used by restart. */
+export async function recoverBroker(opts: BrokerProcessLifecycleOptions = {}): Promise<RuntimeState> {
+  return recoverBrokerRuntime(opts);
+}
+
+/** Compatibility wrapper; it reports true only after stale or live runtime is stopped. */
+export async function stopBroker(opts: BrokerProcessLifecycleOptions = {}): Promise<boolean> {
+  const result = await stopBrokerRuntime(opts);
+  return result.stopped;
 }
 
 /** Establish the broker's public tunnel, if not already up. Returns the URL. */
-export async function ensureBrokerTunnel(runtime: RuntimeState): Promise<string> {
+export async function ensureBrokerTunnel(
+  runtime: RuntimeState,
+  opts: { signal?: AbortSignal } = {}
+): Promise<string> {
   if (runtime.publicUrl) return runtime.publicUrl;
   const result = await adminFetch<{ url?: string; message?: string }>(
     runtime,
     "POST",
     "/admin/tunnel/start",
-    90_000
+    90_000,
+    undefined,
+    opts.signal
   );
   if (!result.url) throw new Error(result.message ?? "Tunnel start failed");
   return result.url;
@@ -282,7 +241,9 @@ export interface PairingResponse {
 }
 
 /** Mint a one-time pairing code for the installation connector. */
-export async function createInstallationPairing(opts: { stateDir?: string } = {}): Promise<PairingResponse> {
+export async function createInstallationPairing(
+  opts: { stateDir?: string; signal?: AbortSignal } = {}
+): Promise<PairingResponse> {
   const runtime = await ensureBroker(opts);
-  return adminFetch<PairingResponse>(runtime, "POST", "/admin/pairing");
+  return adminFetch<PairingResponse>(runtime, "POST", "/admin/pairing", 60_000, undefined, opts.signal);
 }

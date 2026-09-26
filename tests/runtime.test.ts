@@ -1,7 +1,13 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
+import fs from "node:fs";
 import path from "node:path";
 import { startBridge } from "../src/bridge/server.js";
-import { findLiveBridge, writeRuntimeState, clearRuntimeState } from "../src/bridge/runtime.js";
+import {
+  findLiveBridge,
+  readRuntimeRecord,
+  writeRuntimeState,
+  clearRuntimeState,
+} from "../src/bridge/runtime.js";
 import { makeTmpDir, cleanup, write, isolateStateDir } from "./helpers.js";
 
 const closeFns: Array<() => Promise<void>> = [];
@@ -11,6 +17,35 @@ afterEach(async () => {
 });
 
 describe("findLiveBridge probe resilience", () => {
+  it("reports authorization from the live snapshot when expired tokens remain in memory", async () => {
+    const stateDir = isolateStateDir();
+    const root = makeTmpDir("probe-expired-auth");
+    write(root, "hello.txt", "hello");
+    const bridge = await startBridge({
+      workspaceRoot: root,
+      persistRuntime: false,
+      authStoreFile: path.join(stateDir, "auth-probe-expired.json"),
+    });
+    closeFns.push(() => bridge.close());
+    bridge.authStore.issueTokens({
+      clientId: "bridge-expired-auth",
+      scopes: ["workspace.read"],
+      accessTtlMs: 1,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    const response = await fetch(`${bridge.localBaseUrl()}/admin/info`, {
+      headers: { authorization: `Bearer ${bridge.adminToken}` },
+    });
+    const info = (await response.json()) as {
+      tokenCount: number;
+      authorization: { state: string };
+    };
+
+    expect(info.tokenCount).toBe(1);
+    expect(info.authorization.state).toBe("unauthorized");
+  });
+
   it("tolerates transient probe failures instead of reporting the bridge dead", async () => {
     const stateDir = isolateStateDir();
     const root = makeTmpDir("probe-a");
@@ -133,5 +168,60 @@ describe("duplicate bridge guard", () => {
     expect(other.port).not.toBe(preferred);
     cleanup(root);
     cleanup(otherRoot);
+  });
+});
+
+describe("runtime mutation lock recovery", () => {
+  it("does not treat a legacy stale lock marker as a live lock", () => {
+    const stateDir = isolateStateDir();
+    const workspaceId = "stale-lock-recovery";
+    const state = {
+      service: "c2c-bridge",
+      version: "0.1.0",
+      workspaceId,
+      workspaceRoot: "/workspace",
+      pid: process.pid,
+      port: 48001,
+      adminToken: "runtime-token",
+      publicUrl: null,
+      startedAt: new Date().toISOString(),
+    };
+
+    writeRuntimeState(state, stateDir);
+    fs.writeFileSync(path.join(stateDir, "runtime", `${workspaceId}.lifecycle-lock`), "12345:dead-owner");
+    writeRuntimeState({ ...state, port: 48002 }, stateDir);
+
+    const record = readRuntimeRecord(workspaceId, stateDir);
+    expect(record.kind).toBe("present");
+    if (record.kind === "present") expect(record.runtime.port).toBe(48002);
+  });
+
+  it.skipIf(process.platform !== "linux")("resolves flock from fixed system paths instead of caller PATH", () => {
+    const stateDir = isolateStateDir();
+    const workspaceId = "fixed-flock-path";
+    const dir = makeTmpDir("shadow-flock");
+    const previousPath = process.env.PATH;
+    const fakeFlock = path.join(dir, "flock");
+    const state = {
+      service: "c2c-bridge",
+      version: "0.1.0",
+      workspaceId,
+      workspaceRoot: "/workspace",
+      pid: process.pid,
+      port: 48003,
+      adminToken: "runtime-token",
+      publicUrl: null,
+      startedAt: new Date().toISOString(),
+    };
+    fs.writeFileSync(fakeFlock, "#!/bin/sh\nexit 0\n", { mode: 0o700 });
+    process.env.PATH = dir;
+    try {
+      expect(() => writeRuntimeState(state, stateDir)).not.toThrow();
+      expect(readRuntimeRecord(workspaceId, stateDir).kind).toBe("present");
+    } finally {
+      if (previousPath === undefined) delete process.env.PATH;
+      else process.env.PATH = previousPath;
+      cleanup(dir);
+    }
   });
 });

@@ -5,8 +5,10 @@ import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { startBroker } from "../src/broker/server.js";
+import { loadInstallationIfExists } from "../src/workspaces/installation.js";
+import { readLastEndpoint, writeLastEndpoint } from "../src/config/endpoint.js";
 import type { TunnelProvider } from "../src/tunnel/provider.js";
-import { makeTmpDir, cleanup, write, isolateStateDir } from "./helpers.js";
+import { makeTmpDir, cleanup, write, isolateStateDir, makeGitRepo } from "./helpers.js";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -146,6 +148,44 @@ describe("c2c doctor --json", () => {
     cleanup(stateDir);
   });
 
+  it("uses the authorization snapshot when expired tokens remain in broker memory", async () => {
+    const stateDir = isolateStateDir();
+    const root = makeTmpDir("doctor-expired-auth");
+    makeGitRepo(root);
+    let broker: Awaited<ReturnType<typeof startBroker>> | undefined;
+    try {
+      broker = await startBroker({ stateDir, port: 0, persistRuntime: true });
+      broker.authStore.issueTokens({
+        clientId: "doctor-expired-auth",
+        scopes: ["workspace.read"],
+        accessTtlMs: 1,
+      });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(broker.authStore.tokenCount()).toBe(1);
+      const infoResponse = await fetch(`${broker.localBaseUrl()}/admin/info`, {
+        headers: { authorization: `Bearer ${broker.adminToken}` },
+      });
+      const info = (await infoResponse.json()) as {
+        tokenCount: number;
+        authorization: { state: string };
+      };
+      expect(info.tokenCount).toBe(1);
+      expect(info.authorization.state).toBe("unauthorized");
+
+      const run = await runDoctorProcess(root, stateDir, "--no-fix");
+      const report = run.json.report as Record<string, { ok: boolean; detail?: string }>;
+      expect(report.authorization).toEqual({
+        ok: false,
+        detail: "not paired — run `c2c broker pair` and authorize in Claude",
+      });
+    } finally {
+      await broker?.close();
+      cleanup(root);
+      cleanup(stateDir);
+    }
+  });
+
   it("doctor --fix reuses the registered main for a linked worktree", async () => {
     const previousStateDir = process.env.C2C_STATE_DIR;
     const stateDir = isolateStateDir();
@@ -196,6 +236,18 @@ describe("c2c doctor --json", () => {
         authStoreFile: path.join(stateDir, "auth", "doctor-fix.json"),
         tunnelProvider: tunnel,
       });
+      process.env.C2C_STATE_DIR = stateDir;
+      const installation = loadInstallationIfExists(stateDir);
+      expect(installation).not.toBeNull();
+      const previousMcpUrl = "https://c2c-doctor-old.example/mcp";
+      writeLastEndpoint({
+        workspaceId: installation!.installationId,
+        port: broker.port,
+        publicUrl: "https://c2c-doctor-old.example",
+        mcpUrl: previousMcpUrl,
+        confirmedMcpUrl: previousMcpUrl,
+        connectorName: "Existing C2C connector",
+      });
       const parent = broker.registry.register({ root: main, displayName: "Main" });
       broker.authStore.issueTokens({
         clientId: "doctor-fix-regression",
@@ -217,6 +269,21 @@ describe("c2c doctor --json", () => {
       expect(broker.registry.list()).toHaveLength(1);
       expect(broker.registry.getByRoot(main)?.id).toBe(parent.id);
       expect(broker.registry.getByRoot(linked)).toBeNull();
+
+      expect(run.json.connectorRepair).toMatchObject({
+        needed: true,
+        connectorAction: "update",
+        mcpUrl: "https://c2c-doctor-fix.example/mcp",
+        previousMcpUrl,
+      });
+      expect(run.json.chatgptRepair).toStrictEqual(run.json.connectorRepair);
+      expect((run.json.connectorRepair as { pairingCode?: string }).pairingCode).toMatch(
+        /^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/
+      );
+      expect(readLastEndpoint(installation!.installationId)).toMatchObject({
+        mcpUrl: "https://c2c-doctor-fix.example/mcp",
+        confirmedMcpUrl: previousMcpUrl,
+      });
     } finally {
       if (broker) await broker.close();
       cleanup(toolDir);

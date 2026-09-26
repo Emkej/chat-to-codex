@@ -1,0 +1,103 @@
+{
+  "contract_version": 2,
+  "name": "p0-authorization-snapshot",
+  "status": "passed",
+  "counts": {
+    "passed": 4,
+    "failed": 0,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 4,
+  "skipped": 0,
+  "total": 4,
+  "results": [
+    {
+      "name": "auth store",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 1.22,
+      "attempt": 1,
+      "argv": [
+        "node_modules/.bin/vitest",
+        "run",
+        "tests/auth-store.test.ts"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/spec-003/p0-authorization-snapshot",
+      "stdout_log": "01-auth-store.stdout.log",
+      "stderr_log": "01-auth-store.stderr.log",
+      "error": null
+    },
+    {
+      "name": "broker routes",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 2.021,
+      "attempt": 1,
+      "argv": [
+        "node_modules/.bin/vitest",
+        "run",
+        "tests/broker.test.ts"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/spec-003/p0-authorization-snapshot",
+      "stdout_log": "02-broker-routes.stdout.log",
+      "stderr_log": "02-broker-routes.stderr.log",
+      "error": null
+    },
+    {
+      "name": "typecheck",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 2.221,
+      "attempt": 1,
+      "argv": [
+        "node_modules/.bin/tsc",
+        "--noEmit"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/spec-003/p0-authorization-snapshot",
+      "stdout_log": "03-typecheck.stdout.log",
+      "stderr_log": "03-typecheck.stderr.log",
+      "error": null
+    },
+    {
+      "name": "diff-check",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.019,
+      "attempt": 1,
+      "argv": [
+        "rtk",
+        "proxy",
+        "git",
+        "diff",
+        "--check"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/spec-003/p0-authorization-snapshot",
+      "stdout_log": "04-diff-check.stdout.log",
+      "stderr_log": "04-diff-check.stderr.log",
+      "error": null
+    }
+  ],
+  "attempts": [
+    {
+      "number": 1,
+      "checks": [
+        "auth store",
+        "broker routes",
+        "typecheck",
+        "diff-check"
+      ],
+      "statuses": {
+        "auth store": "passed",
+        "broker routes": "passed",
+        "typecheck": "passed",
+        "diff-check": "passed"
+      }
+    }
+  ]
+}

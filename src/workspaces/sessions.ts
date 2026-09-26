@@ -141,6 +141,14 @@ export class SessionRegistry {
     return [...this.entries.values()].sort((a, b) => a.startedAt.localeCompare(b.startedAt));
   }
 
+  /** Live session snapshot for observational reads; expired entries are not pruned. */
+  sessionSnapshot(now = Date.now()): WorkspaceSession[] {
+    return [...this.entries.values()]
+      .filter((session) => Number.isFinite(session.expiresAt) && now <= session.expiresAt)
+      .sort((a, b) => a.startedAt.localeCompare(b.startedAt))
+      .map((session) => ({ ...session }));
+  }
+
   listByWorkspace(workspaceId: string): WorkspaceSession[] {
     return this.list().filter((session) => session.workspaceId === workspaceId);
   }

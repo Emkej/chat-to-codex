@@ -1,0 +1,94 @@
+{
+  "contract_version": 2,
+  "name": "p0-health-and-connector-recovery",
+  "status": "passed",
+  "counts": {
+    "passed": 4,
+    "failed": 0,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 4,
+  "skipped": 0,
+  "total": 4,
+  "results": [
+    {
+      "name": "focused-regression-suites",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 4.16,
+      "attempt": 1,
+      "argv": [
+        "rtk",
+        "proxy",
+        "node_modules/.bin/vitest",
+        "run",
+        "tests/endpoint.test.ts",
+        "tests/installation-health.test.ts",
+        "tests/cli-doctor.test.ts",
+        "tests/installation-status.test.ts",
+        "tests/auth-store.test.ts",
+        "tests/broker.test.ts",
+        "tests/pairing.test.ts",
+        "tests/runtime.test.ts",
+        "tests/workspaces-domain.test.ts",
+        "tests/tunnel-installation.test.ts"
+      ],
+      "test_files_passed": 10,
+      "tests_passed": 85,
+      "stdout_log": "01-focused-suites.stdout.log",
+      "stderr_log": "01-focused-suites.stderr.log",
+      "error": null
+    },
+    {
+      "name": "typecheck",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 2.37,
+      "attempt": 1,
+      "argv": ["rtk", "proxy", "node_modules/.bin/tsc", "--noEmit"],
+      "stdout_log": "02-typecheck.stdout.log",
+      "stderr_log": "02-typecheck.stderr.log",
+      "error": null
+    },
+    {
+      "name": "tracked-diff-check",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.08,
+      "attempt": 1,
+      "argv": ["rtk", "proxy", "git", "diff", "--check"],
+      "stdout_log": "03-tracked-diff-check.stdout.log",
+      "stderr_log": "03-tracked-diff-check.stderr.log",
+      "error": null
+    },
+    {
+      "name": "new-source-test-diff-check",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.02,
+      "attempt": 1,
+      "argv": [
+        "rtk",
+        "proxy",
+        "python3",
+        "-c",
+        "git diff --no-index --check /dev/null on new source and test files"
+      ],
+      "stdout_log": "04-new-file-diff-check.stdout.log",
+      "stderr_log": "04-new-file-diff-check.stderr.log",
+      "error": null
+    }
+  ],
+  "scope": {
+    "branch": "codex/spec-003-c2c-manager-mvp",
+    "head": "39108d7c4aa2285f1d97805c914d129a5d277e1d",
+    "next_expected_slice": "P0-broker-lifecycle",
+    "commit_created": false
+  },
+  "known_risks": [
+    "Legacy endpoint files have no confirmation marker; migration treats their stored mcpUrl as the last user-confirmed URL.",
+    "ensureBroker and the existing tunnel binary detection path retain their existing bounded but non-cancellable behavior."
+  ]
+}
