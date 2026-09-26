@@ -10,10 +10,10 @@
   "repository_root": "/home/emkej/projects/chat-to-codex",
   "worktree": "/home/emkej/projects/chat-to-codex",
   "branch": "codex/spec-003-c2c-manager-mvp",
-  "head": "465403db0272f162bb58bfe932526d8df8726b14",
+  "head": "91573b948d54650034da53292ef9aeeeed0a34a6",
   "review_base_head": "39108d7c4aa2285f1d97805c914d129a5d277e1d",
   "implementation_base_head": "39108d7c4aa2285f1d97805c914d129a5d277e1d",
-  "implementation_commit": "465403db0272f162bb58bfe932526d8df8726b14",
+  "implementation_commit": "91573b948d54650034da53292ef9aeeeed0a34a6",
   "dirty_path_manifest": "docs/verification/artifacts/spec-003/task-ownership.json",
   "git_state_at_capture": {
     "head": "39108d7c4aa2285f1d97805c914d129a5d277e1d",
@@ -32,7 +32,7 @@
     "current_slice": {
       "id": "P1-manager-overview",
       "status": "Completed",
-      "boundary": "Deliver the lazy-loaded Ink Manager overview and keyboard-first action menu; route actions through canonical C2C services; coordinate bounded refresh, stale-read retirement, confirmation, and shared exit behavior. P1 is complete and AC-003-29 is resolved through CHANGE-002."
+      "boundary": "Deliver the lazy-loaded Ink Manager overview and keyboard-first action menu; route actions through canonical C2C services; coordinate bounded refresh, stale-read retirement, confirmation, and shared exit behavior. P1 is complete and AC-003-29 is resolved through CHANGE-002. The post-closeout §11.2 operational-context repair is committed at 91573b948d54650034da53292ef9aeeeed0a34a6 and passed quality-gate recheck-04."
     },
     "success_criteria": [
       "c2c manager is listed in help, rejects non-TTY use, and lazy-loads Ink/React after the TTY guard.",
@@ -40,7 +40,8 @@
       "One action policy backs keyboard shortcuts and the Actions menu; Stop and Confirm require explicit confirmation, and Fix/Pair use current structured prerequisites.",
       "Status polling is completion-driven at 10 seconds, bounded at 5 seconds, preserves last valid status, rejects stale generations, and does not overlap a foreground action.",
       "The foreground guard remains held through obsolete-read retirement and one completion refresh; q, Ctrl+C, and SIGTERM restore the terminal and cancel Manager-owned work.",
-      "The installed production tree contains Ink/React and the built launcher opens the Manager through a real PTY."
+      "The installed production tree contains Ink/React and the built launcher opens the Manager through a real PTY.",
+      "The Overview exposes the active/default profile, C2C version, status freshness, observed MCP URL, observed broker version, and non-mutating version-skew context without expanding into Phase 2."
     ],
     "validation_plan": [
       "Focused Manager/controller/refresh/CLI tests using controlled promises and fake timers.",
@@ -65,7 +66,7 @@
     {"check": "root lockfile presence and production integrity", "status": "passed", "evidence": "Tracked pnpm-lock.yaml existed at the baseline; Ink 6.8.0, React 19.3.0, and @types/react 19.3.0 were added with pnpm 11.24.0. The disposable production install passed --frozen-lockfile."},
     {"check": "installed pnpm version", "status": "passed", "evidence": "PATH-selected pnpm 11.12.1 still stalls; exact cached pnpm 11.24.0 at /home/emkej/.cache/node/corepack/v1/pnpm/11.24.0/bin/pnpm.cjs was used for lockfile mutation, build, and production install."},
     {"check": "installed dependencies", "status": "passed", "evidence": "Root runtime dependencies include Ink 6.8.0 and React 19.3.0; dev dependency @types/react is 19.3.0. A clean disposable production tree installed 136 packages with no downloads."},
-    {"check": "SPEC-003 current-spec quality gate", "status": "passed", "evidence": "docs/verification/artifacts/spec-003/quality-gate/recheck-03.json; current spec hash 071fd072a26b22f6a84b0fca938333ba4c9c7cf6cf23f82d2ea3c955d0dce2f1 reviewed against the implemented P0/P1 acceptance criteria; no material conformance gaps found."}
+    {"check": "SPEC-003 current-spec quality gate", "status": "passed", "evidence": "docs/verification/artifacts/spec-003/quality-gate/recheck-04.json; current spec hash 071fd072a26b22f6a84b0fca938333ba4c9c7cf6cf23f82d2ea3c955d0dce2f1 rechecked against the committed post-closeout §11.2 repair; the named-profile omission and related operational-context gaps are resolved."}
   ],
   "validation": [
     {"check": "SessionRegistry domain tests", "status": "passed", "evidence": "docs/verification/artifacts/spec-003/p0-session-observation/summary.json; focused domain check passed on attempt 1."},
@@ -80,14 +81,14 @@
     {"check": "New source/test whitespace checks", "status": "passed", "evidence": "docs/verification/artifacts/spec-003/p0-broker-lifecycle/04-untracked-whitespace-check.txt; ten no-index checks reported no whitespace diagnostics."},
     {"check": "Focused Manager/controller/refresh/CLI tests", "status": "passed", "evidence": "docs/verification/artifacts/spec-003/p1-manager-overview/summary.json; final pass had 53 tests across 3 suites."},
     {"check": "P0 regression batch", "status": "passed", "evidence": "docs/verification/artifacts/spec-003/p1-manager-overview/summary.json; 108 tests passed across 10 suites with scoped elevated loopback/flock access."},
-    {"check": "Full Vitest suite", "status": "passed", "evidence": "docs/verification/artifacts/spec-003/p1-manager-overview/summary.json; final post-policy-fix pass had 407 tests across 38 files."},
+    {"check": "Full Vitest suite after post-closeout Manager repair", "status": "passed", "evidence": "docs/verification/artifacts/spec-003/quality-gate/recheck-04.json; 410 tests passed across 39 files."},
     {"check": "TypeScript no-emit typecheck", "status": "passed", "evidence": "rtk tsc --noEmit -p tsconfig.json completed successfully."},
     {"check": "Pinned-pnpm build", "status": "passed", "evidence": "pnpm 11.24.0 build completed; dist/manager includes compiled TSX modules."},
     {"check": "Frozen production dependency install", "status": "passed", "evidence": "Disposable package-copy tree passed pnpm install --prod --frozen-lockfile; Ink and React were present in installed node_modules."},
     {"check": "Installed launcher path and PTY", "status": "passed", "evidence": "Final frozen production package-copy launched through bin/c2c.js; built help and non-TTY/profile guards passed; 80-column narrow and 120-column wide PTYs rendered Workspaces and Health and q exited 0. Earlier post-build PTY pass also confirmed Ctrl+C exit 0 and SIGTERM terminal restoration within the bounded window."},
     {"check": "Tracked and P1 untracked whitespace checks", "status": "passed", "evidence": "The first tracked check identified mixed CRLF endings in tsconfig.json; normalized that touched file, then git diff --check and git diff --no-index --check over all 21 P1 untracked source/test/ledger files completed without whitespace diagnostics."},
     {"check": "AC-003-29 visual reference resolution", "status": "passed", "evidence": "docs/changes/change-002-spec-003-visual-reference-removal.md documents intentional removal of the unavailable non-normative mockup and reliance on the authoritative SPEC, as permitted by AC-003-29."},
-    {"check": "SPEC-003 closeout evidence", "status": "passed", "evidence": "docs/verification/artifacts/spec-003/closeout/summary.json references the current-spec gate and existing successful P1 validation without rerunning expensive unchanged code validation."}
+    {"check": "SPEC-003 post-closeout repair and closeout evidence", "status": "passed", "evidence": "docs/verification/artifacts/spec-003/quality-gate/recheck-04.json and docs/verification/artifacts/spec-003/closeout/summary.json; the committed repair was rechecked after implementation commit 91573b948d54650034da53292ef9aeeeed0a34a6 and SPEC-003 remains Completed."}
   ],
   "decisions_constraints_risks_blockers": {
     "decisions": [

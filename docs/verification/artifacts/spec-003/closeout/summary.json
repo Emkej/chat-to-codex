@@ -7,11 +7,20 @@
   "specSha256": "071fd072a26b22f6a84b0fca938333ba4c9c7cf6cf23f82d2ea3c955d0dce2f1",
   "review_base_head": "39108d7c4aa2285f1d97805c914d129a5d277e1d",
   "implementation_base_head": "39108d7c4aa2285f1d97805c914d129a5d277e1d",
-  "implementation_commit": "465403db0272f162bb58bfe932526d8df8726b14",
+  "implementation_commit": "91573b948d54650034da53292ef9aeeeed0a34a6",
   "branch": "codex/spec-003-c2c-manager-mvp",
   "status": "Completed",
   "completion_boundary": "Phase 0 + Phase 1",
   "phase2": "Not started; optional follow-up and out of scope for this closeout.",
+  "quality_gate": "docs/verification/artifacts/spec-003/quality-gate/recheck-04.json",
+  "post_closeout_repair": {
+    "status": "resolved",
+    "section": "§11.2 Header",
+    "finding": "The closed Phase 1 Overview did not expose a named active profile and related operational context even though InstallationStatus already carried the required values.",
+    "resolution": "The Manager now shows default/named profile, C2C version, live/refreshing/stale freshness, observed MCP URL, observed broker version, and non-mutating version mismatch context while preserving explicit health conclusions and canonical connector instructions.",
+    "implementation_commit": "91573b948d54650034da53292ef9aeeeed0a34a6",
+    "recheck": "docs/verification/artifacts/spec-003/quality-gate/recheck-04.json"
+  },
   "ac00329": {
     "status": "resolved",
     "resolution": "The unavailable non-normative mockup was intentionally removed from the delivery requirement; visual acceptance relies on the authoritative SPEC.",
@@ -19,9 +28,9 @@
     "quality_gate": "docs/verification/artifacts/spec-003/quality-gate/recheck-03.json"
   },
   "implementation_validation": {
-    "status": "Reused successful unchanged-slice evidence",
-    "source": "docs/verification/artifacts/spec-003/p1-manager-overview/summary.json",
-    "summary": "P0/P1 focused tests, full Vitest, typecheck, build, frozen production install, installed launcher/PTY checks and diff hygiene were already passed; no expensive unchanged validation was rerun."
+    "status": "Passed after post-closeout repair",
+    "source": "docs/verification/artifacts/spec-003/quality-gate/recheck-04.json",
+    "summary": "Focused Manager/status tests, full Vitest (410 tests), typecheck, build, diff checks, and disposable wide/narrow read-only PTY smoke passed. Production install validation was not rerun because packaging and dependencies were unchanged."
   },
   "remaining_slices": [],
   "current_blocker": "None"

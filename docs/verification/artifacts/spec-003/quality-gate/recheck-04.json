@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-26",
+  "kind": "post-closeout-conformance-recheck",
+  "work_id": "spec-003-c2c-manager-mvp",
+  "spec": "docs/specs/spec-003-c2c-manager-mvp.md",
+  "specSha256": "071fd072a26b22f6a84b0fca938333ba4c9c7cf6cf23f82d2ea3c955d0dce2f1",
+  "reviewed_head": "91573b948d54650034da53292ef9aeeeed0a34a6",
+  "implementation_base_head": "e3c7bd44d2e40b15ffbc87b576bdf6275b67127f",
+  "implementation_commit": "91573b948d54650034da53292ef9aeeeed0a34a6",
+  "reviewed_state": "Read-only conformance recheck performed after the implementation/test repair was committed. The historical recheck-03 artifact remains unchanged.",
+  "verdict": "pass",
+  "scope": "Post-closeout Phase 1 conformance repair for SPEC-003 §11.2 operational context and the tightly related observed endpoint and broker-version presentation paths. Phase 2 remains excluded.",
+  "discoveredGap": {
+    "section": "§11.2 Header",
+    "status": "confirmed",
+    "finding": "At the pre-repair implementation head, src/manager/ui/overview.tsx rendered only the Manager title and a refreshing/stale label. It did not expose installation.profile, although the canonical InstallationStatus already carried the runtime profile with null meaning the default profile.",
+    "resolution": "The committed repair renders Profile, C2C version, and live/refreshing/stale relative freshness in the compact Overview header. It normalizes a null profile to default and preserves named profiles such as test. The same repair renders the observed MCP URL, verified broker version, and a non-mutating Manager/Broker mismatch warning without changing action policy or refresh cadence."
+  },
+  "acceptanceReview": [
+    {
+      "area": "Header operational context",
+      "status": "conforming",
+      "evidence": [
+        "src/manager/layout.ts provides pure formatting for default/named profiles, C2C version, loading/refreshing/live/stale freshness, and relative status age.",
+        "src/manager/ui/overview.tsx renders the context without menu navigation and updates only a display-only age timer that is cleaned up on unmount.",
+        "tests/manager-layout.test.ts covers null -> default, named test, C2C version, all freshness states, and deterministic relative-age output."
+      ]
+    },
+    {
+      "area": "Observed endpoint and broker version",
+      "status": "conforming",
+      "evidence": [
+        "src/admin/installation-status.ts preserves tunnel.endpoint and adds optional broker.version only after probeBridge has accepted the service and the health workspaceId matches the installation identity.",
+        "src/manager/ui/health-panel.tsx labels the runtime MCP URL as observed, keeps Not checked in this Manager session separate from endpoint conclusions, deduplicates an identical health-check URL, preserves canonical connector instructions, and renders the observed broker version on the existing Broker line.",
+        "tests/installation-status.test.ts verifies the running tunnel endpoint and the verified broker /health version."
+      ]
+    },
+    {
+      "area": "Version skew and scope boundaries",
+      "status": "conforming",
+      "evidence": [
+        "src/manager/layout.ts returns a warning only when known Manager and broker versions differ; no restart, repair, or other mutation is triggered.",
+        "The repair does not invent Connector: Current for a none instruction, alter action/lifecycle/pairing/confirmation policy, change the ten-second RefreshCoordinator cadence, add Phase 2 navigation, or expose filesystem/Git/session/worktree detail."
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "check": "Focused Manager/layout/controller/refresh tests",
+      "status": "passed",
+      "result": "52 tests passed across tests/manager-layout.test.ts, tests/manager-controller.test.ts, and tests/manager-refresh.test.ts."
+    },
+    {
+      "check": "Focused installation-status tests",
+      "status": "passed",
+      "result": "5 tests passed with loopback access, including verified broker version and observed tunnel endpoint coverage."
+    },
+    {
+      "check": "Full Vitest suite",
+      "status": "passed",
+      "result": "410 tests passed across 39 files."
+    },
+    {
+      "check": "TypeScript no-emit typecheck",
+      "status": "passed",
+      "result": "node_modules/.bin/tsc --noEmit -p tsconfig.json exited 0."
+    },
+    {
+      "check": "TypeScript build",
+      "status": "passed",
+      "result": "node_modules/.bin/tsc -p tsconfig.json exited 0."
+    },
+    {
+      "check": "Diff whitespace checks",
+      "status": "passed",
+      "result": "git diff --check, the new-file no-index check, and git diff HEAD^ HEAD --check produced no whitespace diagnostics."
+    },
+    {
+      "check": "Real TTY smoke",
+      "status": "passed",
+      "result": "A disposable /tmp broker with a fake named tunnel was inspected read-only at 120 and 60 columns. Both renders showed Profile: test, C2C: 0.2.0, live relative freshness, Broker: Running · 0.2.0, and MCP URL (observed) before any health check; q exited 0 at both widths."
+    }
+  ],
+  "readOnlyChecks": [
+    "Reviewed HEAD 91573b948d54650034da53292ef9aeeeed0a34a6 after the implementation commit; its seven changed paths are limited to the status model, Manager presentation, and focused tests.",
+    "Recomputed the user-authored SPEC hash as 071fd072a26b22f6a84b0fca938333ba4c9c7cf6cf23f82d2ea3c955d0dce2f1; the SPEC file was not modified.",
+    "The current status contains only the pre-existing protected untracked paths; none was staged or modified by the implementation commit.",
+    "The existing --profile test state was only launched, inspected, and exited with q; the complete URL/version smoke used disposable /tmp state and invoked no Manager action."
+  ],
+  "importantFindings": [],
+  "limitations": [
+    "No production install validation was rerun because dependencies, packaging, and the launcher path were unchanged by this repair.",
+    "The TTY smoke intentionally did not run an explicit health check, so it validates that the observed URL is visible before a health conclusion; health-check URL deduplication was verified by the committed presentation logic without introducing an Ink-specific test dependency."
+  ]
+}
