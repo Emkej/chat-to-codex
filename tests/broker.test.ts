@@ -4,6 +4,7 @@ import path from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { startBroker, type Broker } from "../src/broker/server.js";
+import { VERSION } from "../src/version.js";
 import { Workspace } from "../src/workspace/manager.js";
 import { appendExecutionRecord } from "../src/execution/records.js";
 import { makeTmpDir, cleanup, write, makeGitRepo, isolateStateDir } from "./helpers.js";
@@ -211,10 +212,20 @@ describe("workspace-scoped reads", () => {
     expect(jsonOf(escape).error).toBe("PATH_OUTSIDE_WORKSPACE");
   });
 
-  it("scopes git state to the selected workspace", async () => {
-    const flow = await call<{ git: { isRepo: boolean }; workspaceName: string }>("workspace_info", { workspace: flowId });
+  it("scopes git state to the selected workspace and keeps broker identity installation-scoped", async () => {
+    const flow = await call<{
+      git: { isRepo: boolean };
+      workspaceName: string;
+      broker: { version: string; revision: string | null; profile: string | null };
+    }>("workspace_info", { workspace: flowId });
     expect(flow.workspaceName).toBe("Flow");
     expect(flow.git.isRepo).toBe(true);
+    expect(flow.broker.version).toBe(VERSION);
+    expect(flow.broker.profile).toBe(process.env.C2C_PROFILE?.trim() || null);
+    expect(flow.broker.revision === null || /^[0-9a-f]{7,64}$/i.test(flow.broker.revision)).toBe(true);
+
+    const linkee = await call<{ broker: typeof flow.broker }>("workspace_info", { workspace: linkeeId });
+    expect(linkee.broker).toEqual(flow.broker);
   });
 });
 

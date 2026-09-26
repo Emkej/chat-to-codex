@@ -75,7 +75,8 @@ describe("MCP worktree routing", () => {
     };
     const registry = WorkspaceRegistry.load(stateDir);
     const registration = registry.register({ root: main, displayName: "Main" });
-    const client = await connectServer({ registry, worktreeRunner: runner, logger: nullLogger });
+    const brokerIdentity = Object.freeze({ version: "0.2.0", revision: "c2c1234", profile: "test" });
+    const client = await connectServer({ registry, worktreeRunner: runner, brokerIdentity, logger: nullLogger });
 
     const { tools } = await client.listTools();
     expect(tools.map((tool) => tool.name)).toContain("list_worktrees");
@@ -90,13 +91,18 @@ describe("MCP worktree routing", () => {
     expect(listedText).not.toContain(main);
     expect(listedText).not.toContain(linked);
 
-    const info = jsonOf<{ workspaceId: string; worktreeId: string; workspaceName: string }>(
+    const info = jsonOf<{ workspaceId: string; worktreeId: string; workspaceName: string; broker: typeof brokerIdentity }>(
       await client.callTool({
         name: "workspace_info",
         arguments: { workspace: registration.id, worktree: worktreeId },
       })
     );
     expect(info).toMatchObject({ workspaceId: registration.id, worktreeId, workspaceName: "Main" });
+    expect(info.broker).toEqual(brokerIdentity);
+    const baseInfo = jsonOf<{ broker: typeof brokerIdentity }>(
+      await client.callTool({ name: "workspace_info", arguments: { workspace: registration.id } })
+    );
+    expect(baseInfo.broker).toEqual(brokerIdentity);
 
     const selected = jsonOf<{ content: string }>(
       await client.callTool({

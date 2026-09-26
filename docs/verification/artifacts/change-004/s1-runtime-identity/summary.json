@@ -1,0 +1,38 @@
+{
+  "work_id": "change-004-c2c-broker-runtime-identity",
+  "slice": "S1-runtime-identity",
+  "status": "passed",
+  "repository_root": "/home/emkej/projects/chat-to-codex",
+  "branch": "main",
+  "head": "2f9772626d8451d36ab9540434f4ce5845e14bd7",
+  "checks": [
+    {
+      "name": "focused runtime identity, broker, worktree, and legacy MCP integration suites",
+      "command": "node /home/emkej/.cache/node/corepack/v1/pnpm/11.24.0/bin/pnpm.cjs exec vitest run tests/broker-runtime-identity.test.ts tests/broker.test.ts tests/mcp-worktrees.test.ts tests/mcp-integration.test.ts",
+      "status": "passed",
+      "result": "4 test files passed; 47 tests passed."
+    },
+    {
+      "name": "TypeScript no-emit",
+      "command": "node /home/emkej/.cache/node/corepack/v1/pnpm/11.24.0/bin/pnpm.cjs typecheck",
+      "status": "passed"
+    },
+    {
+      "name": "tracked diff whitespace check",
+      "command": "git diff --check",
+      "status": "passed"
+    }
+  ],
+  "coverage": [
+    "explicit app-root revision discovery with all repository-location Git overrides present",
+    "linked-worktree revision discovery",
+    "unrelated enclosing repository rejection even when installed metadata exists",
+    "valid, invalid, missing, and cleared installed revision metadata",
+    "version, trimmed named profile, null unnamed profile, and frozen captured identity",
+    "broker identity stability across registered workspaces and selected worktrees",
+    "legacy per-project workspace_info omits broker metadata"
+  ],
+  "limitations": [
+    "Full repository gates and installed-app connected-connector smoke remain in S2."
+  ]
+}

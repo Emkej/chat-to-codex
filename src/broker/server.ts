@@ -28,6 +28,7 @@ import { acquireWriteOwner, type WriteOwnerLease } from "../write-requests/owner
 import { WriteRequestService } from "../write-requests/service.js";
 import { WriteRequestStore } from "../write-requests/store.js";
 import { createWriteRequestAdminRouter } from "./write-request-admin.js";
+import { captureBrokerRuntimeIdentity } from "./runtime-identity.js";
 
 export const CONNECTOR_DISPLAY_NAME = "Chat to Codex";
 
@@ -124,6 +125,7 @@ const mcpBodyParserErrorHandler: ErrorRequestHandler = (error, _req, res, next) 
  */
 export async function startBroker(opts: BrokerOptions = {}): Promise<Broker> {
   const logger = opts.logger ?? nullLogger;
+  const brokerIdentity = captureBrokerRuntimeIdentity();
   const stateDir = opts.stateDir ?? getStateDir();
   const host = opts.host ?? DEFAULT_HOST;
   if (host !== "127.0.0.1" && host !== "::1" && host !== "localhost") {
@@ -195,7 +197,7 @@ export async function startBroker(opts: BrokerOptions = {}): Promise<Broker> {
   let writeRequests: WriteRequestService | undefined;
   const mcpHandler = createMcpHttpHandler(
     () => {
-      return createMcpServer({ registry, sessions, ...(writeRequests ? { writeRequests } : {}), logger });
+      return createMcpServer({ registry, sessions, brokerIdentity, ...(writeRequests ? { writeRequests } : {}), logger });
     },
     logger
   );

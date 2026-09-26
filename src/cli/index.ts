@@ -1169,8 +1169,10 @@ program
   .action(async (opts: { json: boolean }) => {
     try {
       const { getC2cHome } = await import("../config/paths.js");
+      const { persistInstalledRevision, resolveC2cRevision } = await import("../broker/runtime-identity.js");
       const home = getC2cHome();
       const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+      const sourceRevision = resolveC2cRevision(appRoot);
       const homeApp = path.join(home, "app");
       const homeBin = path.join(home, "bin");
 
@@ -1187,6 +1189,7 @@ program
       if (normalizedLauncher !== launcherText) fs.writeFileSync(installedLauncher, normalizedLauncher);
       fs.copyFileSync(path.join(appRoot, "package.json"), path.join(homeApp, "package.json"));
       fs.copyFileSync(path.join(appRoot, "pnpm-lock.yaml"), path.join(homeApp, "pnpm-lock.yaml"));
+      persistInstalledRevision(homeApp, sourceRevision);
       const pnpmInstall = spawnSync("pnpm", ["install", "--prod", "--frozen-lockfile"], {
         cwd: homeApp,
         encoding: "utf8",

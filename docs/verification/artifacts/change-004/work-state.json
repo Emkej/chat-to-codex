@@ -1,0 +1,205 @@
+{
+  "schema_version": 1,
+  "work_id": "change-004-c2c-broker-runtime-identity",
+  "task_title": "[C2C/CH4/P1/S2-validation] Verify installed broker identity",
+  "owner_outcome": "Make stale or wrong-profile C2C installation brokers immediately observable through the existing workspace_info surface.",
+  "authoritative_source": "/home/emkej/projects/chat-to-codex/docs/changes/change-004-c2c-broker-runtime-identity.md",
+  "status": "Completed",
+  "environment": "WSL/Linux",
+  "repository_root": "/home/emkej/projects/chat-to-codex",
+  "worktree": "/home/emkej/projects/chat-to-codex",
+  "branch": "main",
+  "head": "2f9772626d8451d36ab9540434f4ce5845e14bd7",
+  "continuation_runs": 0,
+  "context_compactions": 1,
+  "failed_validation_attempts": 2,
+  "owner_decision_round_trips": 1,
+  "dirty_path_manifest": "docs/verification/artifacts/change-004/task-ownership.json",
+  "ledger": {
+    "planned_slices": [
+      {
+        "id": "S1-runtime-identity",
+        "status": "Completed",
+        "boundary": "Implement the focused revision/identity module, persist one installed revision value, capture immutable broker identity, expose it only through installation-broker workspace_info, and add focused origin/contract tests.",
+        "success_criteria": [
+          "Revision lookup is rooted at the C2C application root and uses the existing sanitized Git runner.",
+          "Canonical Git top-level ownership is required; unrelated enclosing repositories are rejected and linked worktrees remain supported.",
+          "Installed metadata accepts only one valid revision value, preserves it through installation, and returns null when absent or invalid.",
+          "Version and trimmed named profile follow the existing C2C semantics; unnamed profiles report null.",
+          "Broker identity is captured once, frozen, and stable across selected registered workspaces and worktrees.",
+          "Only installation-broker workspace_info gains the broker object; legacy per-project response behavior remains unchanged.",
+          "Existing workspace_info fields and selection behavior remain intact."
+        ],
+        "validation_plan": [
+          "Run the focused runtime-identity, broker, worktree, and legacy MCP integration suites.",
+          "Run TypeScript no-emit typecheck, full test suite, build, and git diff --check.",
+          "Review the installed-app smoke prerequisites before touching the shared C2C_HOME installation."
+        ]
+      },
+      {
+        "id": "S2-validation",
+        "status": "Completed",
+        "boundary": "Run repository quality gates, perform the explicit-C2C_HOME fresh-build/install/restart via installed c2ct, verify the connected test connector, restore the previous installation on failure, and close the change.",
+        "success_criteria": [
+          "All full quality gates pass.",
+          "The smoke uses a recorded exact C2C_HOME and preserves the previous app, global skill, and launcher targets for rollback.",
+          "The test-profile broker is stopped and started through installed c2ct with the same explicit C2C_HOME.",
+          "The connected ChatGPT test connector reports the installed version, source revision, and profile test for chat-to-codex.",
+          "CHANGE-004, work state, and retained validation evidence close consistently."
+        ],
+        "validation_plan": [
+          "Run pnpm test, pnpm typecheck, pnpm build, and git diff --check using the verified cached pnpm runtime.",
+          "Identify and record the connector's exact C2C_HOME; preserve app, global skill, and launcher link targets before install.",
+          "Build, install with explicit C2C_HOME, restart the installed test-profile broker through c2ct, then query the connector workspace_info.",
+          "Restore the recorded installation and restart it through c2ct if any shared-install smoke step fails."
+        ]
+      }
+    ],
+    "current_slice": {
+      "id": "S2-validation",
+      "status": "Completed",
+      "success_criteria": [
+        "Full tests, typecheck, build, and git diff --check pass.",
+        "The smoke uses a recorded exact C2C_HOME and preserves the previous app, global skill, and launcher targets for rollback.",
+        "The test-profile broker is stopped and started through installed c2ct with the same explicit C2C_HOME.",
+        "The connected ChatGPT test connector reports the installed version, source revision, and profile test for chat-to-codex."
+      ],
+      "validation_plan": [
+        "Run the full repository quality gates using the verified cached pnpm runtime.",
+        "Identify the connector's exact C2C_HOME and confirm rollback state before shared installation changes.",
+        "Fresh-build, install, restart with installed c2ct, and verify workspace_info through the connected test connector.",
+        "Restore the recorded installation and restart it through c2ct if the shared-install smoke fails."
+      ]
+    },
+    "completed_slices": ["S1-runtime-identity", "S2-validation"],
+    "remaining_slices": []
+  },
+  "preflight": [
+    {
+      "check": "repository root, branch, HEAD, and dirty-path capture",
+      "status": "passed",
+      "evidence": "docs/verification/artifacts/change-004/task-ownership.json; current main HEAD 2f9772626d8451d36ab9540434f4ce5845e14bd7; existing dirty artifacts were recorded before implementation."
+    },
+    {
+      "check": "Node, cached pnpm, lockfile, and installed test/typecheck dependencies",
+      "status": "passed",
+      "evidence": "Node v24.15.0; cached pnpm 11.24.0; pnpm-lock.yaml, node_modules/.bin/vitest, and node_modules/.bin/tsc are present. PATH-selected pnpm stalled and was not reused."
+    },
+    {
+      "check": "focused baseline tests including socket-based suites",
+      "status": "passed with sandbox retry",
+      "evidence": "docs/verification/artifacts/change-004/preflight/summary.json records the sandbox EPERM on loopback binds; docs/verification/artifacts/change-004/preflight-socket-approval/summary.json records the reviewed isolated rerun of broker, broker-daemon, and MCP integration suites passing."
+    },
+    {
+      "check": "TypeScript no-emit and git diff whitespace baseline",
+      "status": "passed",
+      "evidence": "docs/verification/artifacts/change-004/preflight/summary.json"
+    },
+    {
+      "check": "connected test connector baseline workspace_info",
+      "status": "passed",
+      "evidence": "C2C test workspace chat-to-codex-aa044b94 returned the expected baseline workspace identity and repository fields; the pre-change response did not yet include broker metadata."
+    }
+  ],
+  "validation": [
+    {
+      "check": "Pre-change focused baseline first attempt",
+      "status": "failed due sandbox socket restriction",
+      "evidence": "Loopback listeners failed with EPERM inside the sandbox. The same three socket suites passed on the reviewed isolated rerun recorded in docs/verification/artifacts/change-004/preflight-socket-approval/summary.json."
+    },
+    {
+      "check": "Pre-change TypeScript no-emit",
+      "status": "passed",
+      "evidence": "docs/verification/artifacts/change-004/preflight/summary.json"
+    },
+    {
+      "check": "Pre-change git diff --check",
+      "status": "passed",
+      "evidence": "docs/verification/artifacts/change-004/preflight/summary.json"
+    },
+    {
+      "check": "S1 focused broker/runtime identity and legacy contract suites",
+      "status": "passed",
+      "evidence": "docs/verification/artifacts/change-004/s1-runtime-identity/summary.json; 47 tests across four suites passed."
+    },
+    {
+      "check": "S1 TypeScript no-emit",
+      "status": "passed",
+      "evidence": "docs/verification/artifacts/change-004/s1-runtime-identity/summary.json"
+    },
+    {
+      "check": "S1 git diff --check",
+      "status": "passed",
+      "evidence": "docs/verification/artifacts/change-004/s1-runtime-identity/summary.json"
+    },
+    {
+      "check": "S1 initial git diff --check attempt",
+      "status": "failed due patch line endings",
+      "evidence": "The first post-edit check treated CRLF in the three edited CRLF-origin files as trailing whitespace. Their content was normalized to the repository's LF blob format; the scoped diff then became minimal and git diff --check passed."
+    },
+    {
+      "check": "S2 full repository test suite",
+      "status": "passed",
+      "evidence": "docs/verification/artifacts/change-004/s2-validation/quality-gates.json; 41 files and 425 tests passed."
+    },
+    {
+      "check": "S2 TypeScript no-emit, build, and git diff --check",
+      "status": "passed",
+      "evidence": "docs/verification/artifacts/change-004/s2-validation/quality-gates.json"
+    },
+    {
+      "check": "S2 explicit-C2C_HOME install and installed c2ct stop/start",
+      "status": "passed",
+      "evidence": "docs/verification/artifacts/change-004/s2-validation/installed-smoke.json; /home/emkej/.c2c was verified by matching the live connector workspace id to its test-profile registry."
+    },
+    {
+      "check": "S2 connected Chat to Codex Test workspace_info smoke",
+      "status": "passed",
+      "evidence": "docs/verification/artifacts/change-004/s2-validation/installed-smoke.json; workspace chat-to-codex-aa044b94 returned version 0.2.0, revision 2f97726, and profile test."
+    },
+    {
+      "check": "Dirty-path ownership validation",
+      "status": "passed",
+      "evidence": "track_dirty_paths.py validate reported no unexpected dirty paths; pre-existing user paths remain excluded."
+    }
+  ],
+  "prerequisite_failure_cache": {
+    "expensive_prerequisite": null,
+    "last_failure_fingerprint": null,
+    "fingerprint_inputs": null,
+    "last_failure": null,
+    "cheap_recheck": null
+  },
+  "decisions_constraints_risks_blockers": {
+    "decisions": [
+      "CHANGE-004 is the authoritative work source; implementation remains limited to its two planned slices.",
+      "C2C was registered in the global project alias file after the user explicitly authorized alias registration; the task title now follows the registered [C2C/CH4] convention.",
+      "The focused identity module reuses src/workspace/git.ts runGit() instead of maintaining another Git environment-sanitization list.",
+      "The repository lacks its referenced local dirty-path tracker; the compatible generic tracker in /home/emkej/projects/veterinar was used without changing the repository."
+    ],
+    "constraints": [
+      "Preserve every pre-existing dirty path listed in task-ownership.json.",
+      "Do not expose C2C source, installation, or workspace paths in workspace_info.",
+      "Do not alter the legacy per-project MCP contract or add endpoints, dependencies, diagnostics, or a general metadata framework.",
+      "Before the shared install smoke, identify the exact connector C2C_HOME and preserve a complete rollback path."
+    ],
+    "risks": [
+      "The PATH-selected pnpm launcher stalled during preflight; use the verified cached pnpm 11.24.0 runtime.",
+      "Loopback integration tests require the reviewed unsandboxed test invocation in this environment."
+    ],
+    "blockers": []
+  },
+  "metrics": {
+    "continuation_runs": 0,
+    "context_compactions": 1,
+    "failed_validation_attempts": 2,
+    "owner_decision_round_trips": 1
+  },
+  "authoritative_slice": {
+    "id": "S2-validation",
+    "boundary": "Run full quality gates and perform the shared-install-safe installed c2ct and connected-connector smoke."
+  },
+  "first_remaining_action": [],
+  "current_blocker": null,
+  "resume_condition": "No resume required; CHANGE-004, validation, and worktree ownership closeout are complete."
+}

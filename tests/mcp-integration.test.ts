@@ -107,6 +107,7 @@ describe("MCP tools over Streamable HTTP", () => {
     expect(info.frameworks).toContain("React");
     expect(info.git.isRepo).toBe(true);
     expect(info.git.branch).toBe("main");
+    expect(info).not.toHaveProperty("broker");
   });
 
   it("read_file returns hello.txt", async () => {

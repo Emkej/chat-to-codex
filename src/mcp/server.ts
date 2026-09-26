@@ -14,6 +14,7 @@ import { latestExecutionRecord, readExecutionRecords } from "../execution/record
 import type { Logger } from "../logger/index.js";
 import { RegistryError, type WorkspaceRegistration, type WorkspaceRegistry } from "../workspaces/registry.js";
 import { resolveRegisteredWorkspaceTarget } from "../workspaces/targets.js";
+import type { BrokerRuntimeIdentity } from "../broker/runtime-identity.js";
 import type { SessionRegistry } from "../workspaces/sessions.js";
 import type { WriteRequestService } from "../write-requests/service.js";
 import { WriteRequestError, type WriteRequestReceipt } from "../write-requests/types.js";
@@ -116,6 +117,8 @@ export interface McpContext {
    */
   registry?: WorkspaceRegistry;
   sessions?: SessionRegistry;
+  /** Runtime identity captured once by the installation-level broker. */
+  brokerIdentity?: BrokerRuntimeIdentity;
   /** One broker-owned lifecycle shared by all MCP sessions and local admin routes. */
   writeRequests?: WriteRequestService;
   /** Injectable only for focused domain tests; production uses the Git runner. */
@@ -302,6 +305,7 @@ export function createMcpServer(ctx: McpContext): McpServer {
           workspaceId: registration?.id ?? workspace.id,
           workspaceName: registration?.displayName ?? workspace.name,
           ...(target.worktreeId ? { worktreeId: target.worktreeId } : {}),
+          ...(ctx.brokerIdentity ? { broker: ctx.brokerIdentity } : {}),
           rootAlias: "workspace:/",
           ...project,
           git: {

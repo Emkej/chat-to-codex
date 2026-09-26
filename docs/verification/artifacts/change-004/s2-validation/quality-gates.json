@@ -1,0 +1,37 @@
+{
+  "work_id": "change-004-c2c-broker-runtime-identity",
+  "slice": "S2-validation",
+  "captured_at": "2026-09-26T16:04:44Z",
+  "repository_root": "/home/emkej/projects/chat-to-codex",
+  "branch": "main",
+  "head": "2f9772626d8451d36ab9540434f4ce5845e14bd7",
+  "runtime": {
+    "node": "v24.15.0",
+    "pnpm": "11.24.0 cached runtime"
+  },
+  "checks": [
+    {
+      "name": "full test suite",
+      "command": "node /home/emkej/.cache/node/corepack/v1/pnpm/11.24.0/bin/pnpm.cjs test",
+      "status": "passed",
+      "result": "41 test files passed; 425 tests passed."
+    },
+    {
+      "name": "TypeScript no-emit",
+      "command": "node /home/emkej/.cache/node/corepack/v1/pnpm/11.24.0/bin/pnpm.cjs typecheck",
+      "status": "passed"
+    },
+    {
+      "name": "build",
+      "command": "node /home/emkej/.cache/node/corepack/v1/pnpm/11.24.0/bin/pnpm.cjs build",
+      "status": "passed"
+    },
+    {
+      "name": "tracked diff whitespace check",
+      "command": "git diff --check",
+      "status": "passed"
+    }
+  ],
+  "status": "passed",
+  "installed_smoke_evidence": "docs/verification/artifacts/change-004/s2-validation/installed-smoke.json"
+}

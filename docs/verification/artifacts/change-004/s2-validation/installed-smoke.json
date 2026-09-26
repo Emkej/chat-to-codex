@@ -1,0 +1,51 @@
+{
+  "work_id": "change-004-c2c-broker-runtime-identity",
+  "slice": "S2-validation",
+  "captured_at": "2026-09-26T16:10:23Z",
+  "status": "passed",
+  "c2c_home": "/home/emkej/.c2c",
+  "profile": "test",
+  "install": {
+    "command": "HOME=/home/emkej C2C_HOME=/home/emkej/.c2c node bin/c2c.js install --json",
+    "status": "passed",
+    "result": "Installed app at /home/emkej/.c2c/app; migrated=false. Guarded /usr/local/bin link updates failed due directory ownership and left both recorded system links unchanged.",
+    "installed_version": "0.2.0",
+    "installed_revision_metadata": "2f97726",
+    "compiled_runtime_identity_module_present": true,
+    "compiled_identity_probe": {
+      "version": "0.2.0",
+      "revision": "2f97726",
+      "profile": "test"
+    }
+  },
+  "lifecycle": [
+    {
+      "command": "C2C_HOME=/home/emkej/.c2c /home/emkej/.c2c/bin/c2ct broker stop",
+      "status": "passed",
+      "result": "Broker stopped."
+    },
+    {
+      "command": "C2C_HOME=/home/emkej/.c2c /home/emkej/.c2c/bin/c2ct broker start",
+      "status": "passed",
+      "result": "Installation broker running; the same explicit C2C_HOME was used."
+    }
+  ],
+  "connected_connector": {
+    "tool": "Chat to Codex Test workspace_info",
+    "workspace_id": "chat-to-codex-aa044b94",
+    "workspace_name": "chat-to-codex",
+    "status": "passed",
+    "broker": {
+      "version": "0.2.0",
+      "revision": "2f97726",
+      "profile": "test"
+    },
+    "revision_matches_source_head": true,
+    "workspace_inspection_available": true
+  },
+  "rollback": {
+    "required": false,
+    "reason": "Install, installed c2ct restart, and connected connector verification passed.",
+    "pre_install_backup": "/tmp/change-004-c2c-broker-runtime-identity"
+  }
+}

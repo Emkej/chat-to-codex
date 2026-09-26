@@ -1,0 +1,33 @@
+{
+  "work_id": "change-004-c2c-broker-runtime-identity",
+  "captured_at": "2026-09-26T16:04:44Z",
+  "c2c_home": "/home/emkej/.c2c",
+  "profile": "test",
+  "selection_evidence": [
+    "The connected Chat to Codex Test connector returned workspace id chat-to-codex-aa044b94 for display name chat-to-codex.",
+    "The same opaque id and display name are registered in /home/emkej/.c2c/profiles/test/workspaces/registry.json.",
+    "The selected home contains the installed app at /home/emkej/.c2c/app and c2ct's installed launcher at /home/emkej/.c2c/bin/c2ct."
+  ],
+  "previous_installation": {
+    "package_version": "0.2.0",
+    "revision_metadata_present": false,
+    "backup_root": "/tmp/change-004-c2c-broker-runtime-identity",
+    "app_backup": "/tmp/change-004-c2c-broker-runtime-identity/app",
+    "bin_backup": "/tmp/change-004-c2c-broker-runtime-identity/c2c-bin",
+    "global_skill_path": "/home/emkej/.codex/skills/chat-to-codex",
+    "global_skill_backup": "/tmp/change-004-c2c-broker-runtime-identity/global-skill",
+    "backup_verification": "diff -qr passed for the installed app and global skill; saved c2c/c2ct symlink targets match the live targets."
+  },
+  "launcher_targets_before_install": {
+    "/home/emkej/.c2c/bin/c2c": "../app/bin/c2c.js",
+    "/home/emkej/.c2c/bin/c2ct": "../app/bin/c2ct.js",
+    "/usr/local/bin/c2c": "/home/emkej/.c2c/bin/c2c",
+    "/usr/local/bin/c2ct": "/home/emkej/projects/chat-to-codex/bin/c2ct.js"
+  },
+  "installer_home": "/home/emkej",
+  "state_migration_probe": {
+    "home_state_exists": false,
+    "legacy_state_roots_exist": false
+  },
+  "rollback": "Restore app and global-skill backups, restore recorded ~/.c2c/bin symlink targets, then restart with C2C_HOME=/home/emkej/.c2c through the installed c2ct launcher. The /usr/local/bin targets are recorded for verification; the directory is owned by nobody and is not writable by emkej, so install's guarded link update is expected to leave them unchanged."
+}
