@@ -1,5 +1,10 @@
 import { Box, Text } from "ink";
-import { isStatusStale, type ManagerLayout } from "../layout.js";
+import { useEffect, useState } from "react";
+import {
+  formatManagerOperationalContext,
+  formatManagerVersionMismatch,
+  type ManagerLayout,
+} from "../layout.js";
 import type { ManagerSnapshot } from "../types.js";
 import { ActivityPanel } from "./activity-panel.js";
 import { HealthPanel } from "./health-panel.js";
@@ -12,15 +17,20 @@ export function Overview({
   snapshot: ManagerSnapshot;
   layout: ManagerLayout;
 }) {
-  const stale = snapshot.status ? isStatusStale(snapshot.status) : false;
+  const [displayNow, setDisplayNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setDisplayNow(Date.now()), 1_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const versionMismatch = formatManagerVersionMismatch(snapshot.status);
   return (
     <Box flexDirection="column">
-      <Box justifyContent="space-between">
-        <Text bold color="cyan">C2C Manager</Text>
-        <Text dimColor>
-          {snapshot.refreshing ? "Refreshing…" : stale ? "Status may be stale" : ""}
-        </Text>
-      </Box>
+      <Text bold color="cyan">C2C Manager</Text>
+      <Text dimColor wrap="wrap">
+        {formatManagerOperationalContext(snapshot.status, snapshot.refreshing, displayNow)}
+      </Text>
+      {versionMismatch ? <Text color="yellow" wrap="wrap">{versionMismatch}</Text> : null}
       {snapshot.error ? <Text color="red" wrap="wrap">{snapshot.error}</Text> : null}
       {snapshot.refreshError ? <Text color="red" wrap="wrap">Status refresh: {snapshot.refreshError}</Text> : null}
       {snapshot.notice ? <Text color="yellow" wrap="wrap">{snapshot.notice}</Text> : null}

@@ -49,7 +49,7 @@ function makeStatus(options: {
       state: installationId ? "ready" : "uninitialized",
       id: installationId,
       version: "0.2.0",
-      profile: "default",
+      profile: null,
     },
     broker: { state: options.broker ?? "running", ...(options.broker === "running" ? { port: 4123 } : {}) },
     authorization: { state: options.authorization ?? "unauthorized" },

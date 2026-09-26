@@ -198,7 +198,7 @@ describe("installation status", () => {
       const status: InstallationStatus = await getInstallationStatus();
 
       expect(status.installation).toMatchObject({ state: "ready", id: fixture.broker.installation.installationId });
-      expect(status.broker).toMatchObject({ state: "running", port: fixture.broker.port });
+      expect(status.broker).toMatchObject({ state: "running", port: fixture.broker.port, version: VERSION });
       expect(status.authorization.state).toBe("authorized");
       expect(status.tunnel).toMatchObject({
         state: "running",

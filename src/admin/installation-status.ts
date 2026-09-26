@@ -18,6 +18,7 @@ export interface InstallationStatus {
   broker: {
     state: "running" | "stopped" | "unknown";
     port?: number;
+    version?: string;
   };
   authorization: { state: AuthorizationState };
   tunnel: {
@@ -269,6 +270,10 @@ export async function getInstallationStatus(opts: { signal?: AbortSignal } = {})
     );
   }
 
+  const brokerVersion = typeof health.version === "string" && health.version.trim() !== ""
+    ? health.version
+    : undefined;
+
   const [infoResult, workspaceResult, sessionResult] = await Promise.allSettled([
     adminFetch<AdminInfoSnapshot>(runtime, "GET", "/admin/info", ADMIN_READ_TIMEOUT_MS, undefined, signal),
     adminFetch<unknown>(runtime, "GET", "/admin/workspaces", ADMIN_READ_TIMEOUT_MS, undefined, signal),
@@ -287,7 +292,7 @@ export async function getInstallationStatus(opts: { signal?: AbortSignal } = {})
     observedAt,
     profile,
     installationId,
-    { state: "running", port: runtime.port },
+    { state: "running", port: runtime.port, ...(brokerVersion ? { version: brokerVersion } : {}) },
     tunnelSnapshot(info, preference),
     authorizationState,
     summarizeWorkspaces(workspaceRows ?? localRows, sessionCounts)
