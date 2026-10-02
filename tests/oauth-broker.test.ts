@@ -48,7 +48,7 @@ function authorizationUrl(clientId: string, challenge: string): URL {
   url.searchParams.set("state", "st-123");
   url.searchParams.set("code_challenge", challenge);
   url.searchParams.set("code_challenge_method", "S256");
-  url.searchParams.set("scope", "workspace.read workspace.search git.read execution.read offline_access");
+  url.searchParams.set("scope", "workspace.read workspace.search git.read execution.read offline_access git.repository.read");
   return url;
 }
 
@@ -88,8 +88,9 @@ describe("broker OAuth", () => {
       }),
     });
     expect(tokenResponse.status).toBe(200);
-    const body = (await tokenResponse.json()) as { access_token: string };
+    const body = (await tokenResponse.json()) as { access_token: string; scope: string };
     expect(body.access_token).toMatch(/^c2c_at_/);
+    expect(body.scope.split(" ")).toContain("git.repository.read");
 
     const mcpResponse = await fetch(`${base}/mcp`, {
       method: "POST",
@@ -109,6 +110,34 @@ describe("broker OAuth", () => {
     const html = await (await fetch(authorizationUrl(clientId, challenge), { redirect: "manual" })).text();
     expect(html).toContain("Claude is requesting read-only access");
     expect(html).toContain(CONNECTOR_DISPLAY_NAME);
+  });
+
+  it("advertises the repository scope in broker discovery", async () => {
+    const metadata = (await (await fetch(`${base}/.well-known/oauth-authorization-server`)).json()) as {
+      scopes_supported: string[];
+    };
+    expect(metadata.scopes_supported).toContain("git.repository.read");
+  });
+
+  it("includes the repository scope in broker default-read consent", async () => {
+    const clientId = await registerClient();
+    const { challenge } = pkceVerifierAndChallenge();
+    const url = authorizationUrl(clientId, challenge);
+    url.searchParams.delete("scope");
+    const html = await (await fetch(url, { redirect: "manual" })).text();
+    expect(html).toContain("Read Git branches and committed repository snapshots");
+  });
+
+  it("preserves old refresh-token scopes without adding repository access", () => {
+    const initial = broker.authStore.issueTokens({
+      clientId: "pre-change-client",
+      scopes: ["workspace.read", "offline_access"],
+    });
+    const rotated = broker.authStore.refresh(initial.refreshToken!, "pre-change-client");
+    expect(rotated.ok).toBe(true);
+    if (!rotated.ok) throw new Error("Expected refresh rotation to succeed");
+    expect(rotated.tokens.scopes).toEqual(["workspace.read", "offline_access"]);
+    expect(rotated.tokens.scopes).not.toContain("git.repository.read");
   });
 
   it("403 when a token is bound to a different installation id", async () => {

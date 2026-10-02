@@ -125,6 +125,23 @@ describe("gitStatus", () => {
 });
 
 describe("gitDiff pagination", () => {
+  it("disables configured external diff execution", () => {
+    const script = path.join(repo, "external-diff.sh");
+    const marker = path.join(repo, "external-diff-ran");
+    write(repo, "external-diff.sh", `#!/bin/sh\nprintf ran > '${marker}'\nexit 0\n`);
+    fs.chmodSync(script, 0o755);
+    git(repo, "config", "diff.external", script);
+    write(repo, "hello.txt", "external diff must not run\n");
+    try {
+      const diff = gitDiff(repo, { mode: "unstaged" });
+      expect(diff.isRepo).toBe(true);
+      expect(fs.existsSync(marker)).toBe(false);
+    } finally {
+      git(repo, "config", "--unset", "diff.external");
+      git(repo, "checkout", "--", "hello.txt");
+    }
+  });
+
   it("returns the full diff when small", () => {
     write(repo, "hello.txt", "a different greeting\n");
     const diff = gitDiff(repo, { mode: "unstaged" });

@@ -11,7 +11,7 @@
                         ▼          │
              ┌─────────────────────┐
              │ C2C Installation Broker │
-             │ MCP: scoped reads,      │
+             │ MCP: 14 broker reads,   │
              │ proposals, receipts     │
              │  OAuth AS + PRM     │
              │  Pairing Manager    │
@@ -41,13 +41,16 @@
   workspace write through the shared policy.
 - **The registered workspace is the durable security boundary**: the broker may
   select a validated derived worktree beneath a registered Git main worktree.
+- **Repository refs are a separate read boundary**: only a registered main
+  worktree can authorize exact branch snapshots, and the `git.repository.read`
+  scope protects that broader view.
 
 ## Components (src/)
 
 | Module | Responsibility |
 | --- | --- |
 | `bridge/` | Express app assembly, loopback-only listener, port fallback, runtime state, admin API |
-| `mcp/` | Broker McpServer with 10 scoped read tools, `propose_patch`, and two read-only receipt tools; the legacy bridge remains at 9 read-only tools. Stateless Streamable HTTP transport (fresh server per request, JSON responses) |
+| `mcp/` | Broker McpServer with 14 scoped read tools, `propose_patch`, and two read-only receipt tools; the legacy bridge remains at 9 read-only tools. Stateless Streamable HTTP transport (fresh server per request, JSON responses) |
 | `write-requests/` | Exact unified-text patch preparation, protected-path/precondition checks, broker lifecycle serialization, staging/rollback, and terminal receipt persistence |
 | `auth/` | OAuth 2.1 authorization server: discovery metadata (RFC 8414 + Protected Resource Metadata), dynamic client registration (RFC 7591), authorization-code + PKCE (S256 only), refresh rotation, revocation (RFC 7009). Opaque tokens stored as SHA-256 hashes |
 | `pairing/` | PairingCode lifecycle: CSPRNG generation, TTL, attempt limits, IP rate limit, one-time use |
@@ -77,6 +80,12 @@ existing Workspace/read/search/Git primitives
 
 The registry id and optional worktree id are the only remote selectors. Git
 worktree paths and repository identity remain local to the broker.
+
+Repository-ref calls use the registered workspace id plus an exact local or
+remote-tracking branch ref. They resolve a main-worktree repository owner,
+then read an immutable commit snapshot without checkout, fetch, or persistent
+snapshot state. `list_worktrees` describes checked-out linked worktrees only;
+absence there does not imply that a branch ref is absent.
 
 **Approved patch lifecycle**: `propose_patch` requires explicit
 `workspace.write`, resolves the same workspace/worktree target, and persists

@@ -1,0 +1,47 @@
+{
+  "contract_version": 2,
+  "name": "S4-ownership-recheck",
+  "status": "passed",
+  "counts": {
+    "passed": 1,
+    "failed": 0,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 1,
+  "skipped": 0,
+  "total": 1,
+  "results": [
+    {
+      "name": "dirty-path-ownership",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.169,
+      "attempt": 1,
+      "argv": [
+        "python3",
+        "/home/emkej/projects/veterinar/tools/repo/track_dirty_paths.py",
+        "validate",
+        "--manifest",
+        "docs/verification/artifacts/change-005/task-ownership.json"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-005/S4-final-validation/ownership-recheck",
+      "stdout_log": "01-dirty-path-ownership.stdout.log",
+      "stderr_log": "01-dirty-path-ownership.stderr.log",
+      "error": null
+    }
+  ],
+  "attempts": [
+    {
+      "number": 1,
+      "checks": [
+        "dirty-path-ownership"
+      ],
+      "statuses": {
+        "dirty-path-ownership": "passed"
+      }
+    }
+  ]
+}

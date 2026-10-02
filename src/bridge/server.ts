@@ -2,7 +2,7 @@ import express, { type Request, type Response } from "express";
 import type { Server } from "node:http";
 import { randomBytes } from "node:crypto";
 import { Workspace } from "../workspace/manager.js";
-import { AuthStore } from "../auth/store.js";
+import { AuthStore, DEFAULT_READ_SCOPES, SUPPORTED_SCOPES } from "../auth/store.js";
 import { createOAuthRouter } from "../auth/oauth.js";
 import { bearerAuth } from "../auth/middleware.js";
 import { PairingManager } from "../pairing/manager.js";
@@ -121,6 +121,8 @@ export async function startBridge(opts: BridgeOptions): Promise<Bridge> {
       workspaceName: workspace.name,
       getBaseUrl,
       logger,
+      supportedScopes: SUPPORTED_SCOPES,
+      defaultReadScopes: DEFAULT_READ_SCOPES,
     })
   );
 

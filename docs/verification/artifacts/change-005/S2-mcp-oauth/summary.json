@@ -1,0 +1,105 @@
+{
+  "contract_version": 2,
+  "name": "S2-mcp-oauth-gate",
+  "status": "passed",
+  "counts": {
+    "passed": 3,
+    "failed": 0,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 3,
+  "skipped": 0,
+  "total": 3,
+  "results": [
+    {
+      "name": "typecheck",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 4.028,
+      "attempt": 1,
+      "argv": [
+        "node_modules/.bin/tsc",
+        "--noEmit"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-005/S2-mcp-oauth",
+      "stdout_log": "01-typecheck.stdout.log",
+      "stderr_log": "01-typecheck.stderr.log",
+      "error": null
+    },
+    {
+      "name": "broker-oauth-integration-tests",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 10.687,
+      "attempt": 1,
+      "argv": [
+        "node_modules/.bin/vitest",
+        "run",
+        "tests/broker.test.ts",
+        "tests/mcp-integration.test.ts",
+        "tests/oauth.test.ts",
+        "tests/oauth-broker.test.ts",
+        "tests/local-e2e-broker.test.ts",
+        "tests/git-snapshot.test.ts",
+        "tests/git.test.ts"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-005/S2-mcp-oauth",
+      "stdout_log": "02-broker-oauth-integration-tests.stdout.log",
+      "stderr_log": "02-broker-oauth-integration-tests.stderr.log",
+      "error": null
+    },
+    {
+      "name": "tracked-task-diff-check",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.014,
+      "attempt": 1,
+      "argv": [
+        "git",
+        "-c",
+        "core.whitespace=cr-at-eol",
+        "diff",
+        "--check",
+        "--",
+        "src/auth/store.ts",
+        "src/auth/oauth.ts",
+        "src/mcp/server.ts",
+        "src/broker/server.ts",
+        "src/bridge/server.ts",
+        "scripts/poc-client.mjs",
+        "tests/broker.test.ts",
+        "tests/mcp-integration.test.ts",
+        "tests/oauth.test.ts",
+        "tests/oauth-broker.test.ts",
+        "tests/local-e2e-broker.test.ts",
+        "tests/git-snapshot.test.ts",
+        "src/workspace/git-snapshot.ts",
+        "tests/git.test.ts"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-005/S2-mcp-oauth",
+      "stdout_log": "03-tracked-task-diff-check.stdout.log",
+      "stderr_log": "03-tracked-task-diff-check.stderr.log",
+      "error": null
+    }
+  ],
+  "attempts": [
+    {
+      "number": 1,
+      "checks": [
+        "typecheck",
+        "broker-oauth-integration-tests",
+        "tracked-task-diff-check"
+      ],
+      "statuses": {
+        "typecheck": "passed",
+        "broker-oauth-integration-tests": "passed",
+        "tracked-task-diff-check": "passed"
+      }
+    }
+  ]
+}

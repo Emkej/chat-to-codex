@@ -16,8 +16,9 @@ pnpm test:e2e
 ```
 
 This executes `tests/local-e2e-broker.test.ts` — OAuth (DCR + PKCE + pairing), two
-workspaces, `list_workspaces`, scoped reads, session status, and sensitive-file
-denial — without a tunnel or Claude Web login.
+workspaces, `list_workspaces`, scoped reads, repository branch/snapshot reads,
+session status, and sensitive-file denial — without a tunnel or Claude Web
+login.
 
 **Automated protocol result: YES.** A remote MCP client can connect through
 the installation broker, complete OAuth (DCR + PKCE + one-time pairing), use
@@ -59,7 +60,10 @@ C2C_E2E_URL=https://your-host.example.com pnpm test:e2e:live
 3. **In Claude Web**: Customize → Connectors → Add custom connector → paste the
    `/mcp` URL → complete OAuth → enter the pairing code on the C2C page.
 4. Enable the connector and call `list_workspaces`, then scoped tools with the
-   opaque `workspace` argument (e.g. `workspace_info`).
+   opaque `workspace` argument (e.g. `workspace_info`). `list_worktrees` reports
+   checked-out linked worktrees only; for an unchecked-out branch, use
+   `list_branches`, `git_browse`, `git_search`, or `git_compare` after granting
+   the separate `git.repository.read` scope.
 5. **Add another project or linked worktree**: `cd` to it and run `c2c use`
    (or start Codex with the skill). A linked worktree covered by a registered
    main returns the parent `workspaceId` plus an opaque `worktreeId`; it does
@@ -100,7 +104,9 @@ this result.
 
 - **OAuth**: DCR, PKCE S256, pairing limits, refresh rotation, RFC 7009
   revocation, unauthenticated `/mcp` → 401 with `WWW-Authenticate`.
-- **MCP surface**: ten scoped broker readers, one `propose_patch` tool
+- **MCP surface**: fourteen scoped broker readers, including
+  `list_branches`, `git_browse`, `git_search`, and `git_compare`, one
+  `propose_patch` tool
   (`readOnlyHint: false`, `destructiveHint: false`, `openWorldHint: false`),
   and two read-only receipt tools. Proposal requires `workspace.write`; the
   read-only receipt tools require `workspace.read`. The legacy bridge remains
@@ -111,6 +117,9 @@ this result.
 - **Worktrees**: registered main + linked discovery, opaque target selection,
   parent workspace identity preservation, stale/moved/prunable target rejection,
   selected-root traversal confinement, and no path leakage.
+- **Repository snapshots**: exact local and remote-tracking refs, broker-only
+  `git.repository.read` authorization, main-worktree ownership, continuation
+  ref stability, bounded output, and fail-closed replacement/promisor handling.
 - **Boundaries**: `.env` → `ACCESS_DENIED_SENSITIVE_FILE`; path escapes →
   `PATH_OUTSIDE_WORKSPACE`; broker binds loopback only; admin API rejects
   proxy-forwarded requests; `test_status` / `execution_summary` read recorded

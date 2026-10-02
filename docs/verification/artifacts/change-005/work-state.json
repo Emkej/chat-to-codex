@@ -1,0 +1,212 @@
+{
+  "schema_version": 1,
+  "work_id": "change-005-repository-branch-discovery-and-read-only-ref-inspection",
+  "task_title": "[C2C/CH5/P1/S4-final-validation] Complete repository ref inspection change",
+  "owner_outcome": "Add broker-only, bounded, read-only repository-ref inspection so a registered main workspace can list local refs, browse and search committed snapshots, and compare branches without checkout or implicit Git mutation while preserving OAuth, legacy-bridge, and content-policy boundaries.",
+  "authoritative_source": "/home/emkej/projects/chat-to-codex/docs/changes/change-005-repository-branch-discovery-and-read-only-ref-inspection.md",
+  "status": "Completed",
+  "handoff_reason": "None",
+  "environment": "WSL/Linux",
+  "repository_root": "/home/emkej/projects/chat-to-codex",
+  "worktree": "/home/emkej/projects/chat-to-codex",
+  "branch": "main",
+  "head": "84100faae738c67d08248a473349e8757c84c354",
+  "relevant_commits": [],
+  "dirty_path_manifest": "docs/verification/artifacts/change-005/task-ownership.json",
+  "git_state": {
+    "staged": [],
+    "unstaged": ["pre-existing paths recorded in task-ownership.json"],
+    "untracked": ["pre-existing paths recorded in task-ownership.json"]
+  },
+  "ledger": {
+    "planned_slices": [
+      {
+        "id": "S1-snapshot-domain",
+        "status": "Completed",
+        "boundary": "Implement the bounded repository snapshot domain: main-owner resolution, exact local and remote-tracking refs, replacement-object and partial/promisor fail-closed checks, safe browse/search/compare primitives, literal repository paths, and focused domain tests.",
+        "success_criteria": [
+          "Only a registered main worktree can resolve a repository snapshot owner.",
+          "Allowed refs resolve exactly to opaque commit OIDs; arbitrary revspecs, tags, raw OIDs, and symbolic remote HEAD refs are rejected.",
+          "Snapshot reads disable replacement objects, reject partial/promisor repositories before object access, and sanitize repository/pathspec environment overrides.",
+          "Browse, search, and compare enforce the change record's path, object-type, sensitivity, pagination, and output-limit contracts.",
+          "Focused domain tests cover unchecked-out branches, ref validation, replacement objects, partial repositories, path safety, limits, symlinks, gitlinks, and compare semantics."
+        ],
+        "validation_plan": [
+          "Run focused repository snapshot and existing Git/worktree tests.",
+          "Run TypeScript no-emit typecheck and task-scoped diff checks.",
+          "Retain the focused summary and relevant probe evidence under docs/verification/artifacts/change-005/S1-snapshot-domain/."
+        ]
+      },
+      {
+        "id": "S2-mcp-oauth",
+        "status": "Completed",
+        "boundary": "Expose list_branches, git_browse, git_search, and git_compare only through the installation broker with git.repository.read, while keeping legacy OAuth and bridge surfaces unchanged.",
+        "success_criteria": [
+          "The broker advertises and requires git.repository.read for all four tools.",
+          "Legacy supported/default scopes, tools, and refresh-token behavior do not gain the repository capability.",
+          "Tool annotations, sanitized errors, exact tool lists, PoC scopes, and OAuth tests match the public contract."
+        ],
+        "validation_plan": [
+          "Run focused broker, MCP integration, OAuth, and PoC contract checks.",
+          "Run typecheck and task-scoped diff checks."
+        ]
+      },
+      {
+        "id": "S3-policy-and-documentation",
+        "status": "Completed",
+        "boundary": "Synchronize SPEC-001 and the canonical architecture, security, multi-workspace, local-E2E, and connector guidance with the implemented repository-ref capability.",
+        "success_criteria": [
+          "Canonical documentation describes main-owner authorization, broker-only refs, bounded read semantics, and preserved non-goals.",
+          "Documentation and tool-surface assertions match the implementation and verification evidence."
+        ],
+        "validation_plan": [
+          "Run documentation consistency checks and focused tool-surface assertions.",
+          "Review the final diff for scope and policy alignment."
+        ]
+      },
+      {
+        "id": "S4-final-validation",
+        "status": "Completed",
+        "boundary": "Run the complete CHANGE-005 verification matrix and repository quality gates, retain evidence, and close the change record without changing unrelated dirty work.",
+        "success_criteria": [
+          "Focused security and connector checks, full tests, typecheck, build, and diff checks pass or have explicitly retained baseline dispositions.",
+          "The task manifest classifies only claimed paths as owned and all pre-existing paths remain excluded."
+        ],
+        "validation_plan": [
+          "Run pnpm test, pnpm typecheck, pnpm build, git diff --check, and the required CHANGE-005 regression matrix.",
+          "Update the change status and retained verification evidence."
+        ]
+      }
+    ],
+    "completed_slices": ["S1-snapshot-domain", "S2-mcp-oauth", "S3-policy-and-documentation"],
+    "current_slice": {
+      "id": "S4-final-validation",
+      "status": "Completed"
+    },
+    "remaining_slices": []
+  },
+  "changed_behavior": {
+    "summary": "The installation broker exposes bounded read-only repository branch discovery, snapshot browse/search, and merge-base comparison behind git.repository.read. The legacy bridge keeps its exact-root tool and OAuth surface. Snapshot reads use exact branch refs, main-worktree ownership, authorized ignore policy, no replacement objects, fail-closed partial/promisor checks, literal paths, sensitive rename-pair filtering, bounded pagination, and no external diff/textconv execution.",
+    "files": [
+      "src/workspace/git.ts",
+      "src/workspace/git-snapshot.ts",
+      "src/auth/store.ts",
+      "src/auth/oauth.ts",
+      "src/mcp/server.ts",
+      "src/broker/server.ts",
+      "src/bridge/server.ts",
+      "scripts/poc-client.mjs",
+      "tests/git-snapshot.test.ts",
+      "tests/git.test.ts",
+      "tests/broker.test.ts",
+      "tests/mcp-integration.test.ts",
+      "tests/oauth.test.ts",
+      "tests/oauth-broker.test.ts",
+      "tests/local-e2e-broker.test.ts",
+      "docs/specs/spec-001-worktree-aware-workspace-access-consolidated.md",
+      "docs/architecture.md",
+      "docs/security.md",
+      "docs/multi-workspace.md",
+      "docs/local-e2e.md",
+      "docs/protocol.md",
+      "skill/SKILL.md",
+      "docs/changes/change-005-repository-branch-discovery-and-read-only-ref-inspection.md"
+    ]
+  },
+  "validation": [
+    {
+      "check": "repository root, branch, HEAD, and dirty-path capture",
+      "status": "passed",
+      "evidence": "docs/verification/artifacts/change-005/task-ownership.json; main at 84100faae738c67d08248a473349e8757c84c354"
+    },
+    {
+      "check": "Node, Git, lockfile, and installed TypeScript/Vitest dependencies",
+      "status": "passed",
+      "evidence": "docs/verification/artifacts/change-005/preflight/summary.json"
+    },
+    {
+      "check": "baseline TypeScript no-emit",
+      "status": "passed",
+      "evidence": "docs/verification/artifacts/change-005/preflight/summary.json"
+    },
+    {
+      "check": "baseline focused Git/worktree/workspace tests",
+      "status": "passed",
+      "evidence": "docs/verification/artifacts/change-005/preflight/summary.json"
+    },
+    {
+      "check": "baseline git diff --check",
+      "status": "failed",
+      "evidence": "docs/verification/artifacts/change-005/preflight/summary.json; pre-existing line-ending changes in tsconfig.json and vitest.config.ts"
+    },
+    {
+      "check": "snapshot domain gate after review fixes",
+      "status": "passed",
+      "evidence": "focused TypeScript/Vitest checks; sensitive rename-pair, symbolic remote alias, replacement, partial/promisor, path, object-type, and limit regressions passed"
+    },
+    {
+      "check": "broker and OAuth integration gate",
+      "status": "passed",
+      "evidence": "docs/verification/artifacts/change-005/S2-mcp-oauth/summary.json"
+    },
+    {
+      "check": "policy and documentation gate",
+      "status": "passed",
+      "evidence": "docs/verification/artifacts/change-005/S3-policy-and-documentation/summary.json; required repository-ref terms present and stale broker-count claims absent"
+    },
+    {
+      "check": "full tests, typecheck, build, and task-scoped diff check",
+      "status": "passed",
+      "evidence": "docs/verification/artifacts/change-005/S4-final-validation/summary.json; pnpm test, pnpm typecheck, pnpm build, and scoped diff check passed"
+    },
+    {
+      "check": "dirty-path ownership after final artifact claims",
+      "status": "passed",
+      "evidence": "docs/verification/artifacts/change-005/S4-final-validation/ownership-recheck/summary.json"
+    },
+    {
+      "check": "final closure state, scoped diff, and dirty-path recheck",
+      "status": "passed",
+      "evidence": "docs/verification/artifacts/change-005/S4-final-validation/closure-recheck-02/summary.json"
+    }
+  ],
+  "prerequisite_failure_cache": {
+    "expensive_prerequisite": null,
+    "last_failure_fingerprint": null,
+    "fingerprint_inputs": null,
+    "last_failure": null,
+    "cheap_recheck": null
+  },
+  "decisions_constraints_risks_blockers": {
+    "decisions": [
+      "CHANGE-005 is the authoritative work source and its latest plan-review evidence is the contract baseline.",
+      "The task uses the C2C project alias and the local chat-to-codex repository, not the unrelated empty Windows browser-workspace directory.",
+      "The repository has no local dirty-path tracker; the compatible shared tracker fallback is retained in the manifest metadata.",
+      "The first implementation slice reuses resolveLocalWorktree(kind=main), runGit sanitization, and authorized main-workspace IgnoreRules instead of introducing parallel ownership or policy abstractions."
+      ,"The broker MCP boundary resolves registered workspace ids before invoking the main-worktree repository owner resolver; linked-worktree-only registrations therefore fail closed."
+    ],
+    "constraints": [
+      "Preserve every pre-existing path in task-ownership.json and do not normalize unrelated line endings.",
+      "Do not add checkout, worktree creation, fetch, network, shell execution, persistent snapshot state, or arbitrary revision parsing.",
+      "Do not push, open a pull request, deploy, or broaden CHANGE-005 scope."
+    ],
+    "risks": [
+      "The current main worktree contains extensive unrelated dirty changes, including overlapping auth and broker files; ownership claims must remain exact.",
+      "The baseline diff check is already red because of pre-existing line-ending changes outside the first slice."
+    ],
+    "blockers": []
+  },
+  "metrics": {
+    "continuation_runs": 0,
+    "context_compactions": 0,
+    "failed_validation_attempts": 6,
+    "owner_decision_round_trips": 0
+  },
+  "authoritative_slice": {
+    "id": "S4-final-validation",
+    "boundary": "Run the complete CHANGE-005 verification matrix and repository quality gates, retain evidence, and close the change record without changing unrelated dirty work."
+  },
+  "first_remaining_action": [],
+  "current_blocker": "None",
+  "resume_condition": "None"
+}

@@ -589,6 +589,44 @@ It MUST NOT silently ignore the selector.
 
 This preserves the historical single-root OAuth/security boundary.
 
+## 14A. Repository branch and snapshot reads (CHANGE-005)
+
+The installation broker also exposes bounded read-only repository inspection
+through four additional tools:
+
+```text
+list_branches
+git_browse
+git_search
+git_compare
+```
+
+These tools do not accept a `worktree` selector. They require the distinct
+`git.repository.read` scope and use the selected registered workspace only as
+an authorization anchor. The anchor must resolve to the repository's main Git
+worktree; an explicitly registered linked worktree remains exact-root-only and
+cannot authorize repository-wide refs.
+
+Repository refs are dynamic read targets and are never persisted. The tools
+accept only exact `refs/heads/*` and `refs/remotes/*` refs, omit symbolic
+remote aliases, and reject tags, history expressions, arbitrary object ids,
+and other revision syntax. Each request resolves its ref to a server-selected
+opaque commit id before reading objects. No checkout, temporary worktree,
+fetch, network operation, shell execution, or Git mutation is introduced.
+
+Snapshot reads disable replacement objects and reject partial/promisor
+repositories before object access. They apply the authorized main
+workspace's existing sensitive/noise policy, use literal repository paths,
+return symlinks and gitlinks as metadata, skip binary content, and enforce
+bounded branch, directory, text, search, blob, and diff limits. Browse and
+compare continuations must prove the previously returned commit ids; moved
+refs fail with `REF_CHANGED`.
+
+The four tools are broker-only. The legacy bridge does not advertise or
+default-grant `git.repository.read`, and refresh rotation preserves old token
+scope sets. Existing connectors may need reauthorization to obtain the new
+scope.
+
 ## 15. Broker target resolution
 
 Broker resolution becomes:
@@ -1021,19 +1059,28 @@ Do not add `WORKTREE_SCOPE_UNAVAILABLE`; non-owner workspaces simply expose no d
 Current broker tools:
 
 ```text
-9
+14
 ```
 
-After SPEC-001:
+After SPEC-001 and CHANGE-005:
 
 ```text
-10
+14
 ```
 
 New tool:
 
 ```text
 list_worktrees
+```
+
+New repository-ref tools:
+
+```text
+list_branches
+git_browse
+git_search
+git_compare
 ```
 
 ### Legacy bridge
@@ -1162,7 +1209,7 @@ Cover:
 
 Cover:
 
-1. broker exposes 10 read-only tools,
+1. broker exposes 14 read-only tools,
 2. `list_worktrees` requires `git.read`,
 3. selected `read_file`,
 4. selected `search_workspace`,
@@ -1171,6 +1218,11 @@ Cover:
 7. `workspace_info` preserves parent `workspaceId`,
 8. selected execution record namespace,
 9. no `worktree` preserves current behavior.
+10. repository-ref tools require `git.repository.read` and are broker-only,
+11. a registered linked worktree cannot authorize repository refs,
+12. exact branch refs resolve to immutable server-selected commits,
+13. repository reads reject partial/promisor repositories before object access,
+14. repository browse/compare continuations detect missing preconditions and ref movement.
 
 ### 33.4 CLI lifecycle
 
@@ -1255,7 +1307,8 @@ installation
 
 Update:
 
-- broker tool count 10,
+- broker read-only tool count 14, including the four broker-only repository
+  snapshot tools,
 - legacy count remains 9,
 - main registration + linked-worktree workflow.
 
@@ -1284,7 +1337,7 @@ SPEC-001 is conformant when all of the following are true:
 11. Calls without `worktree` remain behaviorally unchanged.
 12. Legacy per-project bridge remains exact-root-only.
 13. Legacy bridge tool count remains 9.
-14. Broker tool count becomes 10.
+14. Broker read-only tool count becomes 14.
 15. `c2c use` from a linked worktree reuses a registered main owner instead of creating a duplicate.
 16. `c2c use` from a linked worktree with no registered main registers only the current linked root.
 17. Exact explicit registration always wins.
@@ -1306,6 +1359,15 @@ SPEC-001 is conformant when all of the following are true:
 33. Full tests, typecheck and build pass.
 34. Canonical documentation is updated to match implemented behavior.
 35. Pre-existing unrelated unstaged changes on the implementation branch are preserved.
+36. Repository snapshot tools are broker-only and require `git.repository.read`.
+37. Repository snapshot reads authorize only through a registered main worktree;
+    linked-only registrations fail closed.
+38. Repository refs are limited to exact local and remote-tracking branch refs;
+    symbolic aliases, tags, arbitrary revspecs, and raw object ids are rejected.
+39. Repository snapshot responses resolve refs to server-selected commit ids and
+    continuation calls reject missing preconditions or moved refs.
+40. Repository snapshot reads reject replacement and promisor repositories before
+    object access and never fetch, checkout, or mutate repository state.
 
 ## 36. Explicit V1 decisions
 
@@ -1337,7 +1399,9 @@ For V1:
 - exact registration wins,
 - `c2c use/setup/doctor` share one read-only local resolver,
 - local task state remains concrete-root scoped,
-- MCP authorization remains durable-workspace scoped,
+- MCP authorization remains durable-workspace scoped; repository-ref reads add
+  a separate broker scope and require the registered main worktree,
+- repository refs remain dynamic read targets with no checkout or persistence,
 - the feature remains fully read-only.
 
 ## 37. Closeout verification

@@ -19,6 +19,7 @@ describe("OAuth scope defaults", () => {
     expect(filterScopes("workspace.write")).toEqual(["workspace.write"]);
     expect(filterScopes("unknown.scope")).toEqual([]);
     expect(filterScopes("unknown.scope workspace.read")).toEqual(["workspace.read"]);
+    expect(filterScopes(undefined)).not.toContain("git.repository.read");
   });
 });
 
@@ -85,6 +86,7 @@ describe("discovery metadata", () => {
     expect(body.grant_types_supported).toEqual(["authorization_code", "refresh_token"]);
     expect(body.registration_endpoint).toContain("/oauth/register");
     expect(body.scopes_supported).toContain("workspace.write");
+    expect(body.scopes_supported).not.toContain("git.repository.read");
   });
 });
 
@@ -111,6 +113,7 @@ describe("authorization + token flow", () => {
     const readHtml = await (await fetch(readUrl, { redirect: "manual" })).text();
     expect(readHtml).toContain("Claude is requesting read-only access");
     expect(readHtml).not.toContain("workspace.write");
+    expect(readHtml).not.toContain("git.repository.read");
 
     const writeHtml = await (await fetch(authorizationUrl(clientId, challenge, "workspace.write"), { redirect: "manual" })).text();
     expect(writeHtml).toContain("Claude is requesting narrow C2C text-patch write access");

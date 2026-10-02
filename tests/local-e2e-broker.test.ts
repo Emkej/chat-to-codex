@@ -48,7 +48,7 @@ function authorizationUrl(clientId: string, challenge: string): URL {
   url.searchParams.set("state", "local-e2e");
   url.searchParams.set("code_challenge", challenge);
   url.searchParams.set("code_challenge_method", "S256");
-  url.searchParams.set("scope", "workspace.read workspace.search git.read execution.read offline_access");
+  url.searchParams.set("scope", "workspace.read workspace.search git.read execution.read offline_access git.repository.read");
   return url;
 }
 
@@ -140,8 +140,12 @@ describe("local E2E — broker-first multi-project", () => {
     expect(names).toEqual([
       "execution_summary",
       "get_write_request",
+      "git_browse",
+      "git_compare",
       "git_diff",
+      "git_search",
       "git_status",
+      "list_branches",
       "list_directory",
       "list_workspaces",
       "list_worktrees",

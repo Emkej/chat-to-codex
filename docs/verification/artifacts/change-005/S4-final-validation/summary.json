@@ -1,0 +1,145 @@
+{
+  "contract_version": 2,
+  "name": "S4-final-validation-gate",
+  "status": "failed",
+  "counts": {
+    "passed": 4,
+    "failed": 1,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 4,
+  "skipped": 0,
+  "total": 5,
+  "results": [
+    {
+      "name": "full-tests",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 31.404,
+      "attempt": 1,
+      "argv": [
+        "pnpm",
+        "test"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-005/S4-final-validation",
+      "stdout_log": "01-full-tests.stdout.log",
+      "stderr_log": "01-full-tests.stderr.log",
+      "error": null
+    },
+    {
+      "name": "typecheck",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 5.901,
+      "attempt": 1,
+      "argv": [
+        "pnpm",
+        "typecheck"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-005/S4-final-validation",
+      "stdout_log": "02-typecheck.stdout.log",
+      "stderr_log": "02-typecheck.stderr.log",
+      "error": null
+    },
+    {
+      "name": "build",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 6.213,
+      "attempt": 1,
+      "argv": [
+        "pnpm",
+        "build"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-005/S4-final-validation",
+      "stdout_log": "03-build.stdout.log",
+      "stderr_log": "03-build.stderr.log",
+      "error": null
+    },
+    {
+      "name": "task-scoped-diff-check",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.011,
+      "attempt": 1,
+      "argv": [
+        "git",
+        "-c",
+        "core.whitespace=cr-at-eol",
+        "diff",
+        "--check",
+        "--",
+        "src/workspace/git.ts",
+        "src/workspace/git-snapshot.ts",
+        "tests/git-snapshot.test.ts",
+        "tests/git.test.ts",
+        "src/auth/store.ts",
+        "src/auth/oauth.ts",
+        "src/mcp/server.ts",
+        "src/broker/server.ts",
+        "src/bridge/server.ts",
+        "scripts/poc-client.mjs",
+        "tests/broker.test.ts",
+        "tests/mcp-integration.test.ts",
+        "tests/oauth.test.ts",
+        "tests/oauth-broker.test.ts",
+        "tests/local-e2e-broker.test.ts",
+        "docs/specs/spec-001-worktree-aware-workspace-access-consolidated.md",
+        "docs/architecture.md",
+        "docs/security.md",
+        "docs/multi-workspace.md",
+        "docs/local-e2e.md",
+        "docs/protocol.md",
+        "skill/SKILL.md"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-005/S4-final-validation",
+      "stdout_log": "04-task-scoped-diff-check.stdout.log",
+      "stderr_log": "04-task-scoped-diff-check.stderr.log",
+      "error": null
+    },
+    {
+      "name": "dirty-path-ownership",
+      "status": "failed",
+      "exit_code": 1,
+      "duration_seconds": 0.169,
+      "attempt": 1,
+      "argv": [
+        "python3",
+        "/home/emkej/projects/veterinar/tools/repo/track_dirty_paths.py",
+        "validate",
+        "--manifest",
+        "docs/verification/artifacts/change-005/task-ownership.json"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-005/S4-final-validation",
+      "stdout_log": "05-dirty-path-ownership.stdout.log",
+      "stderr_log": "05-dirty-path-ownership.stderr.log",
+      "error": null
+    }
+  ],
+  "attempts": [
+    {
+      "number": 1,
+      "checks": [
+        "full-tests",
+        "typecheck",
+        "build",
+        "task-scoped-diff-check",
+        "dirty-path-ownership"
+      ],
+      "statuses": {
+        "full-tests": "passed",
+        "typecheck": "passed",
+        "build": "passed",
+        "task-scoped-diff-check": "passed",
+        "dirty-path-ownership": "failed"
+      }
+    }
+  ]
+}

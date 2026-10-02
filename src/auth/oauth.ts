@@ -1,6 +1,13 @@
 import { Router, type Request, type Response, urlencoded, json } from "express";
 import { randomBytes } from "node:crypto";
-import { AuthStore, SUPPORTED_SCOPES, base64UrlSha256, filterScopes, safeEqual } from "./store.js";
+import {
+  AuthStore,
+  DEFAULT_READ_SCOPES,
+  SUPPORTED_SCOPES,
+  base64UrlSha256,
+  filterScopes,
+  safeEqual,
+} from "./store.js";
 import { PairingManager } from "../pairing/manager.js";
 import type { Logger } from "../logger/index.js";
 import { PRODUCT_NAME } from "../version.js";
@@ -12,6 +19,8 @@ export interface OAuthDeps {
   workspaceName: string;
   getBaseUrl: (req: Request) => string;
   logger: Logger;
+  supportedScopes?: readonly string[];
+  defaultReadScopes?: readonly string[];
 }
 
 interface PendingAuthRequest {
@@ -39,7 +48,7 @@ function isAllowedRedirectUri(uri: string): boolean {
   return false;
 }
 
-function authorizationServerMetadata(base: string): Record<string, unknown> {
+function authorizationServerMetadata(base: string, supportedScopes: readonly string[]): Record<string, unknown> {
   return {
     issuer: base,
     authorization_endpoint: `${base}/oauth/authorize`,
@@ -51,15 +60,15 @@ function authorizationServerMetadata(base: string): Record<string, unknown> {
     grant_types_supported: ["authorization_code", "refresh_token"],
     code_challenge_methods_supported: ["S256"],
     token_endpoint_auth_methods_supported: ["none"],
-    scopes_supported: [...SUPPORTED_SCOPES],
+    scopes_supported: [...supportedScopes],
   };
 }
 
-function protectedResourceMetadata(base: string): Record<string, unknown> {
+function protectedResourceMetadata(base: string, supportedScopes: readonly string[]): Record<string, unknown> {
   return {
     resource: `${base}/mcp`,
     authorization_servers: [base],
-    scopes_supported: [...SUPPORTED_SCOPES],
+    scopes_supported: [...supportedScopes],
     bearer_methods_supported: ["header"],
     resource_name: PRODUCT_NAME,
   };
@@ -102,6 +111,7 @@ function pairingPage(opts: {
     "execution.read": "Read Codex execution summaries",
     offline_access: "Stay connected between sessions",
     "workspace.write": "Apply approved unified text patches to this workspace",
+    "git.repository.read": "Read Git branches and committed repository snapshots",
   };
   const scopeList = opts.scopes.map((scope) => `<li>${escapeHtml(scopeLabels[scope] ?? scope)}</li>`).join("");
   const accessDescription = opts.scopes.includes("workspace.write")
@@ -162,6 +172,8 @@ function pairingPage(opts: {
 
 export function createOAuthRouter(deps: OAuthDeps): Router {
   const router = Router();
+  const supportedScopes = deps.supportedScopes ?? SUPPORTED_SCOPES;
+  const defaultReadScopes = deps.defaultReadScopes ?? DEFAULT_READ_SCOPES;
   const pendingRequests = new Map<string, PendingAuthRequest>();
 
   const prunePending = (): void => {
@@ -170,10 +182,10 @@ export function createOAuthRouter(deps: OAuthDeps): Router {
   };
 
   const asMetadataHandler = (req: Request, res: Response): void => {
-    res.json(authorizationServerMetadata(deps.getBaseUrl(req)));
+    res.json(authorizationServerMetadata(deps.getBaseUrl(req), supportedScopes));
   };
   const prMetadataHandler = (req: Request, res: Response): void => {
-    res.json(protectedResourceMetadata(deps.getBaseUrl(req)));
+    res.json(protectedResourceMetadata(deps.getBaseUrl(req), supportedScopes));
   };
   router.get("/.well-known/oauth-authorization-server", asMetadataHandler);
   router.get("/.well-known/oauth-authorization-server/mcp", asMetadataHandler);
@@ -233,7 +245,7 @@ export function createOAuthRouter(deps: OAuthDeps): Router {
       fail("invalid_request", "PKCE with S256 is required");
       return;
     }
-    const scopes = filterScopes(query.scope);
+    const scopes = filterScopes(query.scope, supportedScopes, defaultReadScopes);
     if (scopes.length === 0) {
       fail("invalid_scope", "Requested scopes are unsupported");
       return;

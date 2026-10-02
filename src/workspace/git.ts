@@ -10,9 +10,13 @@ const GIT_REPOSITORY_OVERRIDE_VARS = [
   "GIT_OBJECT_DIRECTORY_RELATIVE",
   "GIT_ALTERNATE_OBJECT_DIRECTORIES",
   "GIT_QUARANTINE_PATH",
+  "GIT_LITERAL_PATHSPECS",
+  "GIT_GLOB_PATHSPECS",
+  "GIT_NOGLOB_PATHSPECS",
+  "GIT_ICASE_PATHSPECS",
 ] as const;
 
-function sanitizedGitEnvironment(): NodeJS.ProcessEnv {
+export function sanitizedGitEnvironment(): NodeJS.ProcessEnv {
   const env = { ...process.env };
   for (const name of GIT_REPOSITORY_OVERRIDE_VARS) delete env[name];
   return env;
@@ -221,6 +225,8 @@ export function gitDiff(
     "--name-status",
     "-z",
     "--find-renames=1%",
+    "--no-ext-diff",
+    "--no-textconv",
     ...modeArgs,
     "--",
     ".",
@@ -293,6 +299,8 @@ export function gitDiff(
       "diff",
       "--no-color",
       "--find-renames=1%",
+      "--no-ext-diff",
+      "--no-textconv",
       ...modeArgs,
       "--",
       ...pathspecs,

@@ -19,7 +19,7 @@ C2C Workspace Broker  ── one stable MCP URL (Cloudflare Named Tunnel)
  │   └── Derived targets  worktree_id → validated linked root (live Git view)
  ├── Session Registry     session_id → workspace_id (local only)
  ├── Write Request Service (broker-owned, local state)
- └── scoped MCP reads, pending patch proposals, and receipt reads
+ └── scoped MCP reads, repository snapshot reads, pending patch proposals, and receipt reads
 ```
 
 Security hierarchy:
@@ -70,10 +70,13 @@ strictly against the local Workspace Registry:
   `workspaceId` plus optional `worktreeId`; receipts are filtered to that
   concrete target and never contain raw patch bodies or absolute paths
 
-`list_workspaces()` enumerates registered workspace ids and
+`list_workspaces()` enumerates registered workspace ids.
 `list_worktrees(workspace)` enumerates current derived ids beneath an eligible
-registered main. The broker returns names, branches, and commits, but roots
-never leave the machine.
+registered main. It reports checked-out linked worktrees only; it is not a
+repository branch listing. The broker returns names, branches, and commits, but
+roots never leave the machine. Repository branches and committed snapshots use
+the broker-only `list_branches`, `git_browse`, `git_search`, and `git_compare`
+tools with `git.repository.read`.
 
 Rejected alternatives:
 
@@ -116,8 +119,9 @@ Rejected alternatives:
 
 ## Tool surface (target)
 
-- Broker: `list_workspaces` and `list_worktrees` plus the eight scoped readers
-  (10 read tools), `propose_patch` (one pending-request tool), and
+- Broker: `list_workspaces` and `list_worktrees` plus the eight worktree-scoped
+  readers and four repository snapshot readers (14 read tools), `propose_patch`
+  (one pending-request tool), and
   `list_write_requests` / `get_write_request` (two read-only receipt tools).
 - Legacy bridge: the existing nine read-only tools remain exact-root-only; it
   does not expose `list_worktrees` or any write-request tool.
@@ -161,6 +165,10 @@ a domain.
 7. **E2E multi-project validation + docs** — automated in broker tests; human Claude Web validation remains manual (see `docs/local-e2e.md`).
 8. **Worktree-aware broker access** — broker target selection, local CLI reuse,
    Git hardening, and legacy compatibility are covered by SPEC-001 tests.
+9. **Repository snapshot access** — exact branch/ref discovery and bounded
+   committed reads are broker-only, require `git.repository.read`, and resolve
+   through the registered main worktree. Linked-only registrations cannot
+   authorize repository scope.
 
 ## Threat model answers
 
@@ -183,3 +191,6 @@ a domain.
 | 15 | Registered main has linked worktrees | `list_worktrees` returns opaque current ids; scoped readers may select one and preserve the parent workspace id. |
 | 16 | Linked worktree is explicitly registered | Exact registration wins; it remains exact-root-only and does not gain peer enumeration. |
 | 17 | Worktree is moved, deleted, prunable, or stale | Re-discovery rejects the target; no fallback to the main root. |
+| 18 | Claude asks for an unchecked-out branch | `list_worktrees` is not a branch list; repository scope uses exact `refs/heads/*` or `refs/remotes/*` refs through the four repository snapshot tools. |
+| 19 | Repository ref moves during pagination | The continuation token carries the resolved commit identity; a moved ref fails with `REF_CHANGED` rather than mixing snapshots. |
+| 20 | Repository uses replacement objects, promisor objects, or lazy fetch | Repository snapshot reads fail closed before object reads; no replacement, fetch, network, checkout, or mutation is attempted. |

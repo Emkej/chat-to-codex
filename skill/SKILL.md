@@ -28,7 +28,7 @@ Bring your AI chat sessions to Codex.
 6. In the remote MCP client, enable the connector and ask it to call
    `list_workspaces`. Confirm the installation responds.
 
-If the installation already exists (Claude already has a working C2C connector), skip connector/OAuth/pairing steps.
+If the installation already exists (Claude already has a working C2C connector), skip connector/OAuth/pairing steps. If repository snapshot capability is added after an existing connector was authorized, reconnect or reauthorize when the client lacks `git.repository.read`; existing tokens retain their original scopes.
 
 Claude custom connectors are remote MCP clients: the MCP endpoint must be reachable over public HTTPS. A Cloudflare Quick Tunnel is suitable for temporary sessions; a named tunnel (`c2c broker tunnel --zone <domain>`) is preferred for a stable connector URL.
 
@@ -43,9 +43,12 @@ When the user starts a session in a project, register it and learn its identity:
 3. Remember the `workspaceId` and optional `worktreeId`. Include both
    whenever you tell the user what to ask the remote MCP client, and use both in
    INIT instructions. The client should call `list_worktrees` to discover
-   current opaque targets; it must never send a filesystem path. Do not ask C2C
-   to register a linked worktree independently when its registered main already
-   covers it.
+   current opaque checked-out worktree targets; that tool does not enumerate
+   repository branches. For other branches, use broker-only `list_branches`,
+   `git_browse`, `git_search`, or `git_compare`, which require
+   `git.repository.read`. The client must never send a filesystem path. Do not
+   ask C2C to register a linked worktree independently when its registered main
+   already covers it.
 4. When a Codex session ends, run `c2c use --end --json` to clear the local session binding.
 5. Route repairs through `c2c doctor --json` (installation-aware) or `c2c broker status`; per-project bridges (`c2c start`) are legacy compatibility only.
 6. In the Codex desktop app, sandboxed commands may fail with EPERM or `fetch failed` when they touch the broker (loopback requests, daemon spawn, state writes). The broker is a system service that is usually already running — first try `c2c broker status`; if it reports the state as unclear, rerun the command with sandbox escalation approved, or in a regular terminal. Do not conclude the broker is down from a sandboxed failure alone.
@@ -109,6 +112,8 @@ The remote MCP client authorizes one C2C installation. Workspace access is a
 local capability resolved through registered opaque ids and validated derived
 worktree ids; canonical filesystem roots never cross the connector boundary.
 The connector has scoped read tools, sanitized read-only receipts, and the
-narrow proposal tool described above. The broker applies workspace changes
-only after local approval; it does not expose a general writer or command
-executor.
+narrow proposal tool described above. Repository snapshot tools are broker-only,
+require `git.repository.read`, resolve through a registered main worktree, and
+accept exact local or remote-tracking refs without checkout or fetch. The
+broker applies workspace changes only after local approval; it does not expose
+a general writer or command executor.

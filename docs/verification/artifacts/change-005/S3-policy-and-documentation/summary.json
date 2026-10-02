@@ -1,0 +1,74 @@
+{
+  "contract_version": 2,
+  "name": "S3-policy-and-documentation-gate",
+  "status": "passed",
+  "counts": {
+    "passed": 2,
+    "failed": 0,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 2,
+  "skipped": 0,
+  "total": 2,
+  "results": [
+    {
+      "name": "documentation-surface-consistency",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.066,
+      "attempt": 1,
+      "argv": [
+        "node",
+        "-e",
+        "const fs=require(\"fs\"); const files=[\"docs/specs/spec-001-worktree-aware-workspace-access-consolidated.md\",\"docs/architecture.md\",\"docs/security.md\",\"docs/multi-workspace.md\",\"docs/local-e2e.md\",\"docs/protocol.md\",\"skill/SKILL.md\"]; const text=files.map(f=>fs.readFileSync(f,\"utf8\")).join(\"\\n\"); const required=[\"list_branches\",\"git_browse\",\"git_search\",\"git_compare\",\"git.repository.read\",\"checked-out linked worktrees only\",\"REF_CHANGED\",\"promisor\"]; const missing=required.filter(x=>!text.includes(x)); const stale=[\"broker tool count 10\",\"ten scoped broker readers\",\"10 scoped broker readers\",\"plus the eight scoped readers\"]; const found=stale.filter(x=>text.includes(x)); if(missing.length||found.length) { console.error(JSON.stringify({missing,found})); process.exit(1); } console.log(JSON.stringify({files:files.length,required:required.length,staleTerms:0}));"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-005/S3-policy-and-documentation",
+      "stdout_log": "01-documentation-surface-consistency.stdout.log",
+      "stderr_log": "01-documentation-surface-consistency.stderr.log",
+      "error": null
+    },
+    {
+      "name": "documentation-diff-check",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.011,
+      "attempt": 1,
+      "argv": [
+        "git",
+        "-c",
+        "core.whitespace=cr-at-eol",
+        "diff",
+        "--check",
+        "--",
+        "docs/specs/spec-001-worktree-aware-workspace-access-consolidated.md",
+        "docs/architecture.md",
+        "docs/security.md",
+        "docs/multi-workspace.md",
+        "docs/local-e2e.md",
+        "docs/protocol.md",
+        "skill/SKILL.md"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-005/S3-policy-and-documentation",
+      "stdout_log": "02-documentation-diff-check.stdout.log",
+      "stderr_log": "02-documentation-diff-check.stderr.log",
+      "error": null
+    }
+  ],
+  "attempts": [
+    {
+      "number": 1,
+      "checks": [
+        "documentation-surface-consistency",
+        "documentation-diff-check"
+      ],
+      "statuses": {
+        "documentation-surface-consistency": "passed",
+        "documentation-diff-check": "passed"
+      }
+    }
+  ]
+}

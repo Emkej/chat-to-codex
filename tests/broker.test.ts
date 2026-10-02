@@ -7,7 +7,7 @@ import { startBroker, type Broker } from "../src/broker/server.js";
 import { VERSION } from "../src/version.js";
 import { Workspace } from "../src/workspace/manager.js";
 import { appendExecutionRecord } from "../src/execution/records.js";
-import { makeTmpDir, cleanup, write, makeGitRepo, isolateStateDir } from "./helpers.js";
+import { makeTmpDir, cleanup, write, git, makeGitRepo, isolateStateDir } from "./helpers.js";
 
 let stateDir: string;
 let flowRoot: string;
@@ -42,6 +42,13 @@ beforeAll(async () => {
   flowRoot = makeTmpDir("flow");
   makeGitRepo(flowRoot);
   write(flowRoot, "FLOW_MARKER.txt", "this is the flow project\n");
+  git(flowRoot, "add", "FLOW_MARKER.txt");
+  git(flowRoot, "commit", "-m", "add flow marker");
+  git(flowRoot, "checkout", "-b", "repo-snapshot");
+  write(flowRoot, "BRANCH_MARKER.txt", "this is an unchecked-out branch\n");
+  git(flowRoot, "add", "BRANCH_MARKER.txt");
+  git(flowRoot, "commit", "-m", "add repository snapshot marker");
+  git(flowRoot, "checkout", "main");
   write(flowRoot, ".env", "FLOW_SECRET=1\n");
 
   linkeeRoot = makeTmpDir("linkee");
@@ -84,8 +91,12 @@ describe("broker tool surface", () => {
     expect(names).toEqual([
       "execution_summary",
       "get_write_request",
+      "git_browse",
+      "git_compare",
       "git_diff",
+      "git_search",
       "git_status",
+      "list_branches",
       "list_directory",
       "list_workspaces",
       "list_worktrees",
@@ -131,6 +142,90 @@ describe("broker tool surface", () => {
       expect(jsonOf(result).error).toBe("INSUFFICIENT_SCOPE");
     } finally {
       await limitedClient.close();
+    }
+  });
+
+  it("requires the repository scope and reads committed branch snapshots with it", async () => {
+    const denied = await callRaw("list_branches", { workspace: flowId });
+    expect(denied.isError).toBe(true);
+    expect(jsonOf(denied).error).toBe("INSUFFICIENT_SCOPE");
+
+    const token = broker.authStore.issueTokens({
+      clientId: "broker-it-repository-scope",
+      scopes: ["git.repository.read"],
+    });
+    const repositoryClient = new Client({ name: "c2c-broker-repository-test", version: "1.0.0" });
+    await repositoryClient.connect(
+      new StreamableHTTPClientTransport(new URL(`${broker.localBaseUrl()}/mcp`), {
+        requestInit: { headers: { authorization: `Bearer ${token.accessToken}` } },
+      })
+    );
+    try {
+      const branches = jsonOf<{ branches: { ref: string }[] }>(
+        await repositoryClient.callTool({ name: "list_branches", arguments: { workspace: flowId } })
+      );
+      expect(branches.branches.some((branch) => branch.ref === "refs/heads/repo-snapshot")).toBe(true);
+
+      const browsed = jsonOf<{ kind: string; content: string }>(
+        await repositoryClient.callTool({
+          name: "git_browse",
+          arguments: { workspace: flowId, ref: "refs/heads/repo-snapshot", path: "BRANCH_MARKER.txt" },
+        })
+      );
+      expect(browsed).toMatchObject({ kind: "file", content: "this is an unchecked-out branch" });
+
+      const searched = jsonOf<{ matches: { path: string; line: number; text: string }[] }>(
+        await repositoryClient.callTool({
+          name: "git_search",
+          arguments: { workspace: flowId, ref: "refs/heads/repo-snapshot", query: "unchecked-out" },
+        })
+      );
+      expect(searched.matches).toEqual([{ path: "BRANCH_MARKER.txt", line: 1, text: "this is an unchecked-out branch" }]);
+
+      const compared = jsonOf<{ diff: string; comparison: string }>(
+        await repositoryClient.callTool({
+          name: "git_compare",
+          arguments: {
+            workspace: flowId,
+            base_ref: "refs/heads/main",
+            target_ref: "refs/heads/repo-snapshot",
+          },
+        })
+      );
+      expect(compared.comparison).toBe("merge_base_to_target");
+      expect(compared.diff).toContain("BRANCH_MARKER.txt");
+    } finally {
+      await repositoryClient.close();
+    }
+  });
+
+  it("rejects repository inspection for a linked-worktree-only registration", async () => {
+    const parent = makeTmpDir("broker-linked-repository");
+    const mainRoot = path.join(parent, "main");
+    const linkedRoot = path.join(parent, "linked");
+    fs.mkdirSync(mainRoot, { recursive: true });
+    makeGitRepo(mainRoot);
+    git(mainRoot, "worktree", "add", "-b", "linked-only", linkedRoot);
+    const linkedId = broker.registry.register({ root: linkedRoot, displayName: "Linked only" }).id;
+    const token = broker.authStore.issueTokens({
+      clientId: "broker-it-linked-repository-scope",
+      scopes: ["git.repository.read"],
+    });
+    const linkedClient = new Client({ name: "c2c-broker-linked-repository-test", version: "1.0.0" });
+    await linkedClient.connect(
+      new StreamableHTTPClientTransport(new URL(`${broker.localBaseUrl()}/mcp`), {
+        requestInit: { headers: { authorization: `Bearer ${token.accessToken}` } },
+      })
+    );
+    try {
+      const result = await linkedClient.callTool({ name: "list_branches", arguments: { workspace: linkedId } });
+      expect(result.isError).toBe(true);
+      expect(jsonOf(result).error).toBe("REPOSITORY_SCOPE_UNAVAILABLE");
+    } finally {
+      await linkedClient.close();
+      broker.registry.remove(linkedId);
+      git(mainRoot, "worktree", "remove", "--force", linkedRoot);
+      cleanup(parent);
     }
   });
 

@@ -5,6 +5,12 @@ Data plane: MCP (Claude pulls files, diffs, search results itself).
 
 Never mix the two: control messages carry state, never content.
 
+`list_worktrees` reports checked-out linked worktrees only; it does not enumerate
+repository branches. When the broker token has `git.repository.read`, use
+`list_branches` and exact-ref `git_browse`, `git_search`, or `git_compare` for
+bounded reads from other committed branches. These repository snapshot tools
+are broker-only and require a registered main worktree.
+
 ## States
 
 ```

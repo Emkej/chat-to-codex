@@ -12,7 +12,14 @@ export const SUPPORTED_SCOPES = [
   "workspace.write",
 ] as const;
 
-export type Scope = (typeof SUPPORTED_SCOPES)[number];
+export const REPOSITORY_READ_SCOPE = "git.repository.read" as const;
+
+export const BROKER_SUPPORTED_SCOPES = [
+  ...SUPPORTED_SCOPES,
+  REPOSITORY_READ_SCOPE,
+] as const;
+
+export type Scope = (typeof BROKER_SUPPORTED_SCOPES)[number];
 
 export const DEFAULT_READ_SCOPES: readonly Scope[] = [
   "workspace.read",
@@ -20,6 +27,11 @@ export const DEFAULT_READ_SCOPES: readonly Scope[] = [
   "git.read",
   "execution.read",
   "offline_access",
+];
+
+export const BROKER_DEFAULT_READ_SCOPES: readonly Scope[] = [
+  ...DEFAULT_READ_SCOPES,
+  REPOSITORY_READ_SCOPE,
 ];
 
 export interface ClientRegistration {
@@ -385,9 +397,13 @@ export class AuthStore {
   }
 }
 
-export function filterScopes(requested: string | undefined): string[] {
-  if (!requested || requested.trim() === "") return [...DEFAULT_READ_SCOPES];
+export function filterScopes(
+  requested: string | undefined,
+  supportedScopes: readonly string[] = SUPPORTED_SCOPES,
+  defaultReadScopes: readonly string[] = DEFAULT_READ_SCOPES
+): string[] {
+  if (!requested || requested.trim() === "") return [...defaultReadScopes];
   const asked = requested.split(/[\s+]+/).filter(Boolean);
-  const granted = asked.filter((scope) => (SUPPORTED_SCOPES as readonly string[]).includes(scope));
+  const granted = asked.filter((scope) => supportedScopes.includes(scope));
   return granted;
 }

@@ -13,7 +13,8 @@ Filesystem boundary  →  explicit registered root plus validated derived worktr
 2. **Workspace** is the local Codex capability boundary. Sessions track liveness;
    registry ids are opaque to the remote MCP client and map only to explicitly
    registered roots. A registered Git main worktree may additionally expose
-   current, validated linked worktrees through opaque `worktreeId` values.
+   current, validated linked worktrees through opaque `worktreeId` values and
+   bounded committed branch snapshots through `git.repository.read`.
 3. **Workspace content is untrusted.** README, comments, diffs may contain
    prompt injection. Tool descriptions carry explicit warnings and never grant
    capabilities based on file content.
@@ -41,6 +42,9 @@ setup`, `c2c broker start`).
 | Invented or stale worktree id | The broker re-enumerates the registered main worktree and fails closed; it never falls back to the main root |
 | Linked-worktree overreach | A linked worktree cannot own or enumerate peers; explicit linked registration remains exact-root-only |
 | Git repository redirection | Centralized Git reads remove inherited repository-location overrides such as `GIT_DIR`, `GIT_WORK_TREE`, and object-directory variables |
+| Repository-ref overreach | `git.repository.read` is broker-only; repository reads require a registered main worktree and exact local/remote-tracking refs |
+| Replacement or lazy-fetch behavior | Snapshot reads disable replacement objects and reject partial/promisor repositories before object access |
+| Git diff execution | Snapshot comparison and existing `git_diff` disable external diff and textconv execution |
 | Workspace traversal | `realpath` canonicalization; containment check against the canonical root; case-insensitive comparison on macOS/Windows |
 | Symlink escape | Canonicalization resolves symlinks before the containment check |
 | Sensitive files | Deny-by-default patterns (.env*, keys, SSH, cloud creds, keychains…) enforced at resolve time; `git diff` adds pathspec excludes; `.env.example` allowed |
@@ -54,14 +58,19 @@ setup`, `c2c broker start`).
 ## Token & scope design
 
 Scopes include `workspace.read`, `workspace.search`, `git.read`,
-`execution.read`, `offline_access`, and the explicitly requested
-`workspace.write`. The write scope is supported but is never part of default or
-implicit grants; only `propose_patch` requires it. Receipt tools require
-`workspace.read`. Tools enforce scopes individually (`INSUFFICIENT_SCOPE`).
+`git.repository.read`, `execution.read`, `offline_access`, and the explicitly
+requested `workspace.write`. `git.repository.read` is supported and included
+in broker default-read consent, while the legacy bridge's supported/default
+scope sets do not include it. The write scope is supported but is never part
+of default or implicit grants; only `propose_patch` requires it. Receipt tools
+require `workspace.read`. Tools enforce scopes individually
+(`INSUFFICIENT_SCOPE`). Existing tokens retain their recorded scopes on
+refresh, so a connector must reauthorize to obtain repository access.
 Access tokens: 1 hour. Refresh tokens: 30 days, rotated. Installation-level
 tokens authorize the broker; workspace access resolves through the local
 registry and, when requested, the registered main worktree's current
-Git-derived targets at request time. Worktree paths remain local-only.
+Git-derived targets at request time. Repository refs are not persisted and do
+not create worktrees or change Git state. Worktree paths remain local-only.
 
 ## Unified patch writes (SPEC-002 V1)
 
@@ -118,4 +127,7 @@ create Codex sessions. The broker exposes no general-purpose file writer or
 command tool. An explicitly authorized client may submit a narrow unified-text
 proposal; only the local C2C approval path applies it. A client may select only
 an opaque registered workspace id and optional opaque derived worktree id
-validated by the broker.
+validated by the broker. With `git.repository.read`, it may also request
+bounded content from exact branch refs through `list_branches`, `git_browse`,
+`git_search`, and `git_compare`; these calls cannot fetch, checkout, or mutate
+the repository.

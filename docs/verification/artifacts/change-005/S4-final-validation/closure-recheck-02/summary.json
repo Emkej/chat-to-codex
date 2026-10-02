@@ -1,0 +1,110 @@
+{
+  "contract_version": 2,
+  "name": "S4-closure-recheck-02",
+  "status": "passed",
+  "counts": {
+    "passed": 3,
+    "failed": 0,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 3,
+  "skipped": 0,
+  "total": 3,
+  "results": [
+    {
+      "name": "completion-state-and-doc-status",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.069,
+      "attempt": 1,
+      "argv": [
+        "node",
+        "-e",
+        "const fs=require(\"fs\"); const state=JSON.parse(fs.readFileSync(\"docs/verification/artifacts/change-005/work-state.json\",\"utf8\")); const change=fs.readFileSync(\"docs/changes/change-005-repository-branch-discovery-and-read-only-ref-inspection.md\",\"utf8\"); if(state.status!==\"Completed\" || state.ledger.remaining_slices.length!==0 || !change.includes(\"- **Status:** Completed\")) { console.error(JSON.stringify({state:state.status,remaining:state.ledger.remaining_slices,changeStatus:change.includes(\"- **Status:** Completed\")})); process.exit(1); } console.log(JSON.stringify({workState:state.status,remainingSlices:0,changeStatus:\"Completed\"}));"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-005/S4-final-validation/closure-recheck-02",
+      "stdout_log": "01-completion-state-and-doc-status.stdout.log",
+      "stderr_log": "01-completion-state-and-doc-status.stderr.log",
+      "error": null
+    },
+    {
+      "name": "final-task-scoped-diff-check",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.025,
+      "attempt": 1,
+      "argv": [
+        "git",
+        "-c",
+        "core.whitespace=cr-at-eol",
+        "diff",
+        "--check",
+        "--",
+        "src/workspace/git.ts",
+        "src/workspace/git-snapshot.ts",
+        "tests/git-snapshot.test.ts",
+        "tests/git.test.ts",
+        "src/auth/store.ts",
+        "src/auth/oauth.ts",
+        "src/mcp/server.ts",
+        "src/broker/server.ts",
+        "src/bridge/server.ts",
+        "scripts/poc-client.mjs",
+        "tests/broker.test.ts",
+        "tests/mcp-integration.test.ts",
+        "tests/oauth.test.ts",
+        "tests/oauth-broker.test.ts",
+        "tests/local-e2e-broker.test.ts",
+        "docs/specs/spec-001-worktree-aware-workspace-access-consolidated.md",
+        "docs/architecture.md",
+        "docs/security.md",
+        "docs/multi-workspace.md",
+        "docs/local-e2e.md",
+        "docs/protocol.md",
+        "skill/SKILL.md"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-005/S4-final-validation/closure-recheck-02",
+      "stdout_log": "02-final-task-scoped-diff-check.stdout.log",
+      "stderr_log": "02-final-task-scoped-diff-check.stderr.log",
+      "error": null
+    },
+    {
+      "name": "final-dirty-path-ownership",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.22,
+      "attempt": 1,
+      "argv": [
+        "python3",
+        "/home/emkej/projects/veterinar/tools/repo/track_dirty_paths.py",
+        "validate",
+        "--manifest",
+        "docs/verification/artifacts/change-005/task-ownership.json"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-005/S4-final-validation/closure-recheck-02",
+      "stdout_log": "03-final-dirty-path-ownership.stdout.log",
+      "stderr_log": "03-final-dirty-path-ownership.stderr.log",
+      "error": null
+    }
+  ],
+  "attempts": [
+    {
+      "number": 1,
+      "checks": [
+        "completion-state-and-doc-status",
+        "final-task-scoped-diff-check",
+        "final-dirty-path-ownership"
+      ],
+      "statuses": {
+        "completion-state-and-doc-status": "passed",
+        "final-task-scoped-diff-check": "passed",
+        "final-dirty-path-ownership": "passed"
+      }
+    }
+  ]
+}

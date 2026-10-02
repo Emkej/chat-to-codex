@@ -2,7 +2,12 @@ import express, { type ErrorRequestHandler, type Request, type Response } from "
 import type { Server } from "node:http";
 import { randomBytes } from "node:crypto";
 import path from "node:path";
-import { AuthStore, type AuthorizationSnapshot } from "../auth/store.js";
+import {
+  AuthStore,
+  BROKER_DEFAULT_READ_SCOPES,
+  BROKER_SUPPORTED_SCOPES,
+  type AuthorizationSnapshot,
+} from "../auth/store.js";
 import { createOAuthRouter } from "../auth/oauth.js";
 import { bearerAuth } from "../auth/middleware.js";
 import { PairingManager } from "../pairing/manager.js";
@@ -189,6 +194,8 @@ export async function startBroker(opts: BrokerOptions = {}): Promise<Broker> {
       workspaceName: CONNECTOR_DISPLAY_NAME,
       getBaseUrl,
       logger,
+      supportedScopes: BROKER_SUPPORTED_SCOPES,
+      defaultReadScopes: BROKER_DEFAULT_READ_SCOPES,
     })
   );
 
