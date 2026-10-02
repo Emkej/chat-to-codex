@@ -34,6 +34,22 @@ function expectSnapshotError(action: () => unknown, code: string): void {
   }
 }
 
+function snapshotObjectStore(root: string): string {
+  const objectStore = path.resolve(root, git(root, "rev-parse", "--git-path", "objects").trim());
+  const files: string[] = [];
+
+  const visit = (directory: string): void => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const entryPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) visit(entryPath);
+      else files.push(`${path.relative(objectStore, entryPath)}:${fs.statSync(entryPath).size}`);
+    }
+  };
+
+  visit(objectStore);
+  return files.sort().join("\n");
+}
+
 describe("repository snapshot domain", () => {
   it("discovers and inspects an unchecked-out local branch", async () => {
     const { root, hiddenCommit } = createBranchFixture();
@@ -292,7 +308,92 @@ describe("repository snapshot domain", () => {
       });
       expect(comparison.diff).not.toContain("rename secret");
       expect(comparison.diff).not.toContain("public.txt");
+
+      const scopedComparison = compareSnapshots(owner, {
+        baseRef: "refs/heads/main",
+        targetRef: "refs/heads/rename-secret",
+        path: "public.txt",
+      });
+      expect(scopedComparison.diff).toBe("");
     } finally {
+      cleanup(root);
+    }
+  });
+
+  it("rejects effective promisor repositories before a missing-object read", () => {
+    const root = makeTmpDir("git-snapshot-promisor");
+    makeGitRepo(root);
+    git(root, "checkout", "-b", "partial-promisor");
+    write(root, "missing.txt", "missing promisor content\n");
+    git(root, "add", "missing.txt");
+    git(root, "commit", "-m", "add promisor fixture");
+    const missingBlob = git(root, "rev-parse", "refs/heads/partial-promisor:missing.txt").trim();
+    git(root, "checkout", "main");
+
+    const objectStore = path.resolve(root, git(root, "rev-parse", "--git-path", "objects").trim());
+    const missingObject = path.join(objectStore, missingBlob.slice(0, 2), missingBlob.slice(2));
+    expect(fs.existsSync(missingObject)).toBe(true);
+    fs.rmSync(missingObject);
+
+    const helperBin = path.join(root, "promisor-helper-bin");
+    const helper = write(
+      helperBin,
+      "git-remote-c2c-promisor",
+      "#!/bin/sh\nprintf 'invoked\\n' > \"$C2C_PROMISOR_SENTINEL\"\nexit 97\n"
+    );
+    fs.chmodSync(helper, 0o755);
+    const marker = path.join(root, "promisor-transport-invoked");
+    const globalConfig = write(
+      root,
+      "effective-global.gitconfig",
+      [
+        '[remote "origin"]',
+        "\tpromisor = true",
+        "\turl = c2c-promisor::missing-object",
+        "",
+      ].join("\n")
+    );
+    const environmentNames = ["GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM", "PATH", "C2C_PROMISOR_SENTINEL"] as const;
+    const previousEnvironment = new Map(environmentNames.map((name) => [name, process.env[name]]));
+
+    try {
+      const owner = resolveRepositoryOwner(root);
+      process.env.GIT_CONFIG_GLOBAL = globalConfig;
+      process.env.GIT_CONFIG_SYSTEM = "/dev/null";
+      process.env.C2C_PROMISOR_SENTINEL = marker;
+      process.env.PATH = `${path.dirname(helper)}${path.delimiter}${process.env.PATH ?? ""}`;
+
+      expect(() => listBranches(owner)).toThrowError(
+        expect.objectContaining({ code: "PROMISOR_REPOSITORY_UNSUPPORTED" })
+      );
+
+      write(
+        root,
+        "effective-global.gitconfig",
+        [
+          "[extensions]",
+          "\tpartialClone = origin",
+          "",
+          '[remote "origin"]',
+          "\tpromisor = true",
+          "\turl = c2c-promisor::missing-object",
+          "",
+        ].join("\n")
+      );
+      const objectStoreBefore = snapshotObjectStore(root);
+
+      expect(() => browseSnapshot(owner, {
+        ref: "refs/heads/partial-promisor",
+        path: "missing.txt",
+      })).toThrowError(expect.objectContaining({ code: "PROMISOR_REPOSITORY_UNSUPPORTED" }));
+
+      expect(fs.existsSync(marker)).toBe(false);
+      expect(snapshotObjectStore(root)).toBe(objectStoreBefore);
+    } finally {
+      for (const [name, value] of previousEnvironment) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
       cleanup(root);
     }
   });

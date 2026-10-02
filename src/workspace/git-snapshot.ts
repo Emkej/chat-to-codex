@@ -272,7 +272,7 @@ function boundedPositiveInteger(value: number | undefined, fallback: number, max
 function assertSnapshotRepositorySupported(owner: RepositorySnapshotOwner): void {
   const result = runSnapshotGit(
     owner.root,
-    ["config", "--local", "--get-regexp", "^(extensions\\.partialclone|remote\\..*\\.promisor)$"],
+    ["config", "--get-regexp", "^(extensions\\.partialclone|remote\\..*\\.promisor)$"],
     64 * 1024
   );
   if (!result.ok && result.code !== 1) {
@@ -860,8 +860,8 @@ export async function searchSnapshot(
   });
 }
 
-function comparePathspec(path: string): string[] {
-  return path ? [`:(literal)${path}`] : [];
+function comparePathMatches(candidate: string, requestedPath: string): boolean {
+  return !requestedPath || candidate === requestedPath || candidate.startsWith(`${requestedPath}/`);
 }
 
 function parseChangedPathGroups(output: Buffer): string[][] {
@@ -963,7 +963,6 @@ export function compareSnapshots(
     mergeBase,
     target.commit,
     "--",
-    ...comparePathspec(path),
   ];
   const names = runSnapshotGit(owner.root, nameArgs, MAX_GIT_OUTPUT_BYTES);
   if (!names.ok) {
@@ -974,6 +973,7 @@ export function compareSnapshots(
     ...new Set(
       parseChangedPathGroups(names.stdout)
         .filter((group) => group.every((candidate) => !owner.ignoreRules.isSensitive(candidate)))
+        .filter((group) => group.some((candidate) => comparePathMatches(candidate, path)))
         .flat()
     ),
   ];

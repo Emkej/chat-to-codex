@@ -1,0 +1,62 @@
+{
+  "contract_version": 1,
+  "name": "change-005-security-fix-revalidation",
+  "status": "passed",
+  "scope": [
+    "src/workspace/git-snapshot.ts",
+    "tests/git-snapshot.test.ts"
+  ],
+  "fixes": [
+    {
+      "finding": "path-scoped sensitive rename exposure",
+      "invariant": "Rename pairs are classified across the full comparison; a pair is excluded when either path is sensitive before the requested path filter is applied.",
+      "verification": "The public.txt-scoped comparison of .env -> public.txt returned an empty diff."
+    },
+    {
+      "finding": "effective promisor configuration bypass",
+      "invariant": "The effective Git configuration is classified with the same sanitized environment before snapshot object or ancestry reads.",
+      "verification": "Global remote.origin.promisor=true was rejected by listBranches; a missing-blob partial-clone read returned PROMISOR_REPOSITORY_UNSUPPORTED without helper activity or object-store changes."
+    }
+  ],
+  "checks": [
+    {
+      "name": "snapshot-focused",
+      "command": "pnpm exec vitest run tests/git-snapshot.test.ts",
+      "status": "passed",
+      "result": "13 tests"
+    },
+    {
+      "name": "broker-and-oauth-focused",
+      "command": "pnpm exec vitest run tests/git-snapshot.test.ts tests/broker.test.ts tests/oauth-broker.test.ts",
+      "status": "passed",
+      "result": "3 files, 41 tests"
+    },
+    {
+      "name": "full-tests",
+      "command": "pnpm test",
+      "status": "passed",
+      "result": "42 files, 444 tests"
+    },
+    {
+      "name": "typecheck",
+      "command": "pnpm run typecheck",
+      "status": "passed"
+    },
+    {
+      "name": "build",
+      "command": "pnpm run build",
+      "status": "passed"
+    },
+    {
+      "name": "task-scoped-diff-check",
+      "command": "git -c core.whitespace=cr-at-eol diff --check -- src/workspace/git-snapshot.ts tests/git-snapshot.test.ts",
+      "status": "passed"
+    }
+  ],
+  "changed_files": [
+    "src/workspace/git-snapshot.ts",
+    "tests/git-snapshot.test.ts",
+    "docs/verification/artifacts/change-005/S4-final-validation/security-fix-revalidation.json"
+  ],
+  "unrelated_worktree_changes_preserved": true
+}
