@@ -8,7 +8,7 @@ import path from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { startBroker, type Broker } from "../src/broker/server.js";
-import { makeTmpDir, cleanup, write, makeGitRepo, isolateStateDir, pkceVerifierAndChallenge } from "./helpers.js";
+import { makeTmpDir, cleanup, write, makeGitRepo, git, isolateStateDir, pkceVerifierAndChallenge } from "./helpers.js";
 
 const REDIRECT_URI = "http://127.0.0.1:19876/callback";
 
@@ -115,7 +115,9 @@ beforeAll(async () => {
     }),
   });
   expect(tokenResponse.status).toBe(200);
-  accessToken = ((await tokenResponse.json()) as { access_token: string }).access_token;
+  const tokens = (await tokenResponse.json()) as { access_token: string; scope: string };
+  expect(tokens.scope.split(" ")).toContain("git.repository.read");
+  accessToken = tokens.access_token;
   expect(accessToken).toMatch(/^c2c_at_/);
 
   client = new Client({ name: "c2c-local-e2e", version: "1.0.0" });
@@ -134,6 +136,15 @@ afterAll(async () => {
 });
 
 describe("local E2E — broker-first multi-project", () => {
+  it("calls list_branches with the repository scope granted through fresh OAuth pairing", async () => {
+    const result = await client.callTool({ name: "list_branches", arguments: { workspace: flowId } });
+    expect(result.isError).not.toBe(true);
+    const body = jsonOf<{ branches: { ref: string; name: string; kind: string; commit: string }[] }>(result);
+    expect(body.branches).toContainEqual({
+      ref: "refs/heads/main", name: "main", kind: "local", commit: git(flowRoot, "rev-parse", "main").trim(),
+    });
+  });
+
   it("lists ten scoped readers plus proposal and receipt tools after OAuth pairing", async () => {
     const { tools } = await client.listTools();
     const names = tools.map((t) => t.name).sort();

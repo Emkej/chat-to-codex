@@ -1,0 +1,41 @@
+{
+  "scope": "Independent verification of the two supplied CHANGE-005 findings",
+  "date": "2026-10-03",
+  "branch": "codex/change-005-repository-ref-inspection",
+  "head": "00fe5c127a17f6f085073d6857c34c65346f6e8d",
+  "repository_changes": "Verification artifact only; no source or test changes",
+  "finding_1": {
+    "verdict": "Confirmed with qualification",
+    "missing_coverage": [
+      "Exact 1 MiB blob boundary and overflow",
+      "Exact 256 KiB single-line boundary including multibyte UTF-8",
+      "Byte-budget pagination, newline accounting and continuation progress",
+      "Raw 2 MiB search-output overflow and extreme single grep line",
+      "Compare above 64 MiB returning DIFF_TOO_LARGE",
+      "Textconv side-effect sentinel for comparison and existing diff reads",
+      "External diff side-effect sentinel for snapshot comparison",
+      "Replacement invariance for search and compare ancestry"
+    ],
+    "qualification": "tests/git.test.ts:128 already tests disabled configured external diff execution for existing gitDiff. Snapshot comparison and textconv are not execution-proven by that test. tests/git-snapshot.test.ts:481 covers a 256 KiB + 1 ASCII line."
+  },
+  "finding_2": {
+    "verdict": "Missing end-to-end OAuth repository call confirmed; live connector limitation separately observed",
+    "requirement": "CHANGE-005 section 21.12 requires a broker-level fresh/re-authorized connector smoke granting git.repository.read and calling list_branches. It does not explicitly require the ChatGPT UI connector.",
+    "coverage_gap": "local-e2e-broker.test.ts performs OAuth and lists repository tools but does not call list_branches; broker.test.ts calls it with a directly issued AuthStore token.",
+    "live_observation": "Connected Chat to Codex Test exposes ten legacy readers, without list_branches, git_browse, git_search or git_compare. workspace_info reports broker version 0.2.0, revision 00fe5c1, profile test.",
+    "root_cause": "Not established; absent schemas do not alone prove missing OAuth scope or a schema cache/registration failure.",
+    "smallest_acceptance_fix": "Add an actual list_branches call and assertions to the existing fresh OAuth local E2E path. Verify UI connector reauthorization/schema refresh separately for live usability."
+  },
+  "execution": {
+    "command": "node node_modules/vitest/vitest.mjs run tests/git-snapshot.test.ts tests/git.test.ts tests/broker.test.ts tests/oauth-broker.test.ts tests/local-e2e-broker.test.ts",
+    "status": "passed",
+    "test_files": 5,
+    "tests": 62,
+    "vitest_version": "3.2.7",
+    "duration_seconds": 5.14,
+    "runner_note": "pnpm was unavailable in this shell; invoked the installed Vitest runner directly."
+  },
+  "not_rerun": ["Full test suite", "Typecheck", "Build"],
+  "not_performed": ["Connector reauthorization", "Live list_branches call", "New boundary regressions"],
+  "completion_claim": "Completed is not fully supported by the required retained execution coverage. No new implementation defect demonstrated."
+}

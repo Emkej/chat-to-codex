@@ -1,0 +1,62 @@
+{
+  "change": "CHANGE-005",
+  "date": "2026-10-03",
+  "base_head": "00fe5c127a17f6f085073d6857c34c65346f6e8d",
+  "status": "Repository acceptance regressions passed; live UI connector smoke pending sign-in",
+  "changed_files": [
+    "tests/git-snapshot-boundaries.test.ts",
+    "tests/local-e2e-broker.test.ts",
+    "docs/verification/artifacts/change-005/regression-closure-2026-10-03.json"
+  ],
+  "coverage": [
+    "1 MiB blob exactly and one byte above, with an early endLine unable to bypass the blob cap",
+    "256 KiB single line exactly and one byte above for ASCII and multibyte UTF-8; 300 KiB line rejected",
+    "Complete-line byte pagination, exact page boundary, newline accounting and continuation without loss or duplication",
+    "2000-line hard page limit and successful continuation",
+    "Raw 2 MiB search cap with independently counted complete Git grep records and output_limit",
+    "Extreme grep line returns only preceding complete match and explicit output_limit",
+    "Real comparison output above 64 MiB fails DIFF_TOO_LARGE even with a small requested page",
+    "Positive textconv/external-diff sentinel controls followed by no driver execution for comparison, search and unstaged/head/staged legacy diffs",
+    "Discovery, browse, search and comparison remain identical as replacement refs are added, changed and removed; orphan replacement exercises ancestry",
+    "Fresh dynamic OAuth registration, pairing and PKCE grant git.repository.read and successfully call list_branches with an independently checked branch commit"
+  ],
+  "checks": [
+    {
+      "command": "node node_modules/vitest/vitest.mjs run tests/git-snapshot-boundaries.test.ts tests/git-snapshot.test.ts tests/git.test.ts tests/broker.test.ts tests/oauth-broker.test.ts tests/local-e2e-broker.test.ts",
+      "status": "passed",
+      "files": 6,
+      "tests": 77
+    },
+    {
+      "command": "node node_modules/vitest/vitest.mjs run",
+      "status": "passed",
+      "files": 43,
+      "tests": 459,
+      "duration_seconds": 45.67
+    },
+    {
+      "command": "node node_modules/typescript/bin/tsc --noEmit",
+      "status": "passed"
+    },
+    {
+      "command": "node node_modules/typescript/bin/tsc -p tsconfig.json",
+      "status": "passed"
+    },
+    {
+      "command": "git diff --check -- tests/local-e2e-broker.test.ts",
+      "status": "passed"
+    }
+  ],
+  "runner": "pnpm unavailable in this shell; invoked installed Vitest and TypeScript entry points directly",
+  "review": "Independent read-only subagent review found no actionable material findings; reviewer did not rerun checks",
+  "live_connector": {
+    "status": "pending",
+    "observation": "Current Chat to Codex Test tool surface still lacks all four repository-ref tools",
+    "ui_blocker": "Only Codex In-app Browser available; ChatGPT shows Log in and has no authenticated session. Chrome unavailable. Sign-in requested from user; card retained for handoff.",
+    "not_performed": ["ChatGPT connector reauthorization/schema refresh", "list_branches through the ChatGPT connector"],
+    "distinction": "The required broker-level fresh OAuth-to-list_branches smoke passes in local E2E; this does not establish usability of the existing ChatGPT UI connector."
+  },
+  "production_code_changes": false,
+  "committed": false,
+  "unrelated_dirty_files_preserved": true
+}
