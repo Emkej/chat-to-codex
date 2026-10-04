@@ -1,0 +1,77 @@
+[
+  {
+    "lane": "absent",
+    "command": [
+      "node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "tests/search.test.ts",
+      "tests/git.test.ts",
+      "tests/workspaces-domain.test.ts",
+      "--reporter=json"
+    ],
+    "passed": 48,
+    "failed": 0,
+    "status": "passed"
+  },
+  {
+    "lane": "empty",
+    "command": [
+      "node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "tests/search.test.ts",
+      "tests/git.test.ts",
+      "tests/workspaces-domain.test.ts",
+      "--reporter=json"
+    ],
+    "passed": 48,
+    "failed": 0,
+    "status": "passed"
+  },
+  {
+    "lane": "set",
+    "command": [
+      "node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "tests/search.test.ts",
+      "tests/git.test.ts",
+      "tests/workspaces-domain.test.ts",
+      "--reporter=json"
+    ],
+    "passed": 48,
+    "failed": 0,
+    "status": "passed"
+  },
+  {
+    "lane": "set-precedence",
+    "command": [
+      "node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "tests/workspaces-domain.test.ts",
+      "-t",
+      "state dir precedence",
+      "--reporter=json"
+    ],
+    "passed": 2,
+    "failed": 0,
+    "status": "passed"
+  },
+  {
+    "lane": "set-profile",
+    "command": [
+      "node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "tests/workspaces-domain.test.ts",
+      "-t",
+      "profile state resolution",
+      "--reporter=json"
+    ],
+    "passed": 2,
+    "failed": 0,
+    "status": "passed"
+  }
+]

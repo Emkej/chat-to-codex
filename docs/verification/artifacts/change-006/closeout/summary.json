@@ -1,0 +1,17 @@
+{
+  "work_id": "CHANGE-006",
+  "date": "2026-10-04",
+  "status": "Completed",
+  "implementation_commit": "095edd79f89e8f10d8ac990dfe51871fd30bb701",
+  "integration_target": "main",
+  "integration_result": "pending local fast-forward",
+  "pre_merge": "pre-merge/summary.json",
+  "fresh_validation": "Absent, empty and set inputs: 48 tests each; independent filtered groups: 2 tests each; scoped committed diff check passed.",
+  "lifecycle_evidence": "../summary.json; original 73 same-worker cases passed; removed disposable probe not rerun",
+  "ownership_manifest": "task-ownership.json",
+  "ownership_tracker": "Existing compatible /home/emkej/projects/veterinar/tools/repo/track_dirty_paths.py closeout operation; repository has no tracker and the compatible tool has no classify subcommand",
+  "unrelated_tracked_preservation": "preservation.json",
+  "spec_003_documentation": "Only Status and Quality gate header corrected in the user-owned untracked SPEC document. Entire 1996-line pre-existing document excluded from commits. Historical acceptance hashes remain historical.",
+  "not_run": ["Full-suite tests and production typecheck/build: outside CHANGE-006 test-only acceptance", "Live ChatGPT connector smoke: owner-deferred"],
+  "push_performed": false
+}

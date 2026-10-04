@@ -110,3 +110,9 @@ During implementation, retain a concise sanitized result summary under `docs/ver
 | S2 | Retain sanitized evidence and close the document and coherent commit | Completed | Sanitized summary retained, disposable probe removed, owned files isolated for commit; unrelated dirty paths preserved |
 
 Verification: [`summary.json`](../verification/artifacts/change-006/summary.json) records commands, input labels, counts and lifecycle observations. The disposable probe executes actual source callbacks in one Vitest worker and checks restoration before its outer cleanup; it manually dispatches hooks. Against the original source, the same probe intentionally fails 62 of 73 cases. The final probe and scoped diff check passed after the line-ending correction. No production code, shared helper, dependency or runner configuration changed.
+
+## 6. Local integration closeout
+
+On 2026-10-04 the inherited-environment matrix was rerun before local integration: absent, empty and set inputs each passed all 48 tests; the independently filtered precedence and profile groups each passed 2 tests. The committed test diff passed `git diff --check`. Original same-worker lifecycle evidence remains in the implementation summary; its disposable probe was not recreated.
+
+Local integration and post-merge results are recorded in [`closeout/summary.json`](../verification/artifacts/change-006/closeout/summary.json), with fresh pre-merge evidence in [`closeout/pre-merge/summary.json`](../verification/artifacts/change-006/closeout/pre-merge/summary.json). Unrelated tracked changes, user-authored untracked documents and other worktrees are preserved. No push is included in this closeout.
