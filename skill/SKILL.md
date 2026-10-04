@@ -44,8 +44,10 @@ result with an actual `list_branches` call.
 Do not use `c2c unpair` as the default scope-upgrade path because it revokes all
 OAuth tokens for the installation/profile.
 
-See [`docs/chatgpt.md`](../docs/chatgpt.md) for the ChatGPT-specific lifecycle
-and recovery procedure.
+For the ChatGPT-specific lifecycle and recovery procedure, read
+`docs/chatgpt.md` in the Chat to Codex source checkout. The installed C2C app
+and Codex skill do not bundle this runbook; do not resolve that path relative
+to the installed skill directory.
 
 Claude custom connectors are remote MCP clients: the MCP endpoint must be reachable over public HTTPS. A Cloudflare Quick Tunnel is suitable for temporary sessions; a named tunnel (`c2c broker tunnel --zone <domain>`) is preferred for a stable connector URL.
 
@@ -128,7 +130,8 @@ Use `c2c doctor --json` as the repair authority (installation broker, endpoint, 
   keeps the old scope, recreate only that ChatGPT Plugin entry against the
   same current MCP URL, authenticate with a fresh pairing code, and verify with
   `list_branches`. Do not use `unpair` by default. See
-  [`docs/chatgpt.md`](../docs/chatgpt.md).
+  the source-checkout runbook described in
+  [First-time setup](#first-time-setup-once-per-machine).
 - ChatGPT repository tool is missing entirely: verify the broker revision and
   refresh MCP tool discovery before changing OAuth state. Use a new
   conversation only if the current conversation still exposes the stale tool
