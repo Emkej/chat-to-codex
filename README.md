@@ -118,6 +118,10 @@ settings.
 5. Enable the connector via the **+** menu and ask ChatGPT to call
    `list_workspaces`.
 
+For ChatGPT-specific connector lifecycle, repository-read scope upgrades,
+tool-discovery recovery, branch inspection, and `INSUFFICIENT_SCOPE`
+troubleshooting, see [docs/chatgpt.md](docs/chatgpt.md).
+
 ### Add another project
 
 ```bash
@@ -155,19 +159,31 @@ Claude can then independently inspect the resulting diff, git state, and recorde
 
 ### MCP tools
 
-All tools are read-only:
+The broker read surface includes:
 
 ```text
 list_workspaces
+list_worktrees
 workspace_info
 list_directory
 read_file
 search_workspace
 git_status
 git_diff
+list_branches
+git_browse
+git_search
+git_compare
 test_status
 execution_summary
 ```
+
+`list_worktrees` reports checked-out linked worktrees. It is not a repository
+branch inventory.
+
+`list_branches`, `git_browse`, `git_search`, and `git_compare` operate on exact
+committed local or remote-tracking branch refs and require
+`git.repository.read`.
 
 `test_status` and `execution_summary` only read results previously recorded by Codex. They cannot run commands or tests.
 
@@ -185,7 +201,7 @@ execution_summary
 
 **Short-lived pairing.** Pairing establishes authorization without exposing a long-lived credential in the browser.
 
-See [docs/security.md](docs/security.md) for the threat model and [SECURITY.md](SECURITY.md) for vulnerability reporting, [docs/multi-workspace.md](docs/multi-workspace.md) for the workspace architecture, and [docs/local-e2e.md](docs/local-e2e.md) for end-to-end validation.
+See [docs/security.md](docs/security.md) for the threat model and [SECURITY.md](SECURITY.md) for vulnerability reporting, [docs/multi-workspace.md](docs/multi-workspace.md) for the workspace architecture, [docs/chatgpt.md](docs/chatgpt.md) for ChatGPT integration and recovery, and [docs/local-e2e.md](docs/local-e2e.md) for end-to-end validation.
 
 ## CLI
 

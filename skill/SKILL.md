@@ -28,7 +28,24 @@ Bring your AI chat sessions to Codex.
 6. In the remote MCP client, enable the connector and ask it to call
    `list_workspaces`. Confirm the installation responds.
 
-If the installation already exists (Claude already has a working C2C connector), skip connector/OAuth/pairing steps. If repository snapshot capability is added after an existing connector was authorized, reconnect or reauthorize when the client lacks `git.repository.read`; existing tokens retain their original scopes.
+If the installation already exists (Claude already has a working C2C connector), skip connector/OAuth/pairing steps.
+
+Existing OAuth access and refresh tokens retain their original scope set.
+Refresh-token rotation does not silently add newly introduced permissions.
+
+If repository snapshot capability is added after an existing connector was
+authorized and a repository tool returns `INSUFFICIENT_SCOPE`, perform fresh
+OAuth authorization. For ChatGPT specifically, if reconnect preserves the old
+effective scope set, remove and recreate only the affected Plugin entry against
+the same current MCP URL, leave the advanced OAuth client ID empty, complete
+fresh OAuth/Dynamic Client Registration with a new pairing code, and verify the
+result with an actual `list_branches` call.
+
+Do not use `c2c unpair` as the default scope-upgrade path because it revokes all
+OAuth tokens for the installation/profile.
+
+See [`docs/chatgpt.md`](../docs/chatgpt.md) for the ChatGPT-specific lifecycle
+and recovery procedure.
 
 Claude custom connectors are remote MCP clients: the MCP endpoint must be reachable over public HTTPS. A Cloudflare Quick Tunnel is suitable for temporary sessions; a named tunnel (`c2c broker tunnel --zone <domain>`) is preferred for a stable connector URL.
 
@@ -104,7 +121,18 @@ Use `c2c doctor --json` as the repair authority (installation broker, endpoint, 
 - Expired Quick Tunnel URL: doctor can re-establish the endpoint; update the connector URL in Claude only when it changed.
 - Named tunnel authentication issue: complete the Cloudflare login and rerun doctor; do not delete a connector when its URL has not changed.
 - Expired pairing code: run `c2c broker pair --json` (or `c2c pair --json`) for a new code.
-- OAuth authorization failure: reconnect from Claude's connector settings; never manually handle access or refresh tokens.
+- OAuth authorization failure: reconnect from the remote MCP client's connector settings; never manually handle access or refresh tokens.
+- ChatGPT repository tool exists but returns `INSUFFICIENT_SCOPE`: treat this
+  as an OAuth-scope problem, not a worktree problem. Existing refresh tokens
+  cannot gain `git.repository.read`. Perform fresh authorization; if reconnect
+  keeps the old scope, recreate only that ChatGPT Plugin entry against the
+  same current MCP URL, authenticate with a fresh pairing code, and verify with
+  `list_branches`. Do not use `unpair` by default. See
+  [`docs/chatgpt.md`](../docs/chatgpt.md).
+- ChatGPT repository tool is missing entirely: verify the broker revision and
+  refresh MCP tool discovery before changing OAuth state. Use a new
+  conversation only if the current conversation still exposes the stale tool
+  schema.
 
 ## Security
 
