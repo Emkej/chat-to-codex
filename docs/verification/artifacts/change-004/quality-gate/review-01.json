@@ -1,0 +1,49 @@
+{
+  "date": "2026-09-26",
+  "kind": "plan-review",
+  "plan": "docs/changes/change-004-c2c-broker-runtime-identity.md",
+  "planSha256": "37ef5d2b0fb3c3dbe87a1bfc7f405ac05f1f6aa664c01bf366a10ffcd3cf7c92",
+  "reviewedHead": "2f9772626d8451d36ab9540434f4ce5845e14bd7",
+  "verdict": "revise-two-important-gaps",
+  "findings": [
+    {
+      "id": "R1",
+      "severity": "Important",
+      "planSections": ["3.3", "4.1", "4.2", "5"],
+      "problem": "Current checkout HEAD can identify a different revision from the compiled code launched or installed. The launcher prefers an existing dist entry and install copies dist without rebuilding.",
+      "evidence": ["bin/c2c.js:8", "src/cli/index.ts:1179"],
+      "impact": "A build made at revision A can be launched or installed after checkout advances to B and be incorrectly described as running B.",
+      "recommendedMinimalAdjustment": "Explicitly require a fresh build from the captured checkout before compiled launch/install and document stale dist as an additional identity limitation. Describe the field as captured source provenance under that prerequisite; do not promise executable verification or introduce a build pipeline."
+    },
+    {
+      "id": "R2",
+      "severity": "Important",
+      "planSections": ["4.2", "9.1", "AC-CHANGE-004-4"],
+      "problem": "Explicit Git cwd alone does not guarantee C2C revision origin. The plan does not specify inherited Git override sanitization or rejection of unrelated enclosing repositories.",
+      "evidence": ["src/workspace/git.ts:4", "tests/git.test.ts:43"],
+      "impact": "Revision discovery can succeed with an unrelated repository HEAD instead of returning null.",
+      "recommendedMinimalAdjustment": "Use the existing repository-location environment sanitization behavior, verify the discovered repository belongs to the C2C app root, and return null when that origin cannot be established. Add inherited-override and nested non-checkout fixtures, retaining linked-worktree support."
+    },
+    {
+      "id": "R3",
+      "severity": "Optional",
+      "planSections": ["9.2"],
+      "problem": "The smoke procedure names the test-profile restart but does not state that install replaces the shared application and launchers and refreshes the global skill.",
+      "evidence": ["README.md:219", "src/cli/index.ts:1179", "src/cli/index.ts:1201", "src/cli/index.ts:1233"],
+      "recommendedMinimalAdjustment": "Document the shared install side effects, select the intended C2C_HOME explicitly, and use the installed c2ct entry point for test-profile lifecycle operations. Preserve a way to reinstall the previous app if smoke verification fails."
+    }
+  ],
+  "validation": {
+    "planAgainstImplementation": "completed-static-review",
+    "explicitC2cDirectoryWithInheritedGitOverrides": "passed reproduction: unrelated HEAD returned",
+    "nonCheckoutAppInsideUnrelatedRepository": "passed reproduction: enclosing repository HEAD returned",
+    "probeIsolation": "temporary directories outside repository, automatically removed",
+    "applicationTestsTypecheckBuild": "not-run; plan review only",
+    "installedBrokerConnectorSmoke": "not-run; plan review only"
+  },
+  "implementationGuidance": {
+    "cliLineCount": 1614,
+    "recommendation": "Place revision resolution/persistence in a focused module; keep the CLI install hook small. No broad installer refactor is required."
+  },
+  "scope": "Only this review evidence file was added; plan and implementation unchanged."
+}

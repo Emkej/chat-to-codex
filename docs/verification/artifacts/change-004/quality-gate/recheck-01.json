@@ -1,0 +1,31 @@
+{
+  "date": "2026-09-26",
+  "kind": "plan-review-recheck",
+  "plan": "docs/changes/change-004-c2c-broker-runtime-identity.md",
+  "planSha256": "d248e9c09f343a11bde42e8e00417bbd100549276648345798d60edf95c83343",
+  "reviewedHead": "2f9772626d8451d36ab9540434f4ce5845e14bd7",
+  "verdict": "revise-one-smoke-procedure-gap",
+  "previousFindingDisposition": {
+    "R1": "Addressed: sections 3.3, 3.4, 5.2 and AC-CHANGE-004-4 distinguish source provenance from compiled identity and require a fresh build when relying on that correspondence.",
+    "R2": "Addressed: section 4.2 requires sanitized Git execution and canonical repository-root matching; section 9.1 covers inherited overrides, unrelated enclosing repositories, linked worktrees and invalid metadata.",
+    "R3": "Shared installation effects and rollback are documented. The newly specified lifecycle commands still need the selected C2C_HOME environment, as described in RR1."
+  },
+  "findings": [
+    {
+      "id": "RR1",
+      "severity": "Important",
+      "planLocation": "docs/changes/change-004-c2c-broker-runtime-identity.md:495",
+      "problem": "C2C_HOME is assigned only to the install command. The subsequent installed c2ct stop/start commands do not pass the selected home. Executable location does not determine runtime state location.",
+      "impact": "For a nondefault intended home, absent or different inherited C2C_HOME can stop/start another test-profile broker and leave the intended connector on the old process.",
+      "evidence": ["bin/c2ct.js:14", "src/config/paths.ts:33", "src/config/paths.ts:44"],
+      "fix": "Pass the same explicit C2C_HOME to every installed c2ct lifecycle command, including rollback restart. Alternatively scope one exported C2C_HOME over the complete procedure."
+    }
+  ],
+  "validation": {
+    "revisedPlanAgainstPreviousFindingsAndCurrentCode": "completed",
+    "actualGetStateDirReadOnlyProbe": "passed: no C2C_HOME uses the default test-profile home; explicit C2C_HOME uses the intended test-profile home",
+    "applicationTestsTypecheckBuild": "not-run; plan review only",
+    "brokerLifecycleInstallConnectorSmoke": "not-run; no live installation mutations"
+  },
+  "scope": "Only this review evidence file was added; plan and implementation unchanged."
+}
