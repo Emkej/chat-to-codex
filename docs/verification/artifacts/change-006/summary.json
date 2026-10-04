@@ -1,0 +1,258 @@
+{
+  "schemaVersion": 1,
+  "workId": "change-006",
+  "status": "Completed",
+  "date": "2026-10-04",
+  "environment": "WSL Ubuntu / Node 24.15.0 / Vitest 3.2.7",
+  "repositoryRoot": "/home/emkej/projects/chat-to-codex",
+  "branch": "codex/change-006-test-process-env-isolation",
+  "baseHead": "e31ab68744dbb0aec4bb495363322c3d41c20678",
+  "controlledChildEnvironment": {
+    "keys": [
+      "C2C_DISABLE_RG",
+      "GIT_CEILING_DIRECTORIES",
+      "C2C_HOME",
+      "C2C_PROFILE",
+      "C2C_STATE_DIR"
+    ],
+    "absent": "All five keys deleted only in the child env object",
+    "empty": "All five keys set to empty strings only in the child env object",
+    "set": "Disable=1, profile=change006-inherited; home, state and ceiling are synthetic paths under an isolated OS temporary directory",
+    "unrelated": "Other inherited settings copied identically across lanes; no parent mutation or environment dump"
+  },
+  "baseline": [
+    {
+      "label": "absent",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/search.test.ts",
+        "tests/git.test.ts",
+        "tests/workspaces-domain.test.ts"
+      ],
+      "exitCode": 0,
+      "durationMs": 2797,
+      "passed": 48,
+      "failed": 0,
+      "registered": 48,
+      "skipped": 0,
+      "engines": {
+        "ripgrep": 6,
+        "node": 6
+      },
+      "failures": []
+    },
+    {
+      "label": "set",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/search.test.ts",
+        "tests/git.test.ts",
+        "tests/workspaces-domain.test.ts"
+      ],
+      "exitCode": 1,
+      "durationMs": 3135,
+      "passed": 41,
+      "failed": 1,
+      "registered": 42,
+      "skipped": 0,
+      "engines": {
+        "ripgrep": 0,
+        "node": 6
+      },
+      "failures": [
+        "state dir precedence prefers ~/.c2c/state once the installation home exists"
+      ]
+    }
+  ],
+  "acceptance": [
+    {
+      "label": "absent",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/search.test.ts",
+        "tests/git.test.ts",
+        "tests/workspaces-domain.test.ts"
+      ],
+      "exitCode": 0,
+      "durationMs": 2520,
+      "passed": 48,
+      "failed": 0,
+      "registered": 48,
+      "skipped": 0,
+      "engines": {
+        "ripgrep": 6,
+        "node": 6
+      },
+      "failures": []
+    },
+    {
+      "label": "empty",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/search.test.ts",
+        "tests/git.test.ts",
+        "tests/workspaces-domain.test.ts"
+      ],
+      "exitCode": 0,
+      "durationMs": 2255,
+      "passed": 48,
+      "failed": 0,
+      "registered": 48,
+      "skipped": 0,
+      "engines": {
+        "ripgrep": 6,
+        "node": 6
+      },
+      "failures": []
+    },
+    {
+      "label": "set",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/search.test.ts",
+        "tests/git.test.ts",
+        "tests/workspaces-domain.test.ts"
+      ],
+      "exitCode": 0,
+      "durationMs": 2517,
+      "passed": 48,
+      "failed": 0,
+      "registered": 48,
+      "skipped": 0,
+      "engines": {
+        "ripgrep": 6,
+        "node": 6
+      },
+      "failures": []
+    },
+    {
+      "label": "set-precedence",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/workspaces-domain.test.ts",
+        "-t",
+        "state dir precedence"
+      ],
+      "exitCode": 0,
+      "durationMs": 1045,
+      "passed": 2,
+      "failed": 0,
+      "registered": 20,
+      "skipped": 18,
+      "engines": {
+        "ripgrep": 0,
+        "node": 0
+      },
+      "failures": []
+    },
+    {
+      "label": "set-profile",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/workspaces-domain.test.ts",
+        "-t",
+        "profile state resolution"
+      ],
+      "exitCode": 0,
+      "durationMs": 1043,
+      "passed": 2,
+      "failed": 0,
+      "registered": 20,
+      "skipped": 18,
+      "engines": {
+        "ripgrep": 0,
+        "node": 0
+      },
+      "failures": []
+    }
+  ],
+  "lifecycle": {
+    "status": "passed",
+    "command": [
+      "node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "--config",
+      "work/change-006/lifecycle.config.ts",
+      "--reporter=json",
+      "--outputFile=work/change-006/lifecycle.json"
+    ],
+    "passed": 73,
+    "failed": 0,
+    "searchCases": 15,
+    "gitCases": 9,
+    "workspaceCases": 49,
+    "incomingStates": [
+      "absent",
+      "empty",
+      "non-empty sentinel",
+      "workspace mixed absent/empty/sentinel permutations"
+    ],
+    "method": "Disposable Vitest worker probe transpiles the actual three test sources to intercept registration and collect their unmodified callbacks. It calls actual hooks and test bodies in that worker with real production modules and helper implementations; dependency wrappers inject faults. Presence/value assertions execute immediately after the actual cleanup callback, before the outer probe restores its controlled input.",
+    "search": "Both engines: normal completion and failure after configure; throwing collection resolver primes real cache. Before/after collection and per-test cleanup, compare exact incoming disable; a new C2C_RG_PATH sentinel detects stale resolver cache.",
+    "git": "Normal test, failing gitInfo, and failing makeGitRepo setup. afterAll restoration checked before first directory cleanup; cleanup itself deliberately throws in the setup failure case.",
+    "workspace": "All four test bodies normal and getStateDir throwing after mutation for uniform and mixed incoming values. Additional case verifies local restore returns to the preceding isolateStateDir value, preserving separate suite ownership.",
+    "negativeControl": {
+      "command": "C2C_PROBE_BASELINE=1 node node_modules/vitest/vitest.mjs run --config work/change-006/lifecycle.config.ts --reporter=json --outputFile=work/change-006/lifecycle-baseline.json",
+      "source": "Original HEAD test sources from git show",
+      "exitCode": 1,
+      "expectedFailure": true,
+      "passed": 11,
+      "failed": 62,
+      "total": 73
+    },
+    "probeSha256": "25b6a272299f80aafa9389914eddaf00ef9a38d64a794bba7721217786b8e9e0",
+    "limitations": "The disposable probe dispatches captured original hooks manually; it does not replace the real Vitest runner. Normal/filtered acceptance runs use the unchanged repository Vitest configuration. Installed Vitest runner behavior was independently checked to invoke afterAll after a beforeAll failure.",
+    "disposableProbeRemoved": true
+  },
+  "review": {
+    "status": "passed",
+    "reviewer": "Independent requesting-code-review subagent",
+    "result": "No material findings",
+    "coverage": "Implementation, adjacent cleanup ownership, same-worker assertion placement, real cache sensitivity, inherited matrix and scoped diff check",
+    "limitations": "Reviewer inspected recorded execution evidence without rerunning; negative control assessed by owner after review"
+  },
+  "finalGate": {
+    "status": "passed",
+    "runner": "/home/emkej/.codex/workflows/scripts/checkpoint_runner.py",
+    "checks": [
+      {
+        "name": "diff-check",
+        "status": "passed",
+        "command": "git diff --check -- tests/search.test.ts tests/git.test.ts tests/workspaces-domain.test.ts"
+      },
+      {
+        "name": "lifecycle",
+        "status": "passed",
+        "passed": 73,
+        "failed": 0
+      }
+    ]
+  },
+  "metrics": {
+    "continuationRuns": 0,
+    "observedCompactions": 0,
+    "failedValidationAttempts": 1,
+    "ownerDecisionRoundTrips": 0
+  },
+  "resolvedValidationFailure": "Initial diff check caught mixed CRLF/LF after editing. Touched test files restored to Git's LF form; subsequent scoped diff check passed. Expected baseline reproductions are excluded from failed implementation attempts.",
+  "notRun": [
+    "Production build/typecheck (test-only change; tests excluded by tsconfig)",
+    "Full-suite tests (not required by bounded acceptance)"
+  ],
+  "cleanup": "Only work/change-006 created by this task is disposable. Retain this summary and task-ownership.json; remove probe sources, controlled-run logs, and reports."
+}

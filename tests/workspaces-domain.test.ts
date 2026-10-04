@@ -253,9 +253,11 @@ describe("state dir precedence", () => {
   it("prefers ~/.c2c/state once the installation home exists", async () => {
     const { getStateDir, getC2cHome } = await import("../src/config/paths.js");
     const home = makeTmpDir("c2c-home");
-    delete process.env.C2C_STATE_DIR;
-    process.env.C2C_HOME = home;
+    const previous = new Map(["C2C_HOME", "C2C_PROFILE", "C2C_STATE_DIR"].map((name) => [name, process.env[name]]));
     try {
+      delete process.env.C2C_STATE_DIR;
+      delete process.env.C2C_PROFILE;
+      process.env.C2C_HOME = home;
       // no state dir yet -> falls through to the OS-convention location
       expect(getStateDir()).not.toBe(path.join(home, "state"));
       // once created -> the installation state wins
@@ -263,7 +265,10 @@ describe("state dir precedence", () => {
       expect(getStateDir()).toBe(path.join(home, "state"));
       expect(getC2cHome()).toBe(home);
     } finally {
-      delete process.env.C2C_HOME;
+      for (const [name, value] of previous) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
     }
   });
 
@@ -272,13 +277,17 @@ describe("state dir precedence", () => {
     const home = makeTmpDir("c2c-home-2");
     fs.mkdirSync(path.join(home, "state"), { recursive: true });
     const scratch = makeTmpDir("c2c-scratch");
-    process.env.C2C_HOME = home;
-    process.env.C2C_STATE_DIR = scratch;
+    const previous = new Map(["C2C_HOME", "C2C_PROFILE", "C2C_STATE_DIR"].map((name) => [name, process.env[name]]));
     try {
+      process.env.C2C_HOME = home;
+      delete process.env.C2C_PROFILE;
+      process.env.C2C_STATE_DIR = scratch;
       expect(getStateDir()).toBe(scratch);
     } finally {
-      delete process.env.C2C_HOME;
-      delete process.env.C2C_STATE_DIR;
+      for (const [name, value] of previous) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
     }
   });
 });
@@ -286,25 +295,36 @@ describe("state dir precedence", () => {
 describe("profile state resolution", () => {
   it("routes state to ~/.c2c/profiles/<name> via C2C_PROFILE", async () => {
     const { getStateDir, getC2cHome } = await import("../src/config/paths.js");
-    delete process.env.C2C_STATE_DIR;
-    process.env.C2C_PROFILE = "wiriawan-gmail";
+    const home = makeTmpDir("profile-home");
+    const previous = new Map(["C2C_HOME", "C2C_PROFILE", "C2C_STATE_DIR"].map((name) => [name, process.env[name]]));
     try {
+      process.env.C2C_HOME = home;
+      delete process.env.C2C_STATE_DIR;
+      process.env.C2C_PROFILE = "wiriawan-gmail";
       expect(getStateDir()).toBe(path.join(getC2cHome(), "profiles", "wiriawan-gmail"));
     } finally {
-      delete process.env.C2C_PROFILE;
+      for (const [name, value] of previous) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
     }
   });
 
   it("keeps C2C_STATE_DIR stronger than C2C_PROFILE", async () => {
     const { getStateDir } = await import("../src/config/paths.js");
+    const home = makeTmpDir("profile-override-home");
     const scratch = makeTmpDir("profile-scratch");
-    process.env.C2C_STATE_DIR = scratch;
-    process.env.C2C_PROFILE = "wiriawan-gmail";
+    const previous = new Map(["C2C_HOME", "C2C_PROFILE", "C2C_STATE_DIR"].map((name) => [name, process.env[name]]));
     try {
+      process.env.C2C_HOME = home;
+      process.env.C2C_STATE_DIR = scratch;
+      process.env.C2C_PROFILE = "wiriawan-gmail";
       expect(getStateDir()).toBe(scratch);
     } finally {
-      delete process.env.C2C_STATE_DIR;
-      delete process.env.C2C_PROFILE;
+      for (const [name, value] of previous) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
     }
   });
 });

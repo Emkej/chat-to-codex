@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from "vitest";
 import { Workspace } from "../src/workspace/manager.js";
 import { searchWorkspace, resetRipgrepCache, findRipgrep } from "../src/workspace/search.js";
 import { makeTmpDir, cleanup, write } from "./helpers.js";
 
 let root: string;
 let ws: Workspace;
+let originalDisableRg: string | undefined;
 const globMarker = "C2C_GLOB_MARKER";
 
 beforeAll(() => {
@@ -26,18 +27,33 @@ afterAll(() => {
   cleanup(root);
 });
 
+beforeEach(() => {
+  originalDisableRg = process.env.C2C_DISABLE_RG;
+});
+
 afterEach(() => {
-  delete process.env.C2C_DISABLE_RG;
+  if (originalDisableRg === undefined) delete process.env.C2C_DISABLE_RG;
+  else process.env.C2C_DISABLE_RG = originalDisableRg;
   resetRipgrepCache();
 });
 
 function engines(): ("ripgrep" | "node")[] {
-  return findRipgrep() ? ["ripgrep", "node"] : ["node"];
+  const previous = process.env.C2C_DISABLE_RG;
+  try {
+    delete process.env.C2C_DISABLE_RG;
+    resetRipgrepCache();
+    return findRipgrep() ? ["ripgrep", "node"] : ["node"];
+  } finally {
+    if (previous === undefined) delete process.env.C2C_DISABLE_RG;
+    else process.env.C2C_DISABLE_RG = previous;
+    resetRipgrepCache();
+  }
 }
 
 describe.each(engines())("search engine: %s", (engine) => {
   const configure = (): void => {
     if (engine === "node") process.env.C2C_DISABLE_RG = "1";
+    else delete process.env.C2C_DISABLE_RG;
     resetRipgrepCache();
   };
 

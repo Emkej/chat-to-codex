@@ -6,18 +6,21 @@ import { makeTmpDir, cleanup, write, makeGitRepo, git } from "./helpers.js";
 
 let repo: string;
 let plain: string;
+let originalCeiling: string | undefined;
 
 beforeAll(() => {
+  originalCeiling = process.env.GIT_CEILING_DIRECTORIES;
   repo = makeTmpDir("git-repo");
   makeGitRepo(repo);
   plain = makeTmpDir("not-a-repo");
-  // The test-tmp dir lives inside this project's own git repo; stop git from
-  // walking up so `plain` is genuinely outside any repository.
+  // Fixtures live in OS temporary directories; bound upward discovery so
+  // `plain` stays outside any repository in an ancestor directory.
   process.env.GIT_CEILING_DIRECTORIES = path.dirname(plain);
 });
 
 afterAll(() => {
-  delete process.env.GIT_CEILING_DIRECTORIES;
+  if (originalCeiling === undefined) delete process.env.GIT_CEILING_DIRECTORIES;
+  else process.env.GIT_CEILING_DIRECTORIES = originalCeiling;
   cleanup(repo);
   cleanup(plain);
 });
