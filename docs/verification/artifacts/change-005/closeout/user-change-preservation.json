@@ -27,5 +27,10 @@
       "mode": 420
     }
   ],
-  "scope": "Unrelated tracked work preserved across local branch switch and integration"
+  "scope": "Unrelated tracked work preserved across local branch switch and integration",
+  "restoration": {
+    "status": "passed",
+    "method": "SHA-256 content and permission-mode equality after stash apply on merged main",
+    "files": 5
+  }
 }

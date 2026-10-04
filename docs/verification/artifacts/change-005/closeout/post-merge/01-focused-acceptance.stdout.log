@@ -1,0 +1,52 @@
+
+ RUN  v3.2.7 /home/emkej/projects/chat-to-codex
+
+ ✓ tests/git.test.ts (16 tests) 3173ms
+   ✓ gitInfo > uses an explicit linked-worktree gitDir for info, status, and diff  323ms
+   ✓ gitDiff pagination > paginates on byte offsets and never splits lines  500ms
+   ✓ gitDiff pagination > excludes all IgnoreRules sensitive patterns across unstaged, staged, and head modes  669ms
+ ✓ tests/oauth-broker.test.ts (7 tests) 1023ms
+   ✓ broker OAuth > completes pairing + PKCE against the installation principal  523ms
+ ✓ tests/broker-daemon.test.ts (2 tests) 1053ms
+   ✓ broker daemon lifecycle > persists runtime state that the CLI can probe, and clears it on shutdown  568ms
+   ✓ broker daemon lifecycle > reuses the installation identity across restarts  477ms
+ ✓ tests/local-e2e-broker.test.ts (6 tests) 1841ms
+   ✓ local E2E — broker-first multi-project > calls list_branches with the repository scope granted through fresh OAuth pairing  382ms
+ ✓ tests/broker.test.ts (21 tests) 4522ms
+   ✓ broker tool surface > requires the repository scope and reads committed branch snapshots with it  1476ms
+   ✓ broker tool surface > rejects repository inspection for a linked-worktree-only registration  404ms
+   ✓ single-workspace broker > resolves the unambiguous single registered workspace without an id  391ms
+ ✓ tests/git-snapshot.test.ts (13 tests) 8817ms
+   ✓ repository snapshot domain > discovers and inspects an unchecked-out local branch  1289ms
+   ✓ repository snapshot domain > enumerates remote-tracking refs but omits symbolic remote HEAD  669ms
+   ✓ repository snapshot domain > rejects symbolic remote aliases even outside the remote HEAD name  660ms
+   ✓ repository snapshot domain > rejects arbitrary revision syntax and unsafe repository paths  546ms
+   ✓ repository snapshot domain > requires continuation commits and detects a moved branch  722ms
+   ✓ repository snapshot domain > disables replacement objects and rejects partial repositories  642ms
+   ✓ repository snapshot domain > uses the authorized main ignore policy for branch snapshots  1188ms
+   ✓ repository snapshot domain > filters sensitive rename pairs atomically during comparison  888ms
+   ✓ repository snapshot domain > rejects effective promisor repositories before a missing-object read  405ms
+   ✓ repository snapshot domain > treats symlinks and gitlinks as metadata and rejects binary blobs  565ms
+   ✓ repository snapshot domain > keeps pathspec-looking filenames literal and reports match-limit truncation  507ms
+   ✓ repository snapshot domain > fails an individually oversized line without returning partial content  430ms
+ ✓ tests/git-snapshot-boundaries.test.ts (14 tests) 11422ms
+   ✓ snapshot browse byte and line boundaries > accepts an exact 1 MiB blob and rejects one byte above before pagination  700ms
+   ✓ snapshot browse byte and line boundaries > enforces the response byte cap for ASCII exact  462ms
+   ✓ snapshot browse byte and line boundaries > enforces the response byte cap for ASCII above  706ms
+   ✓ snapshot browse byte and line boundaries > enforces the response byte cap for UTF-8 exact  684ms
+   ✓ snapshot browse byte and line boundaries > enforces the response byte cap for UTF-8 above  478ms
+   ✓ snapshot browse byte and line boundaries > enforces the response byte cap for 300 KiB line  514ms
+   ✓ snapshot browse byte and line boundaries > preserves complete-line progress including newline bytes (exact=false)  625ms
+   ✓ snapshot browse byte and line boundaries > preserves complete-line progress including newline bytes (exact=true)  568ms
+   ✓ snapshot browse byte and line boundaries > resumes after the 2000-line hard page limit  667ms
+   ✓ snapshot search and comparison resource boundaries > terminates raw output above 2 MiB while keeping only complete safe matches  838ms
+   ✓ snapshot search and comparison resource boundaries > does not return an incomplete extreme grep line at the raw output cap  540ms
+   ✓ snapshot search and comparison resource boundaries > fails with DIFF_TOO_LARGE above 64 MiB rather than returning a partial page  1720ms
+   ✓ snapshot execution and replacement isolation > never executes configured textconv or external diff in compare, search and existing diff modes  826ms
+   ✓ snapshot execution and replacement isolation > keeps discovery, browse, search and compare ancestry invariant as replacement refs change  2066ms
+
+ Test Files  7 passed (7)
+      Tests  79 passed (79)
+   Start at  14:27:55
+   Duration  12.26s (transform 1.81s, setup 0ms, collect 11.01s, tests 31.85s, environment 3ms, prepare 686ms)
+

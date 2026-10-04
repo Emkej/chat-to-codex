@@ -4,7 +4,8 @@
     "capturedAt": "2026-10-04T14:21:41+02:00",
     "repositoryRoot": "/home/emkej/projects/chat-to-codex",
     "worktree": "/home/emkej/projects/chat-to-codex",
-    "branch": "codex/change-005-repository-ref-inspection",
+    "capturedBranch": "codex/change-005-repository-ref-inspection",
+    "branch": "main",
     "head": "97d90762864ad2b904bf989309450de4b4666f78",
     "tracker": "tools/repo/track_dirty_paths.py",
     "preExistingDirtyPaths": [
@@ -46,8 +47,8 @@
         "docs/changes/change-005-repository-branch-discovery-and-read-only-ref-inspection.md"
     ],
     "closeoutClassification": {
-        "classifiedAt": "2026-10-04T14:26:20+02:00",
-        "head": "97d90762864ad2b904bf989309450de4b4666f78",
+        "classifiedAt": "2026-10-04T14:29:34+02:00",
+        "head": "52a1b9eb099c8cfd2d8b720cc16bd9942685b882",
         "method": "/home/emkej/projects/veterinar/tools/repo/track_dirty_paths.py closeout (compatible classify fallback)",
         "owned": {
             "source": "claimedPaths"

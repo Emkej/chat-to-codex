@@ -9,18 +9,23 @@
   "environment": "WSL/Linux",
   "repository_root": "/home/emkej/projects/chat-to-codex",
   "worktree": "/home/emkej/projects/chat-to-codex",
-  "branch": "codex/change-005-repository-ref-inspection",
-  "head": "97d90762864ad2b904bf989309450de4b4666f78",
+  "branch": "main",
+  "head": "52a1b9eb099c8cfd2d8b720cc16bd9942685b882",
   "relevant_commits": [
     "f719903",
     "00fe5c1",
     "558d024",
-    "97d9076"
+    "97d9076",
+    "52a1b9e"
   ],
   "dirty_path_manifest": "docs/verification/artifacts/change-005/closeout/task-ownership.json",
   "integration": {
     "target": "main",
-    "status_at_capture": "closeout gates passed; ready for local fast-forward merge",
+    "status_at_capture": "merged locally by fast-forward; post-merge checks passed; topic branch removed",
+    "merged_head": "52a1b9eb099c8cfd2d8b720cc16bd9942685b882",
+    "removed_local_branch": "codex/change-005-repository-ref-inspection",
+    "removed_worktrees": [],
+    "reason_no_worktree_removed": "The task used the active repository worktree, now on main. The unrelated detached DevEx worktree was preserved.",
     "push_authorized": false,
     "evidence": "docs/verification/artifacts/change-005/closeout/summary.json"
   },
@@ -33,8 +38,8 @@
   },
   "git_state": {
     "staged": [],
-    "unstaged": ["closeout documentation and pre-existing paths recorded in closeout/task-ownership.json"],
-    "untracked": ["closeout evidence and pre-existing paths recorded in closeout/task-ownership.json"]
+    "unstaged": ["post-merge evidence updates and pre-existing paths recorded in closeout/task-ownership.json"],
+    "untracked": ["post-merge evidence and pre-existing paths recorded in closeout/task-ownership.json"]
   },
   "ledger": {
     "planned_slices": [
@@ -133,6 +138,11 @@
     ]
   },
   "validation": [
+    {
+      "check": "post-merge acceptance, typecheck, build and ancestry",
+      "status": "passed",
+      "evidence": "docs/verification/artifacts/change-005/closeout/post-merge/summary.json; 7 files, 79 tests; unrelated tracked files restored byte-for-byte with original modes"
+    },
     {
       "check": "fresh local merge closeout gates",
       "status": "passed",
