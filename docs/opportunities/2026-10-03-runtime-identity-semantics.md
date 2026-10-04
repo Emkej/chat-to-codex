@@ -29,7 +29,6 @@ Explicit identity semantics would reduce ambiguity when maintaining persisted ru
 ## Related
 
 - [Project policy](README.md).
-- [CHANGE-004](../changes/change-004-c2c-broker-runtime-identity.md).
 - [Architecture](../architecture.md).
 - DevEx SPEC-001 W5 evidence: `/home/emkej/projects/devex/docs/verification/artifacts/spec-001/w5/completion.md`.
 
