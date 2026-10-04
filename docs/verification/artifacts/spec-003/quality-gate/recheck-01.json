@@ -1,0 +1,46 @@
+{
+  "date": "2026-09-25",
+  "kind": "plan-review-recheck",
+  "spec": "docs/specs/spec-003-c2c-manager-mvp.md",
+  "specSha256": "68ee5ee74862f7ab8eba2afb8b58f51ecaa9d9b122fe2904bef47ebafbf2bce6",
+  "reviewedHead": "39108d7c4aa2285f1d97805c914d129a5d277e1d",
+  "verdict": "two-important-plan-gaps-remain",
+  "previousFindingDisposition": {
+    "R1": "addressed-in-plan",
+    "R2": "addressed-in-plan",
+    "R3": "data-contract-addressed-pairing-recovery-incomplete",
+    "R4": "addressed-in-plan",
+    "R5": "addressed-in-plan",
+    "R6": "mostly-addressed-refresh-overlap-contract-conflicts"
+  },
+  "findings": [
+    {
+      "id": "RR1",
+      "severity": "Important",
+      "sections": ["14.1", "14.2", "14.3", "21.1"],
+      "problem": "Section 14.2 starts foreground work without waiting for an old read, while 21.1 requires refresh not to overlap foreground work. Section 14.3 also requires a fresh read after action completion even if the obsolete read has not settled, conflicting with 14.1's no-concurrent-refresh rule.",
+      "fix": "Explicitly allow only an already-running obsolete observational read to overlap the action; keep its result invalidated. Bound and drain that read before starting the post-action refresh, and align the verification wording."
+    },
+    {
+      "id": "RR2",
+      "severity": "Important",
+      "sections": ["8.1", "10", "16", "AC-003-16"],
+      "problem": "Connector-update guidance disables Pair in both keyboard and menu paths, but its code is optional and expires. No renewal or instruction-completion rule is specified, including when old valid tokens keep authorization true during connector replacement.",
+      "evidence": "src/pairing/manager.ts defaults to a five-minute code TTL; src/cli/index.ts permits pairing generation to fail while retaining connector-update instructions.",
+      "fix": "Allow the existing Pair operation contextually within connector recovery when the endpoint is ready, even with old valid tokens; allow missing/expired code renewal and define when the transient instruction is dismissed or completed. Test both cases."
+    }
+  ],
+  "otherCorrectionsConfirmed": [
+    "Review baseline matches HEAD.",
+    "Phase 2 is explicitly optional for SPEC-003 completion.",
+    "Keyboard and menu actions share one authoritative table.",
+    "Missing visual reference now has an explicit restoration requirement."
+  ],
+  "validation": {
+    "fullSpecRead": "completed",
+    "relevantPairingAndDoctorSourceInspection": "completed",
+    "runtimeTests": "not-run; specification recheck only",
+    "priorRuntimeProbes": "not-repeated; source implementation unchanged"
+  },
+  "scope": "Spec and implementation left unchanged; only this review evidence file was added."
+}

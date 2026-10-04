@@ -1,0 +1,75 @@
+{
+  "date": "2026-09-25",
+  "kind": "plan-review",
+  "spec": "docs/specs/spec-003-c2c-manager-mvp.md",
+  "specSha256": "1f12d619f1e4601dbebda16510e640e3f87222e39ca5b2cdab4d6bb2ae58b882",
+  "reviewedHead": "39108d7c4aa2285f1d97805c914d129a5d277e1d",
+  "verdict": "important-plan-adjustments-required",
+  "checks": [
+    {
+      "name": "SessionRegistry.list expired-entry probe",
+      "method": "node --import tsx; temporary state directory with one expired session",
+      "result": "confirmed-read-side-effect",
+      "returnedCount": 0,
+      "persistedFileChanged": true
+    },
+    {
+      "name": "AuthStore constructor probe",
+      "method": "node --import tsx; C2C_STATE_DIR set to temporary directory",
+      "result": "confirmed-read-side-effect",
+      "authDirectoryExistedBefore": false,
+      "authDirectoryExistsAfter": true
+    },
+    {
+      "name": "AuthStore tokenCount expiry probe",
+      "method": "node --import tsx; temporary auth file; advance mocked Date.now past a fixture access token expiry",
+      "result": "confirmed-expired-token-counted",
+      "tokenCount": 1,
+      "verification": { "ok": false, "reason": "expired" }
+    }
+  ],
+  "importantFindings": [
+    {
+      "id": "R1",
+      "specSections": ["7.1", "7.2", "AC-003-6"],
+      "problem": "Both proposed broker status endpoints call sessions.list(), which prunes persisted state; default AuthStore construction also creates a directory.",
+      "fix": "Add canonical non-mutating session/auth read paths and verify filesystem invariance through the real admin routes."
+    },
+    {
+      "id": "R2",
+      "specSections": ["9.3", "9.4"],
+      "problem": "Recovery does not specify how to verify ownership before the existing stopBroker fallback signals a runtime-file PID, or what to do when process identity cannot be established.",
+      "fix": "Require verified process identity and actual exit before replacement; fail closed on uncertain ownership or timeout."
+    },
+    {
+      "id": "R3",
+      "specSections": ["8.1", "9", "10"],
+      "problem": "Quick Tunnel endpoint changes require connector-update guidance even while tokens exist; the typed user action preserves a pairing code but omits connector action and new MCP URL.",
+      "fix": "Preserve canonical endpoint-change results in health and lifecycle outcomes and display the required connector-update action."
+    },
+    {
+      "id": "R4",
+      "specSections": ["7", "10"],
+      "problem": "Authorization semantics are unspecified and the existing tokenCount() can count expired tokens in a long-running broker.",
+      "fix": "Define authorization from valid non-revoked access/refresh credentials using one non-mutating canonical predicate, with expiry tests."
+    },
+    {
+      "id": "R5",
+      "specSections": ["9", "17", "AC-003-8"],
+      "problem": "Reusing resolveInstallationTunnel reaches synchronous cloudflared and wrangler probes with five-second timeouts, blocking TUI keyboard handling.",
+      "fix": "Make the Manager-reachable executable checks asynchronous and bounded; test responsiveness with a slow probe."
+    },
+    {
+      "id": "R6",
+      "specSections": ["14", "17", "21"],
+      "problem": "Pausing polling does not handle an already-running refresh, concurrent explicit health checks, or quitting during an operation.",
+      "fix": "Specify in-flight read handling, single foreground action ownership, stale-result rejection, and exit behavior; add deferred-promise race tests."
+    }
+  ],
+  "limitations": [
+    "No Manager implementation or terminal acceptance was run.",
+    "Referenced docs/html/c2c-manager-tui-mockup.html is absent from this checkout.",
+    "Spec names baseline d80f92b; current main and HEAD are 39108d7. The intervening diff contains documentation changes only.",
+    "Review probes used disposable temporary state and cleaned it up; no live installation state was used."
+  ]
+}

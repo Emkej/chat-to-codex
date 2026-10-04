@@ -1,0 +1,32 @@
+{
+  "date": "2026-09-25",
+  "kind": "plan-review-recheck",
+  "spec": "docs/specs/spec-003-c2c-manager-mvp.md",
+  "specSha256": "0f95b3b0ccc96bccea373fd125542f94d6035d72432f54cf6154010da2a39467",
+  "reviewedHead": "39108d7c4aa2285f1d97805c914d129a5d277e1d",
+  "verdict": "pass-with-optional-validation-improvement",
+  "previousFindingDisposition": {
+    "RR1": {
+      "status": "addressed-in-plan",
+      "evidence": "Sections 14 and 17 allow one obsolete pre-action read to overlap an action, require its retirement before the completion refresh, and forbid simultaneous status refreshes. Section 21 and AC-003-21 match."
+    },
+    "RR2": {
+      "status": "addressed-in-plan",
+      "evidence": "Sections 8.1, 10 and 16 preserve pending connector instructions, allow the same Pair operation during recovery despite existing authorization, support code renewal, and define explicit endpoint-checked confirmation. Section 21 and AC-003-16/16A match."
+    }
+  },
+  "importantFindings": [],
+  "optionalValidationImprovement": {
+    "problem": "Pending connector state now distinguishes observed and user-confirmed URLs, but persistence across Manager reopening and interaction with the existing CLI doctor are not explicit test cases.",
+    "evidence": "src/cli/index.ts currently persists observed endpoints during doctor --fix through src/config/endpoint.ts.",
+    "recommendation": "During implementation, test that reopening Manager and running doctor --fix do not acknowledge an unconfirmed endpoint or erase an existing confirmation.",
+    "benefit": "Detects regression in shared endpoint state across UI and CLI consumers.",
+    "timing": "during Phase 0 implementation; not a blocker for starting implementation"
+  },
+  "validation": {
+    "revisedContractsAgainstActionTableTestsAndAcceptance": "passed-static-review",
+    "relevantEndpointDomainAndDoctorSourceInspection": "completed",
+    "runtimeTests": "not-run; specification review only"
+  },
+  "scope": "Spec and implementation left unchanged; only this review evidence file was added."
+}
