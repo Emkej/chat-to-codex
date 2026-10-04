@@ -1,0 +1,19 @@
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/broker-daemon.test.ts > broker daemon lifecycle > reuses the installation identity across restarts
+WriteRequestError: Another broker owns this state directory for writes.
+ ❯ ownerError src/write-requests/owner.ts:12:10
+     10| 
+     11| function ownerError(code: "WRITE_OWNER_ALREADY_HELD" | "WRITE_OWNER_UN…
+     12|   return new WriteRequestError(code, message, cause instanceof Error ?…
+       |          ^
+     13| }
+     14| 
+ ❯ acquireLinux src/write-requests/owner.ts:64:13
+ ❯ acquireWriteOwner src/write-requests/owner.ts:90:10
+ ❯ startBroker src/broker/server.ts:376:26
+ ❯ tests/broker-daemon.test.ts:44:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

@@ -1,0 +1,171 @@
+
+ RUN  v3.2.7 /home/emkej/projects/chat-to-codex
+
+ ✓ tests/cli-manager.test.ts (4 tests) 2931ms
+   ✓ c2c manager CLI entry > refuses non-TTY use with a clear message  906ms
+   ✓ c2c manager CLI entry > lists Manager in the existing root help output  1020ms
+   ✓ c2c manager CLI entry > keeps unrelated version output working  968ms
+ ✓ tests/worktrees.test.ts (13 tests) 4380ms
+   ✓ worktree domain > discovers a current-distro UNC root from live Git metadata  868ms
+   ✓ worktree domain > fails closed for missing, foreign-distro, foreign-repository, outside-admin, and mismatched pairs  587ms
+   ✓ worktree domain > uses live Git worktree enumeration with a porcelain fallback when -z is unsupported  1568ms
+ ✓ tests/write-requests.test.ts (46 tests) 4209ms
+   ✓ write-request lifecycle > stages every result temp in its target parent before the first commit  436ms
+   ✓ write-request lifecycle > detects an external edit before an update replacement  309ms
+ ✓ tests/write-request-cli.test.ts (11 tests) 5757ms
+   ✓ registered write-request CLI commands > requires explicit selection for pending --diff when multiple requests match  833ms
+   ✓ registered write-request CLI commands > lists pending requests without exposing patch content by default  864ms
+   ✓ registered write-request CLI commands > shows the patch for the single pending request in JSON mode  1212ms
+   ✓ registered write-request CLI commands > implicitly approves the one cwd-matched request without another prompt  967ms
+   ✓ registered write-request CLI commands > does not implicitly select a pending request for another workspace  878ms
+   ✓ registered write-request CLI commands > implicitly rejects the one cwd-matched request  880ms
+ ✓ tests/mcp-worktrees.test.ts (6 tests) 6115ms
+   ✓ MCP worktree routing > lists opaque derived targets and selects them without exposing paths  1701ms
+   ✓ MCP worktree routing > routes a validated cross-namespace target through the complete broker read surface  2348ms
+   ✓ MCP worktree routing > routes selected search, Git, and execution reads to the concrete worktree  1481ms
+   ✓ MCP worktree routing > fails closed when the selected worktree changes identity before routing use  374ms
+ ✓ tests/broker-session-cli.test.ts (3 tests) 3883ms
+   ✓ CLI session binding lifecycle > reuses the registered main workspace for a covered linked worktree  1803ms
+   ✓ CLI session binding lifecycle > registers only the exact linked root when its main worktree is not registered  945ms
+   ✓ CLI session binding lifecycle > endWorkspaceSession removes the binding file and ends the broker session  1126ms
+ ✓ tests/git.test.ts (16 tests) 9777ms
+   ✓ gitInfo > reports branch, commit and dirty state  521ms
+   ✓ gitInfo > ignores inherited repository-location overrides  679ms
+   ✓ gitInfo > uses an explicit linked-worktree gitDir for info, status, and diff  1109ms
+   ✓ gitDiff pagination > disables configured external diff execution  441ms
+   ✓ gitDiff pagination > paginates on byte offsets and never splits lines  1211ms
+   ✓ gitDiff pagination > excludes all IgnoreRules sensitive patterns across unstaged, staged, and head modes  1624ms
+   ✓ gitDiff pagination > allows .env.example while blocking .env  597ms
+   ✓ gitDiff pagination > respects custom rules in .c2cignore for git diff  458ms
+   ✓ gitDiff pagination > handles rename provenance: sensitive->safe, safe->sensitive, safe->safe  845ms
+   ✓ gitDiff pagination > prevents cross-boundary scoped rename provenance leaks with path= scoping  829ms
+ ✓ tests/local-e2e-broker.test.ts (6 tests) 5071ms
+   ✓ local E2E — broker-first multi-project > calls list_branches with the repository scope granted through fresh OAuth pairing  1180ms
+   ✓ local E2E — broker-first multi-project > reads each workspace through opaque ids with cross-workspace isolation  373ms
+   ✓ local E2E — broker-first multi-project > denies sensitive files per workspace policy  321ms
+ ✓ tests/mcp-integration.test.ts (17 tests) 7752ms
+   ✓ MCP tools over Streamable HTTP > lists all nine read-only tools including list_workspaces  432ms
+   ✓ MCP tools over Streamable HTTP > workspace_info returns identity and project detection  562ms
+   ✓ MCP tools over Streamable HTTP > search_workspace finds matches  569ms
+   ✓ MCP tools over Streamable HTTP > git_diff paginates large diffs  973ms
+   ✓ MCP tools over Streamable HTTP > execution_summary and test_status read harness records  314ms
+   ✓ MCP tools over Streamable HTTP > enforces scopes per tool  537ms
+   ✓ MCP tools over Streamable HTTP > git_diff over MCP excludes sensitive files like .npmrc and service-account*.json  528ms
+   ✓ MCP tools over Streamable HTTP > git_diff over MCP blocks sensitive-to-safe renames from leaking original content  449ms
+   ✓ MCP tools over Streamable HTTP > git_diff over MCP with path='src' blocks cross-boundary rename leaks from root secrets  457ms
+ ✓ tests/installation-lifecycle.test.ts (28 tests) 8625ms
+   ✓ verified installation broker process transitions > requires matching admin installation and PID before a signal fallback  655ms
+   ✓ verified installation broker process transitions > clears stale runtime only after the recorded PID is definitely absent  324ms
+   ✓ verified installation broker process transitions > preserves a runtime record that changed after the stale snapshot was read  530ms
+   ✓ verified installation broker process transitions > waits for actual termination before spawning a graceful restart replacement  466ms
+   ✓ verified installation broker process transitions > revalidates a concurrent runtime update instead of reporting a restart without stopping the broker  688ms
+   ✓ verified installation broker process transitions > signals only while the previously verified process start time still matches  567ms
+   ✓ verified installation broker process transitions > preserves and reconciles a runtime record changed while stale state is being inspected  414ms
+   ✓ verified installation broker process transitions > recovers an unknown installation after absent-PID stale cleanup  553ms
+   ✓ verified installation broker process transitions > returns bounded shutdown failure instead of success while the process remains  637ms
+   ✓ Manager-facing installation lifecycle > preserves endpoint update and pairing instructions across restart with existing authorization  363ms
+ ✓ tests/installation-health.test.ts (4 tests) 2827ms
+   ✓ installation health and connector recovery > asks for a tunnel choice by default and keeps a running broker visible  1351ms
+   ✓ installation health and connector recovery > keeps the newest connector update pending with valid auth through pairing and stale confirmation  1420ms
+ ✓ tests/cli-doctor.test.ts (3 tests) 7083ms
+   ✓ c2c doctor --json > reports the installation contract with connectorRepair and its deprecated alias  1307ms
+   ✓ c2c doctor --json > uses the authorization snapshot when expired tokens remain in broker memory  2887ms
+   ✓ c2c doctor --json > doctor --fix reuses the registered main for a linked worktree  2826ms
+ ✓ tests/oauth.test.ts (23 tests) 2790ms
+   ✓ authorization + token flow > completes the full pairing + PKCE flow and calls MCP  1099ms
+ ✓ tests/broker-runtime-identity.test.ts (5 tests) 2495ms
+   ✓ broker runtime identity > uses the app root and ignores inherited Git repository overrides  685ms
+   ✓ broker runtime identity > accepts a linked worktree as the C2C application root  717ms
+   ✓ broker runtime identity > recovers only valid installed metadata and captures an immutable version/profile  720ms
+ ✓ tests/write-request-admin.test.ts (5 tests) 3022ms
+   ✓ local write-request admin API > creates, inspects, approves, rejects, and scrubs terminal request patches  1142ms
+   ✓ local write-request admin API > filters main-workspace requests, sorts before applying limit, and maps stale to 409  506ms
+ ✓ tests/search.test.ts (12 tests) 2187ms
+   ✓ search engine: ripgrep > finds matches with paths and line numbers  340ms
+   ✓ search engine: ripgrep > respects the limit  353ms
+ ✓ tests/c2ct.test.ts (4 tests) 1740ms
+   ✓ c2ct test profile > selects test state despite inherited overrides, preserves default state, and avoids repo-local work  728ms
+   ✓ c2ct test profile > fails closed when test-profile state cannot be initialized  734ms
+ ✓ tests/mcp-write-requests.test.ts (8 tests) 10850ms
+   ✓ broker MCP write-request tools > registers truthful proposal and read-only receipt annotations  389ms
+   ✓ broker MCP write-request tools > requires workspace.write and leaves workspace files unchanged when proposing  576ms
+   ✓ broker MCP write-request tools > returns scoped receipts without raw patches or absolute paths  1384ms
+   ✓ broker MCP write-request tools > keeps receipts scoped to the selected main workspace and derived worktree  5233ms
+   ✓ broker MCP write-request tools > maps an oversized MCP transport body to sanitized PATCH_TOO_LARGE  395ms
+ ✓ tests/workspaces-domain.test.ts (20 tests) 1035ms
+   ✓ session registry > heartbeat extends expiry  394ms
+ ✓ tests/runtime.test.ts (6 tests) 2912ms
+   ✓ findLiveBridge probe resilience > reports authorization from the live snapshot when expired tokens remain in memory  520ms
+   ✓ findLiveBridge probe resilience > tolerates transient probe failures instead of reporting the bridge dead  791ms
+   ✓ findLiveBridge probe resilience > still reports no bridge after repeated probe failures  990ms
+ ✓ tests/installation-status.test.ts (5 tests) 1696ms
+   ✓ installation status > uses verified broker admin reads for live workspace sessions and tunnel state  920ms
+   ✓ installation status > keeps the overview available when the live session read fails  734ms
+ ✓ tests/workspace.test.ts (20 tests) 426ms
+ ✓ tests/plans.test.ts (3 tests) 1047ms
+   ✓ clipboard reader > returns null on platforms without a clipboard helper rather than throwing  973ms
+ ✓ tests/broker.test.ts (21 tests) 13733ms
+   ✓ broker tool surface > exposes the broker proposal and read-only receipt tools with truthful annotations  498ms
+   ✓ broker tool surface > requires git.read for list_worktrees  370ms
+   ✓ broker tool surface > requires the repository scope and reads committed branch snapshots with it  6016ms
+   ✓ broker tool surface > rejects repository inspection for a linked-worktree-only registration  982ms
+   ✓ workspace-scoped reads > scopes git state to the selected workspace and keeps broker identity installation-scoped  670ms
+   ✓ single-workspace broker > resolves the unambiguous single registered workspace without an id  889ms
+ ✓ tests/manager-entry.test.ts (10 tests) 145ms
+ ✓ tests/auth-migration.test.ts (2 tests) 35ms
+ ✓ tests/manager-refresh.test.ts (9 tests) 100ms
+ ✓ tests/manager-controller.test.ts (40 tests) 311ms
+ ✓ tests/helpers.test.ts (2 tests) 21ms
+ ✓ tests/tunnel-installation.test.ts (3 tests) 87ms
+ ✓ tests/auth-store.test.ts (8 tests) 47ms
+ ✓ tests/pairing.test.ts (8 tests) 126ms
+ ✓ tests/write-owner.test.ts (6 tests) 1381ms
+   ✓ exclusive write-owner lease > prevents a separate process from owning the same state directory  492ms
+   ✓ exclusive write-owner lease > prevents a second broker from writing when the preferred port belongs to another process  673ms
+ ✓ tests/oauth-broker.test.ts (7 tests) 989ms
+   ✓ broker OAuth > completes pairing + PKCE against the installation principal  451ms
+ ✓ tests/port.test.ts (2 tests) 455ms
+   ✓ port collision handling > falls back to a free port when the preferred one is taken  423ms
+ ✓ tests/sandbox-allow.test.ts (7 tests) 29ms
+ ✓ tests/tunnel.test.ts (14 tests) 67ms
+ ✓ tests/endpoint.test.ts (12 tests) 46ms
+ ✓ tests/manager-layout.test.ts (3 tests) 6ms
+ ✓ tests/local-target.test.ts (8 tests) 79ms
+ ✓ tests/broker-daemon.test.ts (2 tests) 1053ms
+   ✓ broker daemon lifecycle > persists runtime state that the CLI can probe, and clears it on shutdown  518ms
+   ✓ broker daemon lifecycle > reuses the installation identity across restarts  531ms
+ ✓ tests/git-snapshot.test.ts (13 tests) 23313ms
+   ✓ repository snapshot domain > discovers and inspects an unchecked-out local branch  4103ms
+   ✓ repository snapshot domain > enumerates remote-tracking refs but omits symbolic remote HEAD  1653ms
+   ✓ repository snapshot domain > rejects symbolic remote aliases even outside the remote HEAD name  2100ms
+   ✓ repository snapshot domain > keeps repository authority on the registered main worktree  1316ms
+   ✓ repository snapshot domain > rejects arbitrary revision syntax and unsafe repository paths  1934ms
+   ✓ repository snapshot domain > requires continuation commits and detects a moved branch  1988ms
+   ✓ repository snapshot domain > disables replacement objects and rejects partial repositories  2304ms
+   ✓ repository snapshot domain > uses the authorized main ignore policy for branch snapshots  2946ms
+   ✓ repository snapshot domain > filters sensitive rename pairs atomically during comparison  2097ms
+   ✓ repository snapshot domain > rejects effective promisor repositories before a missing-object read  927ms
+   ✓ repository snapshot domain > treats symlinks and gitlinks as metadata and rejects binary blobs  805ms
+   ✓ repository snapshot domain > keeps pathspec-looking filenames literal and reports match-limit truncation  615ms
+   ✓ repository snapshot domain > fails an individually oversized line without returning partial content  486ms
+ ✓ tests/git-snapshot-boundaries.test.ts (14 tests) 25756ms
+   ✓ snapshot browse byte and line boundaries > accepts an exact 1 MiB blob and rejects one byte above before pagination  2067ms
+   ✓ snapshot browse byte and line boundaries > enforces the response byte cap for ASCII exact  1750ms
+   ✓ snapshot browse byte and line boundaries > enforces the response byte cap for ASCII above  1632ms
+   ✓ snapshot browse byte and line boundaries > enforces the response byte cap for UTF-8 exact  1825ms
+   ✓ snapshot browse byte and line boundaries > enforces the response byte cap for UTF-8 above  2058ms
+   ✓ snapshot browse byte and line boundaries > enforces the response byte cap for 300 KiB line  1477ms
+   ✓ snapshot browse byte and line boundaries > preserves complete-line progress including newline bytes (exact=false)  2023ms
+   ✓ snapshot browse byte and line boundaries > preserves complete-line progress including newline bytes (exact=true)  2230ms
+   ✓ snapshot browse byte and line boundaries > resumes after the 2000-line hard page limit  1695ms
+   ✓ snapshot search and comparison resource boundaries > terminates raw output above 2 MiB while keeping only complete safe matches  1664ms
+   ✓ snapshot search and comparison resource boundaries > does not return an incomplete extreme grep line at the raw output cap  1388ms
+   ✓ snapshot search and comparison resource boundaries > fails with DIFF_TOO_LARGE above 64 MiB rather than returning a partial page  2609ms
+   ✓ snapshot execution and replacement isolation > never executes configured textconv or external diff in compare, search and existing diff modes  985ms
+   ✓ snapshot execution and replacement isolation > keeps discovery, browse, search and compare ancestry invariant as replacement refs change  2333ms
+
+ Test Files  43 passed (43)
+      Tests  459 passed (459)
+   Start at  14:23:30
+   Duration  27.28s (transform 11.97s, setup 0ms, collect 90.76s, tests 166.39s, environment 75ms, prepare 25.08s)
+

@@ -1,0 +1,10 @@
+{
+  "command": "node node_modules/vitest/vitest.mjs run tests/broker-daemon.test.ts",
+  "status": "passed",
+  "test_files": 1,
+  "tests": 2,
+  "duration_seconds": 2.11,
+  "preceding_failure": "Initial closeout full suite: 458 passed, 1 failed at restart with WRITE_OWNER_ALREADY_HELD.",
+  "root_cause": "Not established. The focused restart check passed without a code change; the original full-suite failure is retained in pre-merge attempt 1 logs.",
+  "next_gate": "One retry of the same default full suite; another failure blocks local merge."
+}

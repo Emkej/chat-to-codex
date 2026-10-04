@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "work_id": "change-005-repository-branch-discovery-and-read-only-ref-inspection",
-  "task_title": "[C2C/CH5/P1/S4-final-validation] Complete repository ref inspection change",
+  "task_title": "[C2C/CH5/P2/closeout] Close repository ref inspection and integrate locally",
   "owner_outcome": "Add broker-only, bounded, read-only repository-ref inspection so a registered main workspace can list local refs, browse and search committed snapshots, and compare branches without checkout or implicit Git mutation while preserving OAuth, legacy-bridge, and content-policy boundaries.",
   "authoritative_source": "/home/emkej/projects/chat-to-codex/docs/changes/change-005-repository-branch-discovery-and-read-only-ref-inspection.md",
   "status": "Completed",
@@ -9,14 +9,32 @@
   "environment": "WSL/Linux",
   "repository_root": "/home/emkej/projects/chat-to-codex",
   "worktree": "/home/emkej/projects/chat-to-codex",
-  "branch": "main",
-  "head": "84100faae738c67d08248a473349e8757c84c354",
-  "relevant_commits": [],
-  "dirty_path_manifest": "docs/verification/artifacts/change-005/task-ownership.json",
+  "branch": "codex/change-005-repository-ref-inspection",
+  "head": "97d90762864ad2b904bf989309450de4b4666f78",
+  "relevant_commits": [
+    "f719903",
+    "00fe5c1",
+    "558d024",
+    "97d9076"
+  ],
+  "dirty_path_manifest": "docs/verification/artifacts/change-005/closeout/task-ownership.json",
+  "integration": {
+    "target": "main",
+    "status_at_capture": "closeout gates passed; ready for local fast-forward merge",
+    "push_authorized": false,
+    "evidence": "docs/verification/artifacts/change-005/closeout/summary.json"
+  },
+  "separate_rollout_gate": {
+    "status": "Owner-deferred",
+    "owner": "user",
+    "action": "Refresh or reauthorize the existing ChatGPT UI connector and successfully call list_branches through it.",
+    "repository_acceptance": "The required fresh broker OAuth-to-list_branches path passed in tests/local-e2e-broker.test.ts; this does not prove the existing UI connector schema was refreshed.",
+    "evidence": "docs/verification/artifacts/change-005/regression-closure-2026-10-03.json"
+  },
   "git_state": {
     "staged": [],
-    "unstaged": ["pre-existing paths recorded in task-ownership.json"],
-    "untracked": ["pre-existing paths recorded in task-ownership.json"]
+    "unstaged": ["closeout documentation and pre-existing paths recorded in closeout/task-ownership.json"],
+    "untracked": ["closeout evidence and pre-existing paths recorded in closeout/task-ownership.json"]
   },
   "ledger": {
     "planned_slices": [
@@ -78,7 +96,7 @@
         ]
       }
     ],
-    "completed_slices": ["S1-snapshot-domain", "S2-mcp-oauth", "S3-policy-and-documentation"],
+    "completed_slices": ["S1-snapshot-domain", "S2-mcp-oauth", "S3-policy-and-documentation", "S4-final-validation"],
     "current_slice": {
       "id": "S4-final-validation",
       "status": "Completed"
@@ -97,6 +115,7 @@
       "src/bridge/server.ts",
       "scripts/poc-client.mjs",
       "tests/git-snapshot.test.ts",
+      "tests/git-snapshot-boundaries.test.ts",
       "tests/git.test.ts",
       "tests/broker.test.ts",
       "tests/mcp-integration.test.ts",
@@ -114,6 +133,16 @@
     ]
   },
   "validation": [
+    {
+      "check": "fresh local merge closeout gates",
+      "status": "passed",
+      "evidence": "docs/verification/artifacts/change-005/closeout/pre-merge/summary.json; 459 tests passed on retry, typecheck, build and branch diff passed. Initial WRITE_OWNER_ALREADY_HELD failure retained; focused restart recheck passed without a code change."
+    },
+    {
+      "check": "acceptance boundary regressions and fresh OAuth repository-tool smoke",
+      "status": "passed",
+      "evidence": "docs/verification/artifacts/change-005/regression-closure-2026-10-03.json; focused 77 tests and full 459 tests passed; typecheck, build and scoped diff checks passed"
+    },
     {
       "check": "repository root, branch, HEAD, and dirty-path capture",
       "status": "passed",

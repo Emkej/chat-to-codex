@@ -1,0 +1,154 @@
+{
+  "contract_version": 2,
+  "name": "change-005-closeout",
+  "status": "passed",
+  "counts": {
+    "passed": 4,
+    "failed": 0,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 4,
+  "skipped": 0,
+  "total": 4,
+  "results": [
+    {
+      "name": "full-tests",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 28.012,
+      "attempt": 2,
+      "argv": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-005/closeout/pre-merge",
+      "stdout_log": "01-full-tests-attempt-2.stdout.log",
+      "stderr_log": "01-full-tests-attempt-2.stderr.log",
+      "error": null
+    },
+    {
+      "name": "typecheck",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 2.671,
+      "attempt": 4,
+      "argv": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "--noEmit"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-005/closeout/pre-merge",
+      "stdout_log": "02-typecheck-attempt-4.stdout.log",
+      "stderr_log": "02-typecheck-attempt-4.stderr.log",
+      "error": null
+    },
+    {
+      "name": "build",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 3.679,
+      "attempt": 3,
+      "argv": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.json"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-005/closeout/pre-merge",
+      "stdout_log": "03-build-attempt-3.stdout.log",
+      "stderr_log": "03-build-attempt-3.stderr.log",
+      "error": null
+    },
+    {
+      "name": "branch-diff",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.019,
+      "attempt": 5,
+      "argv": [
+        "git",
+        "-c",
+        "core.whitespace=cr-at-eol",
+        "diff",
+        "--check",
+        "main...HEAD"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-005/closeout/pre-merge",
+      "stdout_log": "04-branch-diff-attempt-5.stdout.log",
+      "stderr_log": "04-branch-diff-attempt-5.stderr.log",
+      "error": null
+    }
+  ],
+  "attempts": [
+    {
+      "number": 1,
+      "checks": [
+        "full-tests",
+        "typecheck",
+        "build",
+        "branch-diff"
+      ],
+      "statuses": {
+        "full-tests": "failed",
+        "typecheck": "skipped",
+        "build": "skipped",
+        "branch-diff": "skipped"
+      }
+    },
+    {
+      "number": 2,
+      "checks": [
+        "full-tests"
+      ],
+      "statuses": {
+        "full-tests": "passed"
+      },
+      "previous_statuses": {
+        "full-tests": "failed"
+      }
+    },
+    {
+      "number": 3,
+      "checks": [
+        "build"
+      ],
+      "statuses": {
+        "build": "passed"
+      },
+      "previous_statuses": {
+        "build": "skipped"
+      }
+    },
+    {
+      "number": 4,
+      "checks": [
+        "typecheck"
+      ],
+      "statuses": {
+        "typecheck": "passed"
+      },
+      "previous_statuses": {
+        "typecheck": "skipped"
+      }
+    },
+    {
+      "number": 5,
+      "checks": [
+        "branch-diff"
+      ],
+      "statuses": {
+        "branch-diff": "passed"
+      },
+      "previous_statuses": {
+        "branch-diff": "skipped"
+      }
+    }
+  ]
+}

@@ -5,6 +5,8 @@
 - **Scope:** `chat-to-codex`
 - **Related:** `SPEC-001 — Worktree-Aware Workspace Access`
 - **Review evidence:** `docs/verification/artifacts/change-005/quality-gate/review-01.json`
+- **Completion evidence:** [acceptance regressions and fresh broker OAuth smoke](../verification/artifacts/change-005/regression-closure-2026-10-03.json), [local merge closeout](../verification/artifacts/change-005/closeout/summary.json).
+- **Separate rollout check:** Existing ChatGPT connector reauthorization/schema refresh and a call through that UI connector are owner-deferred. The required fresh broker-level OAuth → `list_branches` smoke is covered and passed; repository completion does not claim the existing UI connector is refreshed.
 - **Primary areas:** `src/workspace/git-snapshot.ts` (new), `src/workspace/git.ts`, `src/workspaces/targets.ts`, `src/mcp/server.ts`, `src/auth/store.ts`, `src/auth/oauth.ts`, `src/broker/server.ts`, `src/bridge/server.ts`, `scripts/poc-client.mjs`, Git/MCP/OAuth tests, canonical docs
 
 ## 1. Summary

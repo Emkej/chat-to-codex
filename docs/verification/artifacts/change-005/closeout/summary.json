@@ -1,0 +1,38 @@
+{
+  "change": "CHANGE-005",
+  "captured_phase": "before local integration",
+  "repository_status": "Completed",
+  "validation_status": "passed",
+  "source_head_before_closeout_commit": "97d90762864ad2b904bf989309450de4b4666f78",
+  "regression_commit": "558d0240db79c0dc6e88f55efe042abe655db07c",
+  "integration_target": "main",
+  "integration_base": "84100faae738c67d08248a473349e8757c84c354",
+  "integration_plan": "Local fast-forward only after closeout commit. Preserve the active integration worktree and the unrelated detached DevEx worktree. Remove only the merged local CHANGE-005 topic branch after post-merge verification.",
+  "validation_evidence": "pre-merge/summary.json",
+  "staged_diff_check": "Passed for task source, Markdown and JSON using core.whitespace=cr-at-eol. Raw CLI .log files are retained verbatim and excluded from whitespace lint because Vitest prints blank terminal lines and padded stack frames.",
+  "full_tests": { "files": 43, "tests": 459, "status": "passed on attempt 2" },
+  "initial_failure": {
+    "code": "WRITE_OWNER_ALREADY_HELD",
+    "test": "tests/broker-daemon.test.ts: reuses the installation identity across restarts",
+    "result": "458 tests passed; 1 failed",
+    "root_cause": "Not established; focused restart passed and the identical full-suite retry passed without a code change.",
+    "evidence": ["focused-recheck.json", "pre-merge/01-full-tests.stderr.log", "pre-merge/summary.json"]
+  },
+  "scope": "No production-code or test changes in closeout. Update completion evidence and stale work-state Git context only.",
+  "ownership_manifest": "task-ownership.json",
+  "tracker": {
+    "path": "/home/emkej/projects/veterinar/tools/repo/track_dirty_paths.py",
+    "operation": "closeout",
+    "reason": "Repository has no local tracker; the previously established compatible shared tracker exposes closeout rather than classify and retains owned/excluded/unexpected classification in the manifest."
+  },
+  "preservation_evidence": "user-change-preservation.json",
+  "retention": "Keep compact verification summaries, their test-run logs, the original failure and ownership/preservation evidence. Preserve all pre-existing artifacts, runtime data and worktrees.",
+  "separate_live_connector_gate": {
+    "owner": "user",
+    "status": "owner-deferred",
+    "action": "Refresh or reauthorize the existing ChatGPT UI connector and call list_branches through it.",
+    "repository_acceptance": "Required fresh broker OAuth grant and list_branches call passed in local E2E."
+  },
+  "push_authorized": false,
+  "push_performed": false
+}
