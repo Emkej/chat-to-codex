@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-02",
+  "kind": "plan-correction-verification",
+  "plan": "docs/changes/change-005-repository-branch-discovery-and-read-only-ref-inspection.md",
+  "planSha256": "9321fa621a72ea312e41f5f3212d3af689afaaf76ee4f6946cc56527b6375298",
+  "previousReview": "docs/verification/artifacts/change-005/quality-gate/recheck-01.json",
+  "verdict": "remaining-reviewed-finding-addressed-in-plan",
+  "resolvedFindings": ["R5", "remaining R4 limit-contract edge case"],
+  "changes": [
+    "Section 11 explicitly rejects an individually oversized requested line with FILE_TOO_LARGE and no partial content or continuation cursor.",
+    "Content accounting uses UTF-8 bytes including returned newline separators; first-line exceptions are prohibited.",
+    "Ordinary byte boundaries preserve complete lines and advance next_start_line without loss or non-progressing empty pages.",
+    "Section 15.5, section 21.11 and AC-005-15 match the corrected contract.",
+    "Verification scenarios include a 300 KiB single-line blob, exactly 256 KiB, one byte over, multibyte UTF-8, and a line exceeding only the remaining page budget."
+  ],
+  "validation": {
+    "staticContractConsistency": "passed: file response, limit table, test scenarios and acceptance criterion agree",
+    "runtimeTestsTypecheckBuild": "not run; documentation-only correction",
+    "runtimeBehavior": "not implemented or verified by this task"
+  },
+  "scope": "Only the CHANGE-005 plan and this new verification artifact changed; earlier review records and application files were preserved."
+}

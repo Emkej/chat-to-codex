@@ -1,0 +1,85 @@
+{
+  "date": "2026-10-02",
+  "kind": "plan-review",
+  "plan": "docs/changes/change-005-repository-branch-discovery-and-read-only-ref-inspection.md",
+  "planSha256": "fd420362abccda6db3d7cb08a660c079e5739903cce6f8cff0b297b296ecb603",
+  "reviewedHead": "84100faae738c67d08248a473349e8757c84c354",
+  "verdict": "revise-three-important-gaps",
+  "findings": [
+    {
+      "id": "R1",
+      "severity": "Important",
+      "planSections": ["15.2", "21", "AC-005-6"],
+      "planLine": 611,
+      "problem": "Forbidding explicit fetch/pull/ls-remote does not prevent Git object readers from fetching missing objects automatically from promisor remotes.",
+      "impact": "A repository read can initiate transport/helper execution and write fetched objects, contradicting the no-network and no-mutation contract.",
+      "evidence": ["src/workspace/git.ts:15", "src/workspace/git.ts:47", "Git 2.34.1 temporary partial-clone probe"],
+      "recommendedMinimalAdjustment": "Require an effective no-lazy-fetch boundary before object reads. For Git 2.34.1, reject partial/promisor repositories before reading objects unless a compatible prevention mechanism is demonstrated. Do not depend unconditionally on --no-lazy-fetch, introduced in Git 2.45. Add a missing-blob fixture that proves no helper invocation or object-store write and a sanitized failure.",
+      "sources": ["https://git-scm.com/docs/partial-clone", "https://raw.githubusercontent.com/git/git/v2.45.0/Documentation/RelNotes/2.45.0.txt"]
+    },
+    {
+      "id": "R2",
+      "severity": "Important",
+      "planSections": ["9.1", "9.2", "9.4", "15", "AC-005-10"],
+      "planLine": 304,
+      "problem": "Rejecting refs/replace as caller input does not disable Git's automatic replacement-object lookup when reading a resolved commit OID.",
+      "impact": "The same reported commit can yield replacement content or ancestry; replacement changes are invisible to expected_commit checks and violate snapshot stability.",
+      "evidence": ["src/workspace/git.ts:15", "Git 2.34.1 temporary replacement-object probe"],
+      "recommendedMinimalAdjustment": "Disable replacement lookup for every snapshot object and ancestry operation with --no-replace-objects or a forced GIT_NO_REPLACE_OBJECTS setting. Test that changing a replacement ref leaves browse/search/compare tied to the original resolved objects.",
+      "sources": ["https://git-scm.com/docs/git-replace"]
+    },
+    {
+      "id": "R3",
+      "severity": "Important",
+      "planSections": ["9.4", "11", "13", "21.4", "AC-005-10"],
+      "planLine": 327,
+      "problem": "Continuation preconditions are optional and checked only when supplied, but AC-005-10 promises coherent pagination without that qualification.",
+      "impact": "A caller can request offset > 0 or a later line range without expected_* and silently combine different branch snapshots.",
+      "recommendedMinimalAdjustment": "Require expected_commit for browse offsets greater than zero and later start_line values, and require both expected commits for compare offsets greater than zero. Reject omitted or partially supplied continuation preconditions and test these cases as well as REF_CHANGED. If arbitrary unguarded ranges are intentional, explicitly limit the coherence guarantee to guarded calls instead.",
+      "validation": "Static contract inconsistency; implementation does not yet exist."
+    },
+    {
+      "id": "R4",
+      "severity": "Optional",
+      "planSections": ["10", "11", "12", "15.3"],
+      "planLine": 625,
+      "problem": "Bounded output is required, but concrete browse blob-size limits, search raw-output caps, and the observable overflow behavior are not defined.",
+      "impact": "Implementers and tests can choose incompatible behavior, particularly for an oversized single line or an interrupted search with fewer visible matches than the requested limit.",
+      "recommendedMinimalAdjustment": "Add one compact limits/error table with defaults, hard maxima, and explicit oversized-blob and incomplete-search behavior; reuse existing constants where suitable and avoid a new configuration framework."
+    }
+  ],
+  "probes": {
+    "runtime": "git version 2.34.1",
+    "replacementObjectRead": {
+      "setup": "Create commits A and B with distinct marker.txt content; refs/heads/original points to A; git replace A B.",
+      "operation": "Resolve original with show-ref --verify --hash; compare git show <resolved>:marker.txt with git --no-replace-objects show <resolved>:marker.txt.",
+      "sameResolvedOid": true,
+      "ordinaryRead": "replacement snapshot",
+      "noReplaceRead": "original snapshot",
+      "result": "reproduced"
+    },
+    "implicitLazyFetch": {
+      "setup": "Enable uploadpack.allowFilter in a temporary source; clone via file:// with --no-checkout --filter=blob:none.",
+      "operation": "Read <resolved-main-commit>:marker.txt with git show and compare .git/objects/pack directory entries before and after.",
+      "promisor": true,
+      "packDirectoryEntriesBefore": 3,
+      "packDirectoryEntriesAfter": 6,
+      "objectStoreMutated": true,
+      "result": "reproduced using local transport; external network was not exercised"
+    },
+    "isolation": "Fixtures existed only in a Python TemporaryDirectory outside the project and were automatically removed."
+  },
+  "simplification": [
+    "Reuse resolveLocalWorktree's validated kind=main result when building the repository-owner resolver; avoid a second implementation of owner identity rules.",
+    "Keep one OAuth router parameterized by supported/default scopes; refresh already preserves record.scopes.",
+    "No snapshot cache, registry, session schema, or checkout lifecycle is needed for these corrections."
+  ],
+  "validation": {
+    "planAgainstImplementation": "completed static review of target resolution, Git runner, ignore/search/file readers, MCP integration, OAuth scope handling and canonical SPEC-001",
+    "platformDocumentation": "Context7 plus official Git documentation and Git 2.45 release notes checked",
+    "applicationTestsTypecheckBuild": "not run; plan review only",
+    "connectorSmoke": "not run; plan review only",
+    "proposedFixRuntime": "not implemented or verified"
+  },
+  "scope": "Only this review evidence file was added. Plan, application code, Git configuration and branches were unchanged."
+}

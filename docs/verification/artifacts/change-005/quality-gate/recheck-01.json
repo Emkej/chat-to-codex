@@ -1,0 +1,54 @@
+{
+  "date": "2026-10-02",
+  "kind": "plan-review-recheck",
+  "plan": "docs/changes/change-005-repository-branch-discovery-and-read-only-ref-inspection.md",
+  "planSha256": "43cf03763078da0a7f38c5e9532ccc633b722add34c8874f879ca3d05148e01a",
+  "reviewedHead": "84100faae738c67d08248a473349e8757c84c354",
+  "previousReview": "docs/verification/artifacts/change-005/quality-gate/review-01.json",
+  "verdict": "revise-one-remaining-limit-edge-case",
+  "previousFindings": [
+    {
+      "id": "R1",
+      "status": "addressed-in-plan",
+      "evidence": ["sections 6 and 15.3 reject partial/promisor repositories before object reads", "section 21.6 verifies no helper invocation or object-store mutation", "AC-005-6"]
+    },
+    {
+      "id": "R2",
+      "status": "addressed-in-plan",
+      "evidence": ["sections 9.5 and 15.1/15.4 force replacement lookup off for object and ancestry operations", "section 21.5 tests replacement changes", "AC-005-10"]
+    },
+    {
+      "id": "R3",
+      "status": "addressed-in-plan",
+      "evidence": ["sections 9.4, 11 and 13 require continuation preconditions and both compare values", "section 21.4 covers omitted preconditions and moved refs", "AC-005-11"]
+    },
+    {
+      "id": "R4",
+      "status": "mostly-addressed-one-edge-case-remains",
+      "evidence": ["section 15.5 defines defaults, caps and error/truncation behavior", "sections 12 and 21.11 cover bounded grep output including a long line", "git_browse has no explicit rule for a single line larger than its 256 KiB response limit"]
+    }
+  ],
+  "findings": [
+    {
+      "id": "R5",
+      "severity": "Important",
+      "origin": "R4 limit-contract refinement",
+      "planSections": ["11", "15.5", "21.11", "AC-005-15"],
+      "planLine": 777,
+      "problem": "A text blob containing one 300 KiB line passes the 1 MiB blob limit but exceeds the 256 KiB response cap. The public continuation model has only line indices, so it cannot resume inside that line.",
+      "impact": "Returning the full line breaks the hard cap; dropping its remainder loses content; returning no line repeats the same continuation without progress. The referenced existing readFile implementation allows its first collected line to exceed maxBytes.",
+      "evidence": ["src/workspace/manager.ts:206", "plan lines 443-447", "plan lines 479-488", "plan lines 776-778"],
+      "recommendedMinimalAdjustment": "Keep line-only pagination. Explicitly fail with FILE_TOO_LARGE (or a dedicated documented long-line error) when an individual requested line cannot fit in an otherwise empty 256 KiB response. Do not return partial line content with a next-line cursor. Add a 300 KiB single-line blob fixture and response-boundary cases to section 21.11.",
+      "validation": "Static API/data-boundary analysis; 307200 bytes is below 1048576 and above 262144. No new runtime reproduction claimed."
+    }
+  ],
+  "simplification": "Reusing resolveLocalWorktree(kind=main) and a single hardened snapshot Git boundary are correctly incorporated. No byte cursor or new pagination subsystem is necessary if oversized lines explicitly fail.",
+  "validation": {
+    "planRecheck": "completed against all four previous findings, revised API contracts, verification sections and acceptance criteria",
+    "existingReaderInspection": "confirmed first-line exception to maxBytes in src/workspace/manager.ts:206",
+    "gitState": "read successfully with Windows Git and a command-scoped safe.directory setting after WSL service timed out; no global configuration changed",
+    "applicationTestsTypecheckBuild": "not run; plan review only",
+    "runtimeFixVerification": "not performed; plan-level corrections only"
+  },
+  "scope": "Only this recheck evidence file was added. Existing plan, application changes, branches and Git configuration were preserved."
+}
