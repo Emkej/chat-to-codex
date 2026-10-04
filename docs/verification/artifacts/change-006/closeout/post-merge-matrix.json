@@ -1,0 +1,17 @@
+[
+  {
+    "lane": "set",
+    "command": [
+      "node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "tests/search.test.ts",
+      "tests/git.test.ts",
+      "tests/workspaces-domain.test.ts",
+      "--reporter=json"
+    ],
+    "passed": 48,
+    "failed": 0,
+    "status": "passed"
+  }
+]

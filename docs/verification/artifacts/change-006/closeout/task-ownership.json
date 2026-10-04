@@ -4,8 +4,10 @@
     "capturedAt": "2026-10-04T15:31:29+02:00",
     "repositoryRoot": "/home/emkej/projects/chat-to-codex",
     "worktree": "/home/emkej/projects/chat-to-codex",
-    "branch": "codex/change-006-test-process-env-isolation",
-    "head": "095edd79f89e8f10d8ac990dfe51871fd30bb701",
+    "capturedBranch": "codex/change-006-test-process-env-isolation",
+    "capturedHead": "095edd79f89e8f10d8ac990dfe51871fd30bb701",
+    "branch": "main",
+    "head": "4fda9b3b17db675aeaa5b80bc02f1e6b3300aec5",
     "tracker": "tools/repo/track_dirty_paths.py",
     "preExistingDirtyPaths": [
         ".worktrees/devex-spec001-pilot-b/",
@@ -47,9 +49,9 @@
         "docs/specs/spec-003-c2c-manager-mvp.md"
     ],
     "closeoutClassification": {
-        "classifiedAt": "2026-10-04T15:32:16+02:00",
-        "head": "095edd79f89e8f10d8ac990dfe51871fd30bb701",
-        "method": "Compatible closeout classification; untracked SPEC header authorized but entire user document excluded from commits",
+        "classifiedAt": "2026-10-04T15:33:54+02:00",
+        "head": "4fda9b3b17db675aeaa5b80bc02f1e6b3300aec5",
+        "method": "Post-merge passed; manifest Git identity reconciled to main after branch mismatch; user-owned untracked SPEC header retained locally; unrelated tracked files restored exactly",
         "owned": {
             "source": "claimedPaths"
         },

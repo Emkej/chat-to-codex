@@ -20,5 +20,28 @@
       "sha256": "b9e12aa118470259cf5dc3450bc7e53fd08240452523916cbc954885e8320489",
       "mode": 33188
     }
-  }
+  },
+  "after": {
+    "README.md": {
+      "sha256": "cec9cc8586ea67a8f73a8557bbda14d65e1d41a79673d9872e8217cc5a0a621e",
+      "mode": 33188
+    },
+    "docs/troubleshooting.md": {
+      "sha256": "eec9235f726e1d9aec27d78b678fab869d097cc6edeceb21e22267778d57e498",
+      "mode": 33188
+    },
+    "skill/SKILL.md": {
+      "sha256": "7619bd9e0b702b96093e8121bd16cc45fea53b74fecae76c3f0ae5b322dfd8ec",
+      "mode": 33188
+    },
+    "src/auth/store.ts": {
+      "sha256": "6cdc377c21a9e88ea6eafa3ad08cfec0b6dd5b60328d4e7abfcffd19f25a3b3f",
+      "mode": 33188
+    },
+    "src/bridge/server.ts": {
+      "sha256": "b9e12aa118470259cf5dc3450bc7e53fd08240452523916cbc954885e8320489",
+      "mode": 33188
+    }
+  },
+  "status": "passed"
 }
