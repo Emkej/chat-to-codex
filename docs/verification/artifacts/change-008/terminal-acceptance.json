@@ -1,0 +1,92 @@
+{
+  "fixture_only": true,
+  "live_profile_untouched": true,
+  "installed_files_unchanged": true,
+  "installed_note": "Installed launcher exercised through a temporary process-only entry import redirect to the candidate build; candidate is not installed.",
+  "terminal": "tmux 3.2a",
+  "results": [
+    {
+      "entry": "local build",
+      "columns": 80,
+      "all_hunks_reachable": true,
+      "visible_controls": true,
+      "resize": true,
+      "cancelled_confirmation_no_effect": true,
+      "request_bytes_unchanged": true,
+      "restoration_seconds": 0.068
+    },
+    {
+      "entry": "local build",
+      "columns": 120,
+      "all_hunks_reachable": true,
+      "visible_controls": true,
+      "resize": true,
+      "cancelled_confirmation_no_effect": true,
+      "request_bytes_unchanged": true,
+      "restoration_seconds": 0.071
+    },
+    {
+      "entry": "installed launcher + candidate import",
+      "columns": 80,
+      "all_hunks_reachable": true,
+      "visible_controls": true,
+      "resize": true,
+      "cancelled_confirmation_no_effect": true,
+      "request_bytes_unchanged": true,
+      "restoration_seconds": 0.068
+    },
+    {
+      "entry": "installed launcher + candidate import",
+      "columns": 120,
+      "all_hunks_reachable": true,
+      "visible_controls": true,
+      "resize": true,
+      "cancelled_confirmation_no_effect": true,
+      "request_bytes_unchanged": true,
+      "restoration_seconds": 0.12
+    },
+    {
+      "slow_read_exit": "q",
+      "restoration_seconds": 0.07,
+      "request_bytes_unchanged": true
+    },
+    {
+      "slow_read_exit": "Ctrl+C",
+      "restoration_seconds": 0.071,
+      "request_bytes_unchanged": true
+    },
+    {
+      "slow_read_exit": "SIGTERM",
+      "restoration_seconds": 0.071,
+      "request_bytes_unchanged": true
+    },
+    {
+      "slow_read_exit": "deadline+q",
+      "restoration_seconds": 0.073,
+      "request_bytes_unchanged": true
+    },
+    {
+      "dispatched_approval_exit": "q",
+      "restoration_seconds": 0.073,
+      "broker_applied_after_exit": true
+    },
+    {
+      "dispatched_approval_exit": "Ctrl+C",
+      "restoration_seconds": 0.076,
+      "broker_applied_after_exit": true
+    },
+    {
+      "dispatched_approval_exit": "SIGTERM",
+      "restoration_seconds": 0.069,
+      "broker_applied_after_exit": true
+    },
+    {
+      "entry": "installed launcher + candidate import",
+      "columns": 120,
+      "explicit_approval_applied_once": true,
+      "terminal_receipt_visible": true,
+      "count_refreshed_to_zero": true,
+      "restoration_seconds": 0.068
+    }
+  ]
+}

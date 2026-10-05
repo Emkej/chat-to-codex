@@ -56,7 +56,18 @@
         "docs/verification/artifacts/change-008/s2-review-repair/summary.json",
         "docs/verification/artifacts/change-008/s2-review.json",
         "docs/verification/artifacts/change-008/terminal-fixture.mjs",
-        "docs/verification/artifacts/change-008/terminal-probe.py"
+        "docs/verification/artifacts/change-008/terminal-probe.py",
+        "docs/verification/artifacts/change-008/r1-outcome-header/summary.json",
+        "docs/verification/artifacts/change-008/r1-review.json",
+        "docs/verification/artifacts/change-008/s3-terminal/summary.json",
+        "docs/verification/artifacts/change-008/s3-terminal-final/summary.json",
+        "docs/verification/artifacts/change-008/terminal-acceptance.json",
+        "README.md",
+        "docs/architecture.md",
+        "docs/local-e2e.md",
+        "docs/verification/artifacts/change-008/s3-probe-syntax/summary.json",
+        "docs/verification/artifacts/change-008/final-gate/summary.json",
+        "docs/verification/artifacts/change-008/acceptance.json"
     ],
     "closeoutClassification": null
 }

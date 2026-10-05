@@ -1,0 +1,44 @@
+{
+  "contract_version": 2,
+  "name": "s3-terminal-final",
+  "status": "passed",
+  "counts": {
+    "passed": 1,
+    "failed": 0,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 1,
+  "skipped": 0,
+  "total": 1,
+  "results": [
+    {
+      "name": "terminal",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 24.24,
+      "attempt": 1,
+      "argv": [
+        "python3",
+        "docs/verification/artifacts/change-008/terminal-probe.py"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-008/s3-terminal-final",
+      "stdout_log": "01-terminal.stdout.log",
+      "stderr_log": "01-terminal.stderr.log",
+      "error": null
+    }
+  ],
+  "attempts": [
+    {
+      "number": 1,
+      "checks": [
+        "terminal"
+      ],
+      "statuses": {
+        "terminal": "passed"
+      }
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "contract_version": 2,
+  "name": "s3-probe-syntax",
+  "status": "passed",
+  "counts": {
+    "passed": 3,
+    "failed": 0,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 3,
+  "skipped": 0,
+  "total": 3,
+  "results": [
+    {
+      "name": "fixture",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.065,
+      "attempt": 1,
+      "argv": [
+        "node",
+        "--check",
+        "docs/verification/artifacts/change-008/terminal-fixture.mjs"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-008/s3-probe-syntax",
+      "stdout_log": "01-fixture.stdout.log",
+      "stderr_log": "01-fixture.stderr.log",
+      "error": null
+    },
+    {
+      "name": "probe",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.071,
+      "attempt": 1,
+      "argv": [
+        "python3",
+        "-c",
+        "import ast,pathlib; ast.parse(pathlib.Path(\"docs/verification/artifacts/change-008/terminal-probe.py\").read_text())"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-008/s3-probe-syntax",
+      "stdout_log": "02-probe.stdout.log",
+      "stderr_log": "02-probe.stderr.log",
+      "error": null
+    },
+    {
+      "name": "diff",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.082,
+      "attempt": 1,
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-008/s3-probe-syntax",
+      "stdout_log": "03-diff.stdout.log",
+      "stderr_log": "03-diff.stderr.log",
+      "error": null
+    }
+  ],
+  "attempts": [
+    {
+      "number": 1,
+      "checks": [
+        "fixture",
+        "probe",
+        "diff"
+      ],
+      "statuses": {
+        "fixture": "passed",
+        "probe": "passed",
+        "diff": "passed"
+      }
+    }
+  ]
+}
