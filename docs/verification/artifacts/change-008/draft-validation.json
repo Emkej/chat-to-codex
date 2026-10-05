@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "kind": "change-draft-source-review",
+  "work_id": "CHANGE-008",
+  "date": "2026-10-05",
+  "repository": "chat-to-codex",
+  "branch": "main",
+  "head": "c1bcdd3209a6e6d120cae498d9902c77c7b0aba0",
+  "status": "passed-with-design-constraint",
+  "observations": [
+    {
+      "area": "Manager surface",
+      "status": "confirmed",
+      "evidence": "src/manager/ui/manager-app.tsx and src/manager/services.ts have no write-request list, detail, or approval surface."
+    },
+    {
+      "area": "Canonical request API",
+      "status": "confirmed",
+      "evidence": "src/broker/write-request-admin.ts provides workspace/status filtering and approve/reject routes backed by WriteRequestService; approval revalidates through the broker-owned service."
+    },
+    {
+      "area": "Per-workspace request scope",
+      "status": "confirmed",
+      "evidence": "GET /admin/write-requests supports workspaceId and optional worktreeId; omitting worktreeId covers all worktree targets for that workspace."
+    },
+    {
+      "area": "Read-side effects",
+      "status": "constraint",
+      "evidence": "WriteRequestService.listRequests() and getRequest() call expireAndPruneLocked(), so Manager polling/inspection needs a non-mutating broker-owned projection to preserve its observational-read contract."
+    },
+    {
+      "area": "User value signal",
+      "status": "confirmed",
+      "evidence": "User reports reviewing pending requests daily and wants request presence visible on workspace rows."
+    }
+  ],
+  "validation": {
+    "performed": "Read-only source/spec review and draft consistency check.",
+    "tests": "Not run; this artifact records a documentation draft, not an implementation."
+  }
+}

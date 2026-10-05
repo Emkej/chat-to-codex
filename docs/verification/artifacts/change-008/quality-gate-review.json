@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "kind": "software-plan-quality-gate",
+  "work_id": "CHANGE-008",
+  "date": "2026-10-05",
+  "head": "c1bcdd3209a6e6d120cae498d9902c77c7b0aba0",
+  "document": "docs/changes/change-008-c2c-manager-pending-write-requests.md",
+  "document_sha256": "868962d07346c0455129c62e34703e126edbacf05979ad8a512671f2d0225eb9",
+  "verdict": "needs-revision",
+  "scope": "Proposed design and planned verification only. Existing source was read to establish prerequisites and authoritative behavior; no implementation conformance review was performed.",
+  "authority": "Preserve SPEC-002 broker ownership and approval lifecycle, and SPEC-003 observational reads and refresh lifecycle. The fixes below do not require reopening those decisions.",
+  "findings": [
+    {
+      "id": "QG-1",
+      "severity": "Important",
+      "title": "Define the approval dispatch and cancellation boundary",
+      "document_line": 76,
+      "problem": "The validation promise that cancellation applies nothing is unqualified. Existing broker approval takes a request id, runs independently of the Manager wait, and has no cancellation argument. Losing or aborting the response can leave the patch applied without the UI knowing its outcome.",
+      "impact": "The UI could incorrectly report cancellation or failure as proof of no changes, or encourage retry without reconciling the first attempt.",
+      "fix": "Restrict zero-effect cancellation to the confirmation stage before dispatch. After dispatch, cancellation/timeout ends the Manager wait only; show outcome unknown when no receipt is obtained, never automatically retry, and reconcile that same request id through a non-mutating receipt read. Allow this narrow terminal-receipt lookup without introducing a history screen.",
+      "planned_verification": "Test confirmation cancellation sends no POST; abort or lose the response after broker dispatch, observe the canonical outcome, reconcile the same id, and verify no duplicate application. Retain bounded terminal restoration.",
+      "evidence": [
+        { "path": "src/broker/write-request-admin.ts", "line": 126 },
+        { "path": "src/write-requests/service.ts", "line": 154 },
+        { "path": "docs/specs/spec-002-approved-local-patch-writes.md", "line": 1775 },
+        { "path": "docs/specs/spec-003-c2c-manager-mvp.md", "line": 1506 }
+      ]
+    },
+    {
+      "id": "QG-2",
+      "severity": "Important",
+      "title": "Make the bounded exact-count projection actionable",
+      "document_line": 48,
+      "problem": "The draft requires bounded exact counts but does not define the storage traversal or resource budget. The current list implementation loads every JSON record, including pending patches, synchronously; the service limit of 100 is applied only afterward. A compact response alone does not bound broker work or retained memory.",
+      "impact": "Reusing the existing store list on every refresh can block the broker and buffer all patches. Counting a capped request list instead silently undercounts.",
+      "fix": "Before UI integration, define the broker read budget and bounded-memory traversal. Aggregate counts across the complete successful scan independently of list-page limits, return unavailable on budget exhaustion rather than a partial count, and fetch raw patch content only for the selected detail in the Manager. Preserve canonical record validation and CLI semantics.",
+      "planned_verification": "Use more than 100 active requests across multiple workspaces/worktrees, include expired and terminal records and large bounded patches, verify exact counts independently of list overflow, and directly verify storage-read deadline/memory behavior and byte-identical state.",
+      "evidence": [
+        { "path": "src/write-requests/store.ts", "line": 57 },
+        { "path": "src/write-requests/store.ts", "line": 75 },
+        { "path": "src/write-requests/service.ts", "line": 255 },
+        { "path": "src/write-requests/patch.ts", "line": 13 }
+      ]
+    },
+    {
+      "id": "QG-3",
+      "severity": "Important",
+      "title": "Preserve the accepted obsolete-refresh overlap exception",
+      "document_line": 66,
+      "problem": "A7 unconditionally says request reads do not overlap foreground actions, although counts join the existing status refresh. SPEC-003 requires foreground actions to start immediately while one invalidated pre-existing refresh retires.",
+      "impact": "Implementers cannot satisfy both literal contracts; waiting for all request reads before approval would regress the accepted foreground lifecycle.",
+      "fix": "State that list/detail reads use the existing foreground guard and generation model; counts remain in the status refresh. Preserve SPEC-003 sections 14.2-14.3: one invalidated status read may overlap, cannot commit, and must retire before completion refresh.",
+      "planned_verification": "Delay a count refresh, start approval without waiting, finish approval, then complete the obsolete read. Verify its result is discarded and the completion refresh starts only after retirement.",
+      "evidence": [
+        { "path": "docs/specs/spec-003-c2c-manager-mvp.md", "line": 1254 },
+        { "path": "docs/specs/spec-003-c2c-manager-mvp.md", "line": 1281 },
+        { "path": "src/manager/refresh-coordinator.ts", "line": 68 }
+      ]
+    },
+    {
+      "id": "QG-4",
+      "severity": "Important",
+      "title": "Define faithful terminal-safe diff presentation",
+      "document_line": 38,
+      "problem": "Full diff navigation alone does not specify how literal terminal control characters are represented. The patch domain does not prohibit all such characters, while the existing workspace detail formatter strips terminal sequences and replaces other controls.",
+      "impact": "Raw rendering can interpret patch content as terminal formatting; blindly reusing the metadata formatter can conceal bytes that the user is authorizing.",
+      "fix": "Require visible escaped representations of terminal control characters in patch content and filenames, preserving line/hunk structure and the broker's original patch bytes. Treat this as presentation only, without changing patch acceptance policy.",
+      "planned_verification": "Render fixtures containing literal escape sequences and control characters at narrow and wide widths; verify those bytes are visibly represented, no input control sequence reaches terminal output, and approval still references the unchanged broker request.",
+      "evidence": [
+        { "path": "src/write-requests/patch.ts", "line": 173 },
+        { "path": "src/write-requests/patch.ts", "line": 402 },
+        { "path": "src/manager/workspace-detail-layout.ts", "line": 8 },
+        { "path": "tests/manager-detail.test.ts", "line": 63 }
+      ]
+    }
+  ],
+  "validation_scope": {
+    "performed": "Read-only comparison of the draft with authoritative specifications and current service/store/Manager boundaries.",
+    "implementation_tests": "Not run: no implementation was requested or changed.",
+    "reviewed_document_modified": false
+  }
+}

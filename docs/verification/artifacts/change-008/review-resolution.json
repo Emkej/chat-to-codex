@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "kind": "plan-review-resolution",
+  "work_id": "CHANGE-008",
+  "date": "2026-10-05",
+  "branch": "codex/change-008-plan-review-fixes",
+  "head": "c1bcdd3209a6e6d120cae498d9902c77c7b0aba0",
+  "document": "docs/changes/change-008-c2c-manager-pending-write-requests.md",
+  "review": "docs/verification/artifacts/change-008/quality-gate-review.json",
+  "before_sha256": "868962d07346c0455129c62e34703e126edbacf05979ad8a512671f2d0225eb9",
+  "after_sha256": "fa87d8300bd232862256516a039e6bd4d846c3b05251f99a5b4bba12f05e9a52",
+  "status": "addressed-in-plan",
+  "scope": "Revise the draft and its planned validation for QG-1 through QG-4. No application implementation, installation, commit, or deployment performed.",
+  "resolutions": [
+    {
+      "finding": "QG-1",
+      "sections": ["3.2", "3.3", "4", "5/A9", "6"],
+      "behavior": "Zero-effect cancellation is limited to confirmation before dispatch. A lost or cancelled approval response remains unresolved until a same-id non-mutating receipt read returns a terminal outcome; no automatic approval retry is allowed.",
+      "verification_planned": "No POST before confirmation; delayed broker approval with response loss; same-id reconciliation; unresolved pending/missing/unavailable receipts; duplicate confirmation; bounded exit after dispatch."
+    },
+    {
+      "finding": "QG-2",
+      "sections": ["3.1", "3.3", "3.4", "5/A1", "5/A8", "6"],
+      "behavior": "A five-second whole-read budget and asynchronous sequential storage traversal bound the new projection. Counts require a complete consistent scan independently of the list cap. Retained data excludes accumulated patch bodies; scan failure is unavailable, distinct from list overflow.",
+      "verification_planned": "More than 100 requests, multiple workspace/worktree targets, expired and terminal records, large valid patches, storage deadlines and cancellation, guard/handle release, bounded retained data, and no patches in summary/list responses."
+    },
+    {
+      "finding": "QG-3",
+      "sections": ["3.5", "5/A7", "6"],
+      "behavior": "Counts stay in status refresh; foreground reads/actions share the existing guard. One invalidated prior refresh may overlap, cannot commit, and retires before completion refresh, preserving SPEC-003 sections 14.2-14.3.",
+      "verification_planned": "Delay counts, start approval immediately, complete approval before obsolete-read retirement, discard its late result, and start exactly one completion refresh after retirement."
+    },
+    {
+      "finding": "QG-4",
+      "sections": ["3.2", "5/A3", "6"],
+      "behavior": "Patch content and filenames visibly escape terminal controls without stripping bytes or executing sequences. Display escapes preserve line/hunk structure, distinguish literal backslashes, and never replace the original broker patch or reviewed request id.",
+      "verification_planned": "Narrow/wide ESC/ANSI and control-character fixtures, literal escape-looking text, complete hunk navigation, unchanged stored patch bytes, and same-id approval."
+    }
+  ],
+  "validation": {
+    "manual_contract_review": "Passed: each original finding maps to behavior, acceptance criteria, and direct planned verification; canonical write ownership and the accepted refresh lifecycle remain intact.",
+    "document_consistency": "Passed: nine distinct acceptance criteria, removed conflicting cancellation/overlap wording, preserved draft execution boundary.",
+    "preserved_inputs": "SPEC-003, draft-validation.json, and the original quality-gate-review.json matched their pre-edit SHA-256 hashes.",
+    "implementation_validation": "Not run: build, typecheck, unit tests, and terminal/runtime acceptance remain future implementation checks."
+  },
+  "limitations": [
+    "This resolves plan findings only; the runtime read-cost opportunity remains unimplemented.",
+    "Original review evidence remains an immutable record of the previous document hash."
+  ]
+}
