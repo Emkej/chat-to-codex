@@ -91,7 +91,7 @@ export function ManagerApp({
 
   return (
     <Box flexDirection="column" paddingX={1}>
-      {snapshot.requestReview ? (snapshot.confirmation ? <Text bold>Pending write request approval</Text> : <RequestReview lines={detailLines} offset={viewport.offset} height={viewport.height} detail={!!snapshot.requestReview.detail} />) : snapshot.workspaceDetail ? (
+      {snapshot.requestReview ? (snapshot.confirmation ? <Text bold>Pending write request approval</Text> : <RequestReview lines={detailLines} offset={viewport.offset} height={viewport.height} detail={!!snapshot.requestReview.detail} unknownId={snapshot.approvalAttempt?.state === "unknown" ? snapshot.approvalAttempt.id : null} canApprove={controller.requests.canApprove()} />) : snapshot.workspaceDetail ? (
         !menuOpen && !helpOpen && !snapshot.confirmation ?
           <WorkspaceDetail lines={detailLines} offset={viewport.offset} height={viewport.height} /> :
           <Text bold>Workspace detail</Text>

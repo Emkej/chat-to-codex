@@ -148,6 +148,15 @@ describe("Manager request review lifecycle", () => {
 });
 
 describe("safe request presentation and input", () => {
+  it("keeps an unresolved attempt visible at the end of a long diff", () => {
+    const lines = Array.from({ length: 500 }, (_, index) => `line ${index}`);
+    const viewport = detailViewport(lines.length, 24, 1000);
+    const screen = renderToString(createElement(RequestReview, { lines, ...viewport, detail: true, unknownId: receipt().id, canApprove: false }), { columns: 80 });
+    expect(screen).toContain("UNKNOWN approval outcome: " + receipt().id);
+    expect(screen).toContain("Approval unavailable");
+    expect(screen).not.toContain("[v] Approve");
+    expect(screen.split("\n").length).toBeLessThanOrEqual(24);
+  });
   it("renders valid newline-heavy patches beyond the engine argument limit", async () => {
     const patch = "--- /dev/null\n+++ b/empty-lines.txt\n@@ -0,0 +1,150000 @@\n" + "+\n".repeat(150_000);
     const { controller } = await fixture({ detail: vi.fn(async () => ({ ...receipt(), patch })) });

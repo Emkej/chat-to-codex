@@ -77,12 +77,18 @@ export class RequestReviewController {
     if (this.host.snapshot().confirmation === "approve") this.host.patch({ confirmation: null });
   }
 
-  requestApproval(): boolean {
+  canApprove(): boolean {
     const snapshot = this.host.snapshot(), detail = snapshot.requestReview?.detail;
     const request = detail?.request;
     if (snapshot.closed || snapshot.activeAction || snapshot.confirmation || detail?.state !== "ready" ||
       !request || request.status !== "pending" || !request.patch || Date.parse(request.expiresAt ?? "") <= Date.now() ||
       snapshot.approvalAttempt?.state === "unknown") return false;
+    return true;
+  }
+
+  requestApproval(): boolean {
+    if (!this.canApprove()) return false;
+    const request = this.host.snapshot().requestReview!.detail!.request!;
     this.confirmationId = request.id;
     this.host.patch({ confirmation: "approve", notice: `Apply ${request.id}? y/Enter confirms; n/Esc cancels.` });
     return true;

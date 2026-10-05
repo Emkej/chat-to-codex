@@ -1,0 +1,9 @@
+{
+  "slice": "R1",
+  "reviewer": "independent review_broker subagent under requesting-code-review",
+  "finding": "The uncertain approval notice could scroll away with diff content.",
+  "resolution": "Keep the unresolved id in the fixed header; share canApprove with the controller and render approval unavailable.",
+  "regression": "Unknown id and disabled approval remain visible at the end of a 500-line diff in an 80x24 viewport.",
+  "findings": [],
+  "validation": "r1-outcome-header/summary.json"
+}
