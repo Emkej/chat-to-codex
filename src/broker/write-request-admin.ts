@@ -1,5 +1,6 @@
 import express, { type ErrorRequestHandler, type Request, type RequestHandler } from "express";
 import { WriteRequestService } from "../write-requests/service.js";
+import { createWriteObservationRouter } from "./write-request-observation.js";
 import { WriteRequestError, type WriteRequestStatus } from "../write-requests/types.js";
 
 const VALID_STATUSES = new Set<WriteRequestStatus>([
@@ -33,6 +34,7 @@ const STATUS_BY_CODE: Record<string, number> = {
   WRITE_APPLY_FAILED: 500,
   WRITE_RECEIPT_PERSIST_FAILED: 500,
   WRITE_ROLLBACK_FAILED: 500,
+  WRITE_READ_UNAVAILABLE: 503,
 };
 
 function queryString(req: Request, key: string): string | undefined {
@@ -79,6 +81,7 @@ export function createWriteRequestAdminRouter(
   router.use(adminGuard);
   // The patch cap is 1 MiB. JSON escaping can roughly double newline-heavy patches.
   router.use(express.json({ limit: "3mb" }));
+  router.use("/observe", createWriteObservationRouter(service));
 
   router.post("/", async (req, res) => {
     const body = req.body as Record<string, unknown> | null;

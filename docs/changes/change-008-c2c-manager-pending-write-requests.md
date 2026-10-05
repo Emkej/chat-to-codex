@@ -1,6 +1,6 @@
 # CHANGE-008: Review Pending Write Requests in C2C Manager
 
-- **Status:** Draft — quality-gate findings incorporated; implementation not started
+- **Status:** In progress — implementation authorized by `$start-work` on 2026-10-05
 - **Date:** 2026-10-05
 - **Scope:** `chat-to-codex`, WSL Manager only
 - **Primary area:** Workspace overview and local write-request review
@@ -109,6 +109,17 @@ This change does not add request creation/proposal flows, terminal request histo
 ## 8. Work tracking
 
 - **Owner outcome:** See pending requests per workspace and inspect/apply a selected request from the C2C Manager.
-- **Status:** Draft only; no implementation, installation, commit, or deployment is authorized by this record.
+- **Authorization:** Owner invoked `$start-work` for this record on 2026-10-05, authorizing bounded implementation and the workflow's local slice commit gate. Installation, push, PR and deployment remain outside scope.
+- **Execution:** WSL/Linux; `/home/emkej/projects/chat-to-codex`; branch `codex/change-008-pending-write-requests`; start HEAD `30db47c86b29f05cc735fdd0ebe4a12449f269b9`.
+- **Ownership:** `/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-008/task-ownership.json`; tracker `python3 /home/emkej/.codex/workflows/scripts/track_dirty_paths.py`. Pre-existing untracked spec/work/worktree data is excluded.
+- **Metrics:** continuation runs 0; observed context compactions 0; failed validation attempts 2; workflow owner-decision round-trips 0.
+- **Preflight:** Node 24.15.0, pinned pnpm 11.24.0 and existing dependencies available; typecheck and write-request/admin baseline passed ([summary](../verification/artifacts/change-008/preflight/summary.json)). Prerequisite failure cache initialized empty.
+
+| Slice | Status | Outcome and boundary |
+| --- | --- | --- |
+| S1 — Broker observation | Completed | Bounded non-mutating inventory/detail/receipt reads and guarded local admin transport. Exact counts, overflow, isolation, read invariance, sequential reads, deadline/queue cancellation and existing write regressions passed; [gate](../verification/artifacts/change-008/s1-gate/summary.json), [independent review](../verification/artifacts/change-008/s1-review.json). |
+| S2 — Manager review and approval | In progress | Counts in existing refresh, navigable escaped diff, confirmation and uncertain-outcome reconciliation through existing foreground lifecycle; controller/UI and affected regression checks. |
+| S3 — Terminal acceptance | Planned | Disposable local terminal probes at both widths, cancellation/exit and unchanged request-state evidence. Installed path is verification only; installation updates require separate authorization. |
+| S4 — Documentation and final validation | Planned | Documentation alignment and final affected suites/typecheck/build/ownership checks; leave local closeout to `$close-work`. |
 - **Draft evidence:** [Source review](../verification/artifacts/change-008/draft-validation.json).
 - **Quality-gate revision:** QG-1–QG-4 from the [original review](../verification/artifacts/change-008/quality-gate-review.json) are addressed in the design and planned validation; [resolution evidence](../verification/artifacts/change-008/review-resolution.json). This is document-level resolution, not proof of implemented behavior.

@@ -1,0 +1,41 @@
+{
+    "schemaVersion": 1,
+    "taskId": "change-008",
+    "capturedAt": "2026-10-05T20:15:44+02:00",
+    "repositoryRoot": "/home/emkej/projects/chat-to-codex",
+    "worktree": "/home/emkej/projects/chat-to-codex",
+    "branch": "codex/change-008-pending-write-requests",
+    "head": "30db47c86b29f05cc735fdd0ebe4a12449f269b9",
+    "tracker": "/home/emkej/.codex/workflows/scripts/track_dirty_paths.py",
+    "preExistingDirtyPaths": [
+        ".worktrees/devex-spec001-pilot-b/",
+        "docs/specs/spec-003-c2c-manager-mvp.md",
+        "work/c2c-test-codex-home/config.toml",
+        "work/c2c-test-home/profiles/spec001-chatgpt/agent-sessions/aa044b947ac1.json",
+        "work/c2c-test-home/profiles/spec001-chatgpt/auth/c2c_inst_-lOMTvZdSaw_EPa5S2yrBA.json",
+        "work/c2c-test-home/profiles/spec001-chatgpt/installation.json",
+        "work/c2c-test-home/profiles/spec001-chatgpt/runtime/c2c_inst_-lOMTvZdSaw_EPa5S2yrBA.json",
+        "work/c2c-test-home/profiles/spec001-chatgpt/tunnels/installation.json",
+        "work/c2c-test-home/profiles/spec001-chatgpt/workspaces/registry.json",
+        "work/c2c-test-home/profiles/spec001-chatgpt/workspaces/sessions.json",
+        "work/tools/cloudflared"
+    ],
+    "claimedPaths": [
+        "docs/changes/change-008-c2c-manager-pending-write-requests.md",
+        "src/write-requests/store.ts",
+        "src/write-requests/service.ts",
+        "src/write-requests/types.ts",
+        "src/write-requests/observation.ts",
+        "src/write-requests/read-budget.ts",
+        "src/write-requests/lifecycle-mutex.ts",
+        "src/broker/write-request-admin.ts",
+        "src/broker/write-request-observation.ts",
+        "tests/write-request-observation.test.ts",
+        "tests/write-request-observation-admin.test.ts",
+        "docs/verification/artifacts/change-008/preflight/summary.json",
+        "docs/verification/artifacts/change-008/s1-gate/summary.json",
+        "docs/verification/artifacts/change-008/s1-iteration/summary.json",
+        "docs/verification/artifacts/change-008/s1-review.json"
+    ],
+    "closeoutClassification": null
+}

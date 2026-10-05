@@ -1,4 +1,7 @@
 import { randomBytes } from "node:crypto";
+import { LifecycleMutex } from "./lifecycle-mutex.js";
+import { WriteReadBudget } from "./read-budget.js";
+import { observePending, observeRequest, type WriteObservationOptions, type PendingObservation } from "./observation.js";
 import { Workspace, WorkspaceError } from "../workspace/manager.js";
 import { WorktreeError } from "../workspace/worktrees.js";
 import { commitPreparedPatch, type ApplyHooks } from "./apply.js";
@@ -48,22 +51,6 @@ export type WriteRequestDetails = WriteRequestReceipt & { patch?: string };
 
 const PENDING_TTL_MS = 60 * 60 * 1000;
 const TERMINAL_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
-
-class LifecycleMutex {
-  private tail: Promise<void> = Promise.resolve();
-
-  async run<T>(work: () => Promise<T> | T): Promise<T> {
-    const previous = this.tail;
-    let release!: () => void;
-    this.tail = new Promise<void>((resolve) => { release = resolve; });
-    await previous;
-    try {
-      return await work();
-    } finally {
-      release();
-    }
-  }
-}
 
 function targetError(error: unknown): WriteRequestError {
   if (error instanceof WriteRequestError) return error;
@@ -268,6 +255,26 @@ export class WriteRequestService {
         .slice(0, limit)
         .map(toReceipt);
     });
+  }
+
+  async observePending(workspaceId?: string, limit = 100, options: WriteObservationOptions = {}): Promise<PendingObservation> {
+    return this.readObserved(options, (budget, now) => observePending(this.store, budget, now, workspaceId, limit));
+  }
+
+  async observeRequest(id: string, workspaceId: string, includePatch = false, options: WriteObservationOptions = {}): Promise<WriteRequestDetails> {
+    return this.readObserved(options, (budget, now) => observeRequest(this.store, budget, now, id, workspaceId, includePatch));
+  }
+
+  private async readObserved<T>(options: WriteObservationOptions, read: (budget: WriteReadBudget, now: number) => Promise<T>): Promise<T> {
+    const budget = new WriteReadBudget(options.signal, options.timeoutMs);
+    try {
+      return await this.mutex.run(() => {
+        budget.check();
+        return read(budget, this.now());
+      }, budget.signal);
+    } finally {
+      budget.close();
+    }
   }
 
   async getRequest(id: string, includePatch = false): Promise<WriteRequestDetails> {

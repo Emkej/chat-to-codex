@@ -1,6 +1,8 @@
 import { randomBytes } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import type { WriteReadBudget } from "./read-budget.js";
+import { MAX_PATCH_BYTES } from "./patch.js";
 import { ensureDir, getStateDir } from "../config/paths.js";
 import { isTerminal, WriteRequestError, type WriteRequestRecord, type WriteRequestStatus } from "./types.js";
 
@@ -25,8 +27,20 @@ function isRecord(value: unknown): value is WriteRequestRecord {
     typeof record.createdAt !== "string" || Number.isNaN(Date.parse(record.createdAt))
   ) return false;
   if (typeof record.status !== "string") return false;
-  if (record.status === "pending") return record.approvalMode === "manual-local" && typeof record.patch === "string" && typeof record.expiresAt === "string";
+  if (record.status === "pending") return record.approvalMode === "manual-local" && typeof record.patch === "string"
+    && Buffer.byteLength(record.patch, "utf8") <= MAX_PATCH_BYTES
+    && typeof record.expiresAt === "string" && Number.isFinite(Date.parse(record.expiresAt));
   return isTerminal(record.status) && record.patch === undefined && typeof record.resolvedAt === "string";
+}
+
+function decodeRecord(text: string, id: string): WriteRequestRecord {
+  try {
+    const value: unknown = JSON.parse(text);
+    if (!isRecord(value) || value.id !== id) throw new Error("Invalid write-request record.");
+    return value;
+  } catch (error) {
+    throw storageError(error);
+  }
 }
 
 /** Atomic, owner-only JSON storage. Lifecycle and approval policy stay in the service. */
@@ -63,13 +77,61 @@ export class WriteRequestStore {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
       throw storageError(error);
     }
+    return decodeRecord(text, id);
+  }
+
+  async getObserved(id: string, budget: WriteReadBudget): Promise<WriteRequestRecord | null> {
+    budget.check();
+    const file = this.filePath(id);
+    let handle: fs.promises.FileHandle | undefined;
     try {
-      const value: unknown = JSON.parse(text);
-      if (!isRecord(value) || value.id !== id) throw new Error("Invalid write-request record.");
-      return value;
+      handle = await fs.promises.open(file, "r");
+      budget.check();
+      // JSON escaping can expand a 1 MiB patch sixfold; metadata is separately bounded.
+      if ((await handle.stat()).size > MAX_PATCH_BYTES * 6 + 1024 * 1024) {
+        throw new Error("Write-request record exceeds the storage read limit.");
+      }
+      budget.check();
+      const text = await handle.readFile({ encoding: "utf8", signal: budget.signal });
+      budget.check();
+      return decodeRecord(text, id);
     } catch (error) {
+      budget.check();
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
       throw storageError(error);
+    } finally {
+      await handle?.close();
     }
+  }
+
+  /** Sequential traversal; each record and patch die before the next read starts. */
+  async visitObserved(budget: WriteReadBudget, visit: (record: WriteRequestRecord) => void): Promise<void> {
+    budget.check();
+    let directory: fs.Dir | undefined;
+    try {
+      directory = await fs.promises.opendir(this.directory);
+      budget.check();
+      for (;;) {
+        budget.check();
+        const entry = await directory.read();
+        budget.check();
+        if (!entry) break;
+        if (!entry.name.endsWith(".json")) continue;
+        await this.visitObservedFile(entry.name.slice(0, -5), budget, visit);
+      }
+    } catch (error) {
+      budget.check();
+      throw storageError(error);
+    } finally {
+      await directory?.close();
+    }
+  }
+
+  private async visitObservedFile(id: string, budget: WriteReadBudget, visit: (record: WriteRequestRecord) => void): Promise<void> {
+    const record = await this.getObserved(id, budget);
+    if (!record) throw storageError(new Error("Write-request record disappeared while observing."));
+    budget.check();
+    visit(record);
   }
 
   list(): WriteRequestRecord[] {

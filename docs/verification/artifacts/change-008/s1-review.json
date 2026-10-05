@@ -1,0 +1,11 @@
+{
+  "slice": "S1",
+  "reviewer": "independent review_broker subagent under requesting-code-review",
+  "scope": "CHANGE-008 sections 3.3 and 3.4, broker observational reads",
+  "findings": [],
+  "validation": "s1-gate/summary.json",
+  "failed_attempts": [
+    { "gate": "s1-iteration", "reason": "Test assertions: empty guarded 404 response and kind=patch falsely matched patch-field check." },
+    { "gate": "s1-gate attempt 1", "reason": "Vitest deep Buffer comparison over 26 MiB fixture exceeded timeout; replaced with per-file SHA256 equality." }
+  ]
+}

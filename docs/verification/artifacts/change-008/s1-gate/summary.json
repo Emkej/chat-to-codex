@@ -1,0 +1,119 @@
+{
+  "contract_version": 2,
+  "name": "s1-gate",
+  "status": "passed",
+  "counts": {
+    "passed": 4,
+    "failed": 0,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 4,
+  "skipped": 0,
+  "total": 4,
+  "results": [
+    {
+      "name": "observation",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 6.337,
+      "attempt": 2,
+      "argv": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "tests/write-request-observation.test.ts",
+        "tests/write-request-observation-admin.test.ts",
+        "tests/write-requests.test.ts",
+        "tests/write-request-admin.test.ts",
+        "tests/mcp-write-requests.test.ts",
+        "tests/write-request-cli.test.ts"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-008/s1-gate",
+      "stdout_log": "01-observation-attempt-2.stdout.log",
+      "stderr_log": "01-observation-attempt-2.stderr.log",
+      "error": null
+    },
+    {
+      "name": "typecheck",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 6.397,
+      "attempt": 1,
+      "argv": [
+        "pnpm",
+        "typecheck"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-008/s1-gate",
+      "stdout_log": "02-typecheck.stdout.log",
+      "stderr_log": "02-typecheck.stderr.log",
+      "error": null
+    },
+    {
+      "name": "build",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 6.455,
+      "attempt": 1,
+      "argv": [
+        "pnpm",
+        "build"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-008/s1-gate",
+      "stdout_log": "03-build.stdout.log",
+      "stderr_log": "03-build.stderr.log",
+      "error": null
+    },
+    {
+      "name": "diff",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.011,
+      "attempt": 1,
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-008/s1-gate",
+      "stdout_log": "04-diff.stdout.log",
+      "stderr_log": "04-diff.stderr.log",
+      "error": null
+    }
+  ],
+  "attempts": [
+    {
+      "number": 1,
+      "checks": [
+        "observation",
+        "typecheck",
+        "build",
+        "diff"
+      ],
+      "statuses": {
+        "observation": "failed",
+        "typecheck": "passed",
+        "build": "passed",
+        "diff": "passed"
+      }
+    },
+    {
+      "number": 2,
+      "checks": [
+        "observation"
+      ],
+      "statuses": {
+        "observation": "passed"
+      },
+      "previous_statuses": {
+        "observation": "failed"
+      }
+    }
+  ]
+}
