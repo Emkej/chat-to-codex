@@ -1,0 +1,49 @@
+{
+  "work_id": "CHANGE-008",
+  "captured_phase": "before local integration",
+  "date": "2026-10-05",
+  "topic_branch": "codex/change-008-pending-write-requests",
+  "topic_head_before_closeout_checkpoint": "dc1e88bd008d6cd67cfa2565dce85b499d2b13ed",
+  "integration_target": "main",
+  "integration_target_head": "30db47c86b29f05cc735fdd0ebe4a12449f269b9",
+  "integration_relation": "main is an ancestor of the topic branch; six topic commits were present before the closeout checkpoint",
+  "remote_relationship": {
+    "ref": "origin/main",
+    "main_ahead": 8,
+    "main_behind": 0,
+    "fetched": false
+  },
+  "validation": [
+    {
+      "command": "rtk proxy pnpm test",
+      "status": "passed",
+      "test_files": 50,
+      "tests": 512
+    },
+    {
+      "command": "rtk proxy pnpm typecheck",
+      "status": "passed"
+    },
+    {
+      "command": "rtk proxy pnpm build",
+      "status": "passed"
+    },
+    {
+      "command": "rtk proxy git -c core.whitespace=cr-at-eol diff --check main...HEAD",
+      "status": "passed"
+    },
+    {
+      "command": "python3 /home/emkej/.codex/workflows/scripts/validate_handoff.py docs/verification/artifacts/change-008/work-state.json",
+      "status": "passed"
+    }
+  ],
+  "independent_review": "conformance-review.json; no material findings; review records tests, typecheck, build, and diff checks as passed",
+  "preserved_unrelated_paths": [
+    ".worktrees/devex-spec001-pilot-b/",
+    "docs/changes/change-009-approved-local-command-requests.md",
+    "docs/specs/spec-003-c2c-manager-mvp.md",
+    "docs/specs/spec-004-approved-local-command-execution.md",
+    "work/"
+  ],
+  "push_performed": false
+}

@@ -72,11 +72,15 @@
         "docs/verification/artifacts/change-008/final-current/summary.json"
     ],
     "closeoutClassification": {
-        "classifiedAt": "2026-10-05T20:49:59+02:00",
-        "head": "3fb5dc96b4b90ae1433137172ae03125aee8ddcf",
-        "method": "CHANGE-008 final checkpoint ownership classification; local integration remains pending",
+        "classifiedAt": "2026-10-05T21:10:10+02:00",
+        "head": "dc1e88bd008d6cd67cfa2565dce85b499d2b13ed",
+        "method": "CHANGE-008 pre-merge closeout classification; preserve unrelated drafts and runtime data",
         "owned": {
-            "source": "claimedPaths"
+            "source": "claimedPaths",
+            "additionalSameWorkItemPaths": [
+                "docs/verification/artifacts/change-008/conformance-review.json",
+                "docs/verification/artifacts/change-008/closeout/pre-merge/summary.json"
+            ]
         },
         "excludedPreExisting": [
             ".worktrees/devex-spec001-pilot-b/",
@@ -92,11 +96,10 @@
             "work/tools/cloudflared"
         ],
         "unexpectedDisposition": {
-            "disposition": "Preserve docs/changes/change-009-approved-local-command-requests.md and docs/specs/spec-004-approved-local-command-execution.md untouched as concurrent unrelated drafts. Retain docs/verification/artifacts/change-008/work-state.json as checkpoint workflow metadata without an implementation claim; include it in the task checkpoint commit.",
+            "disposition": "Preserve the concurrent CHANGE-009 and SPEC-004 drafts untouched; preserve listed pre-existing worktree, work, and SPEC-003 data.",
             "paths": [
                 "docs/changes/change-009-approved-local-command-requests.md",
-                "docs/specs/spec-004-approved-local-command-execution.md",
-                "docs/verification/artifacts/change-008/work-state.json"
+                "docs/specs/spec-004-approved-local-command-execution.md"
             ]
         }
     }

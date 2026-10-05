@@ -1,0 +1,50 @@
+{
+  "review": "plan-implementation-conformance-reviewer",
+  "reviewed_at_utc": "2026-10-05T18:59:31Z",
+  "governing_change": "docs/changes/change-008-c2c-manager-pending-write-requests.md",
+  "phase": "Completed candidate implementation and acceptance; before separately invoked local closeout",
+  "reviewed_head": "dc1e88bd008d6cd67cfa2565dce85b499d2b13ed",
+  "baseline": "30db47c86b29f05cc735fdd0ebe4a12449f269b9",
+  "branch": "codex/change-008-pending-write-requests",
+  "scope": "A1-A9, material changed runtime paths, observational read ownership, bounded storage traversal, Manager refresh and foreground cancellation, explicit approval and uncertain-outcome reconciliation",
+  "material_findings": [],
+  "required_implementation_changes": "None identified",
+  "commit_state": "All reviewed tracked implementation, tests, documentation and previous verification evidence committed; this review artifact is newly uncommitted",
+  "completion_gates": [
+    "Separately invoked close-work for local integration and change closure"
+  ],
+  "executed_checks": [
+    { "command": "rtk proxy pnpm test", "status": "passed", "exit_code": 0, "tests": 512, "suites": 50 },
+    { "command": "rtk proxy pnpm typecheck", "status": "passed", "exit_code": 0 },
+    { "command": "rtk proxy pnpm build", "status": "passed", "exit_code": 0 },
+    { "command": "rtk proxy git diff --check 30db47c..HEAD", "status": "passed", "exit_code": 0 }
+  ],
+  "inspected_execution_evidence": [
+    {
+      "path": "docs/verification/artifacts/change-008/terminal-acceptance.json",
+      "execution_record": "docs/verification/artifacts/change-008/s3-terminal-final/summary.json",
+      "status": "supplied results inspected; not rerun",
+      "cases": 12,
+      "columns": [80, 120],
+      "maximum_terminal_restoration_seconds": 0.12,
+      "scope": "Disposable local-build and installed-launcher candidate-import sessions; navigation, controls, resize, cancelled confirmation, read deadline/exit and dispatched approval/exit"
+    }
+  ],
+  "implementation_evidence": [
+    "src/write-requests/observation.ts, store.ts, read-budget.ts, lifecycle-mutex.ts and service.ts: one guarded, incremental non-mutating observation path with exact counts independent of bounded metadata overflow",
+    "src/broker/write-request-observation.ts and write-request-admin.ts, src/broker/server.ts: guarded observation routes and existing canonical approval service wired to the real broker",
+    "src/manager/write-request-service.ts, request-review-controller.ts, controller.ts and refresh-coordinator.ts: broker transport, shared foreground guard, stale-result rejection, retained same-id uncertainty and no automatic approval retry",
+    "src/manager/request-review-layout.ts and ui/request-review.tsx: visible control escaping, full diff navigation and fixed unresolved-outcome header"
+  ],
+  "verification_limits": [
+    "Terminal acceptance was inspected and attributed to its retained execution record, not independently rerun in this review",
+    "Candidate import redirection does not prove installation or live-profile deployment; those remain outside CHANGE-008 authorization"
+  ],
+  "preserved_unrelated_state": [
+    ".worktrees/",
+    "docs/changes/change-009-approved-local-command-requests.md",
+    "docs/specs/spec-003-c2c-manager-mvp.md",
+    "docs/specs/spec-004-approved-local-command-execution.md",
+    "work/"
+  ]
+}
