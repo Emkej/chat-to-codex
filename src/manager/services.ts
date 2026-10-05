@@ -12,14 +12,15 @@ import {
   stopInstallationBroker,
   type InstallationLifecycleResult,
 } from "../admin/installation-lifecycle.js";
-import { getInstallationStatus, type InstallationStatus } from "../admin/installation-status.js";
+import { readManagerStatus, managerWriteRequestServices, type ManagerWriteRequestServices, type ManagerStatus } from "./write-request-service.js";
 import { createInstallationPairing } from "../broker/daemon.js";
 import { readWorkspaceDetail } from "./workspace-detail-service.js";
 import type { WorkspaceDetailWorktree } from "./types.js";
 
 export interface ManagerServices {
+  writeRequests: ManagerWriteRequestServices;
   readWorkspaceDetail(workspaceId: string, options: { signal: AbortSignal }): Promise<WorkspaceDetailWorktree[]>;
-  readStatus(options: { signal: AbortSignal }): Promise<InstallationStatus>;
+  readStatus(options: { signal: AbortSignal }): Promise<ManagerStatus>;
   checkHealth(options: {
     fix: boolean;
     allowTunnelChoiceDefault: false;
@@ -35,8 +36,9 @@ export interface ManagerServices {
 }
 
 export const managerServices: ManagerServices = {
+  writeRequests: managerWriteRequestServices,
   readWorkspaceDetail,
-  readStatus: getInstallationStatus,
+  readStatus: readManagerStatus,
   checkHealth: checkInstallationHealth,
   startBroker: startInstallationBroker,
   restartBroker: restartInstallationBroker,

@@ -2,6 +2,8 @@ import { findManagerAction, getAvailableManagerActions } from "./action-policy.j
 import { MANAGER_STATUS_TIMEOUT_MS } from "./constants.js";
 import { RefreshCoordinator } from "./refresh-coordinator.js";
 import { managerServices, type ManagerServices } from "./services.js";
+import { RequestReviewController } from "./request-review-controller.js";
+import type { ManagerStatus } from "./write-request-service.js";
 import type { ManagerAction, ManagerSnapshot } from "./types.js";
 import type { InstallationHealthResult } from "../admin/installation-health.js";
 import type { InstallationLifecycleResult } from "../admin/installation-lifecycle.js";
@@ -18,6 +20,9 @@ function initialSnapshot(): ManagerSnapshot {
     pairing: null,
     selectedWorkspaceId: null,
     workspaceDetail: null,
+    pendingCounts: null,
+    requestReview: null,
+    approvalAttempt: null,
     activeAction: null,
     confirmation: null,
     refreshing: false,
@@ -49,7 +54,8 @@ function lifecycleSummary(result: InstallationLifecycleResult): string {
 export class ManagerController {
   private snapshot = initialSnapshot();
   private readonly listeners = new Set<ManagerListener>();
-  private readonly refreshCoordinator: RefreshCoordinator<InstallationStatus>;
+  private readonly refreshCoordinator: RefreshCoordinator<ManagerStatus>;
+  readonly requests: RequestReviewController;
   private actionAbort: AbortController | null = null;
   private detailGeneration = 0;
   private started = false;
@@ -58,10 +64,16 @@ export class ManagerController {
     private readonly services: ManagerServices = managerServices,
     options: { statusTimeoutMs?: number } = {}
   ) {
+    this.requests = new RequestReviewController({
+      snapshot: () => this.snapshot,
+      patch: (value) => this.patch(value),
+      run: (work) => this.runRequestOperation(work),
+      cancel: () => { if (this.snapshot.activeAction === "requests") this.actionAbort?.abort(); },
+    }, services.writeRequests);
     this.refreshCoordinator = new RefreshCoordinator({
       read: ({ signal }) => this.services.readStatus({ signal }),
       commit: (status) => this.acceptStatus(status),
-      fail: (error) => this.patch({ refreshError: error.message }),
+      fail: (error) => this.patch({ refreshError: error.message, pendingCounts: null }),
       onReadStart: () => this.patch({ refreshing: true }),
       onReadEnd: () => this.patch({ refreshing: false }),
       timeoutMs: options.statusTimeoutMs ?? MANAGER_STATUS_TIMEOUT_MS,
@@ -85,6 +97,8 @@ export class ManagerController {
 
   async refresh(): Promise<void> {
     if (this.snapshot.closed || this.snapshot.activeAction) return;
+    if (this.snapshot.requestReview) { await this.requests.openQueue(); return; }
+    if (this.snapshot.approvalAttempt?.state === "unknown") { await this.requests.reconcile(); return; }
     this.patch({ notice: "Refreshing installation status.", error: null });
     await this.refreshCoordinator.refresh();
     if (this.snapshot.workspaceDetail) await this.openWorkspaceDetail();
@@ -92,7 +106,7 @@ export class ManagerController {
 
   async openWorkspaceDetail(): Promise<boolean> {
     const workspaceId = this.snapshot.selectedWorkspaceId;
-    if (!workspaceId || this.snapshot.closed || this.snapshot.activeAction || this.snapshot.confirmation) return false;
+    if (!workspaceId || this.snapshot.requestReview || this.snapshot.closed || this.snapshot.activeAction || this.snapshot.confirmation) return false;
     const generation = ++this.detailGeneration;
     const retiredRead = this.refreshCoordinator.beginForegroundAction();
     const abort = new AbortController();
@@ -169,6 +183,7 @@ export class ManagerController {
   async confirmPendingAction(): Promise<boolean> {
     const confirmation = this.snapshot.confirmation;
     if (confirmation === null || this.snapshot.closed) return false;
+    if (confirmation === "approve") return this.requests.confirmApproval();
     this.patch({ confirmation: null });
     if (this.snapshot.activeAction) return false;
     const action = confirmation === "stop" ? "stop" : "confirm";
@@ -189,7 +204,7 @@ export class ManagerController {
     if (this.snapshot.confirmation !== null) {
       this.patch({
         confirmation: null,
-        notice: this.snapshot.confirmation === "stop" ? "Stop cancelled." : "Connector confirmation cancelled.",
+        notice: this.snapshot.confirmation === "stop" ? "Stop cancelled." : this.snapshot.confirmation === "approve" ? "Approval cancelled before dispatch." : "Connector confirmation cancelled.",
       });
     }
   }
@@ -213,6 +228,23 @@ export class ManagerController {
     this.refreshCoordinator.close();
     this.actionAbort?.abort(new Error("Manager is closing"));
     this.patch({ closed: true, confirmation: null, activeAction: null, refreshing: false });
+  }
+
+  private async runRequestOperation(work: (signal: AbortSignal) => Promise<void>): Promise<boolean> {
+    if (this.snapshot.closed || this.snapshot.activeAction || this.snapshot.confirmation) return false;
+    const retiredRead = this.refreshCoordinator.beginForegroundAction();
+    const abort = new AbortController();
+    this.actionAbort = abort;
+    this.patch({ activeAction: "requests", error: null });
+    try { await work(abort.signal); }
+    finally {
+      if (this.actionAbort === abort) this.actionAbort = null;
+      if (!this.snapshot.closed) {
+        try { await this.refreshCoordinator.refreshAfterAction(retiredRead); }
+        finally { if (!this.snapshot.closed) this.patch({ activeAction: null }); }
+      }
+    }
+    return true;
   }
 
   private async runForegroundAction(action: Exclude<ManagerAction, "refresh" | "quit">): Promise<void> {
@@ -355,13 +387,14 @@ export class ManagerController {
     });
   }
 
-  private acceptStatus(status: InstallationStatus): void {
+  private acceptStatus(status: ManagerStatus): void {
     const previousId = this.snapshot.status?.installation.id ?? null;
     const nextId = status.installation.id;
     const installationChanged = previousId !== nextId;
     const instruction = this.readInstructionSafely(nextId);
     this.patch({
       status,
+      pendingCounts: status.pendingCounts ?? null,
       health: installationChanged ? null : this.snapshot.health,
       healthObservedAt: installationChanged ? null : this.snapshot.healthObservedAt,
       connectorInstruction: instruction,
@@ -400,6 +433,11 @@ export class ManagerController {
     const detail = this.snapshot.workspaceDetail;
     const selected = patch.selectedWorkspaceId === undefined ? this.snapshot.selectedWorkspaceId : patch.selectedWorkspaceId;
     const status = patch.status === undefined ? this.snapshot.status : patch.status;
+    const review = this.snapshot.requestReview;
+    if (review && (selected !== review.workspaceId || !status?.workspaces.some((workspace) => workspace.id === review.workspaceId))) {
+      this.requests.invalidate();
+      patch.requestReview = null;
+    }
     if (detail && (selected !== detail.workspaceId || !status?.workspaces.some((workspace) => workspace.id === detail.workspaceId))) {
       this.detailGeneration += 1;
       if (this.snapshot.activeAction === "detail") this.actionAbort?.abort();

@@ -14,6 +14,7 @@ export function WorkspacePanel({ snapshot }: { snapshot: ManagerSnapshot }) {
           <Text key={workspace.id} wrap="wrap">
             {workspace.id === snapshot.selectedWorkspaceId ? "› " : "  "}
             {workspace.name} — {formatSessionCount(workspace.liveSessionCount)} live session(s)
+            {" · pending "}{snapshot.pendingCounts === null ? "unavailable" : snapshot.pendingCounts[workspace.id] ?? 0}
           </Text>
         ))
       )}

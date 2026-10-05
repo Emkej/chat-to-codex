@@ -25,6 +25,16 @@ export function handleManagerInput(input: string, key: Key, snapshot: ManagerSna
     else if (input.toLowerCase() === "n" || key.escape) controller.cancelConfirmation();
     return;
   }
+  if (snapshot.requestReview) {
+    if (key.escape) { controller.requests.back(); ui.resetScroll(); }
+    else if (input === "r") { ui.resetScroll(); void controller.refresh(); }
+    else if (input === "v" && snapshot.requestReview.detail) controller.requests.requestApproval();
+    else if (key.return && !snapshot.requestReview.detail) { ui.resetScroll(); void controller.requests.openDetail(); }
+    else if (key.pageUp || key.pageDown || (snapshot.requestReview.detail && (key.upArrow || key.downArrow))) {
+      ui.scroll(key.upArrow ? -1 : key.downArrow ? 1 : key.pageUp ? -ui.pageHeight : ui.pageHeight);
+    } else if (key.upArrow || key.downArrow) controller.requests.moveSelection(key.upArrow ? -1 : 1);
+    return;
+  }
   if (input === "?") { ui.setHelpOpen((current) => !current); ui.setMenuOpen(false); return; }
   if (input === "a") { ui.setMenuOpen((current) => !current); ui.setHelpOpen(false); ui.setMenuIndex(0); return; }
   if (ui.menuOpen) {
@@ -42,6 +52,7 @@ export function handleManagerInput(input: string, key: Key, snapshot: ManagerSna
     return;
   }
   if (ui.helpOpen) { if (key.escape) ui.setHelpOpen(false); return; }
+  if (input === "w") { ui.resetScroll(); void controller.requests.openQueue(); return; }
   if (snapshot.workspaceDetail) {
     if (key.escape) controller.closeWorkspaceDetail();
     else if (key.upArrow || key.downArrow || key.pageUp || key.pageDown) {

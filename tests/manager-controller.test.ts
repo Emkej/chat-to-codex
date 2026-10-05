@@ -112,6 +112,7 @@ function makeLifecycle(
 
 function makeServices(overrides: Partial<ManagerServices> = {}): ManagerServices {
   const defaults: ManagerServices = {
+    writeRequests: { list: vi.fn(), detail: vi.fn(), receipt: vi.fn(), approve: vi.fn() },
     readWorkspaceDetail: vi.fn(async () => []),
     readStatus: vi.fn(async () => makeStatus()),
     checkHealth: vi.fn(async () => makeHealth()),

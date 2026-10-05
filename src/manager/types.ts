@@ -1,5 +1,6 @@
 import type { ConnectorInstruction, InstallationHealthResult } from "../admin/installation-health.js";
 import type { InstallationStatus } from "../admin/installation-status.js";
+import type { ApprovalAttempt, RequestReviewState } from "./request-review-types.js";
 
 export type ManagerAction =
   | "start"
@@ -51,8 +52,11 @@ export interface ManagerSnapshot {
   pairing: PairingCode | null;
   selectedWorkspaceId: string | null;
   workspaceDetail: WorkspaceDetailState | null;
-  activeAction: ManagerAction | "detail" | null;
-  confirmation: "stop" | "confirm" | null;
+  pendingCounts: Record<string, number> | null;
+  requestReview: RequestReviewState | null;
+  approvalAttempt: ApprovalAttempt | null;
+  activeAction: ManagerAction | "detail" | "requests" | null;
+  confirmation: "stop" | "confirm" | "approve" | null;
   refreshing: boolean;
   notice: string | null;
   error: string | null;

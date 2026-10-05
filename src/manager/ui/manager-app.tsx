@@ -1,5 +1,5 @@
 import { Box, Text, useInput } from "ink";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getAvailableManagerActions } from "../action-policy.js";
 import { getManagerLayout } from "../layout.js";
 import { ManagerController } from "../controller.js";
@@ -9,6 +9,8 @@ import { Overview } from "./overview.js";
 import { WorkspaceDetail } from "./workspace-detail.js";
 import { detailViewport, workspaceDetailLines } from "../workspace-detail-layout.js";
 import { handleManagerInput } from "./manager-input.js";
+import { RequestReview } from "./request-review.js";
+import { requestReviewLines, selectedRequestOffset } from "../request-review-layout.js";
 
 function useManagerSnapshot(controller: ManagerController): ManagerSnapshot {
   const [snapshot, setSnapshot] = useState(controller.getSnapshot());
@@ -25,6 +27,7 @@ function HelpPanel() {
       <Text>c Confirm displayed connector URL · r Refresh · a Actions · q Quit</Text>
       <Text>Confirmation: y/Enter accept · n/Esc cancel</Text>
       <Text>↑/↓ select · Enter detail · Esc back · PgUp/PgDn scroll detail</Text>
+      <Text>w Pending requests · Enter review · v Approve after review</Text>
       <Text>? close help · Ctrl+C quit</Text>
     </Box>
   );
@@ -45,12 +48,15 @@ export function ManagerApp({
   const [menuIndex, setMenuIndex] = useState(0);
   const [helpOpen, setHelpOpen] = useState(false);
   const actions = getAvailableManagerActions(snapshot);
-  const detailLines = workspaceDetailLines(snapshot, Math.max(1, columns - 2));
+  const detailLines = useMemo(() => snapshot.requestReview ? requestReviewLines(snapshot, Math.max(1, columns - 2)) : workspaceDetailLines(snapshot, Math.max(1, columns - 2)), [snapshot, columns]);
   const viewport = detailViewport(detailLines.length, rows, detailOffset);
 
   useEffect(() => {
     if (!snapshot.workspaceDetail) setDetailOffset(0);
   }, [snapshot.workspaceDetail?.workspaceId]);
+  useEffect(() => {
+    setDetailOffset(snapshot.requestReview?.detail ? 0 : selectedRequestOffset(snapshot, Math.max(1, columns - 2)));
+  }, [snapshot.requestReview?.selectedIndex, snapshot.requestReview?.detail?.request?.id, snapshot.requestReview?.workspaceId]);
 
   useEffect(() => {
     setDetailOffset(viewport.offset);
@@ -85,7 +91,7 @@ export function ManagerApp({
 
   return (
     <Box flexDirection="column" paddingX={1}>
-      {snapshot.workspaceDetail ? (
+      {snapshot.requestReview ? (snapshot.confirmation ? <Text bold>Pending write request approval</Text> : <RequestReview lines={detailLines} offset={viewport.offset} height={viewport.height} detail={!!snapshot.requestReview.detail} />) : snapshot.workspaceDetail ? (
         !menuOpen && !helpOpen && !snapshot.confirmation ?
           <WorkspaceDetail lines={detailLines} offset={viewport.offset} height={viewport.height} /> :
           <Text bold>Workspace detail</Text>
@@ -95,9 +101,9 @@ export function ManagerApp({
       {snapshot.confirmation ? (
         <Text color="yellow" bold>{snapshot.notice}</Text>
       ) : null}
-      {!snapshot.workspaceDetail || menuOpen || helpOpen || snapshot.confirmation ? <Box marginTop={1}>
+      {(!snapshot.workspaceDetail && !snapshot.requestReview) || menuOpen || helpOpen || snapshot.confirmation ? <Box marginTop={1}>
         <Text dimColor wrap="wrap">
-          {hints} · [Enter] Detail · [a] Actions · [?] Help · [q] Quit
+          {hints} · [Enter] Detail · [w] Requests · [a] Actions · [?] Help · [q] Quit
         </Text>
       </Box> : null}
     </Box>
