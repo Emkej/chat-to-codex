@@ -211,6 +211,7 @@ c2c use
 c2c broker start
 c2c broker status
 c2c broker pair
+c2c manager
 c2c doctor
 c2c pair
 c2c unpair
@@ -224,7 +225,20 @@ c2c sandbox-allow
 c2c stop
 ```
 
-Every command supports `--json` for tooling.
+Use `--json` on non-interactive commands for tooling. `c2c manager` requires an interactive terminal.
+
+On WSL, the Manager shows each workspace's active pending write-request count,
+including its worktrees. Select a workspace and press `w` to open its queue,
+Enter to inspect a request, and PgUp/PgDn to navigate the complete diff.
+Press `v` after review, then `y`/Enter to approve through the broker; `n`/Esc
+cancels before dispatch. Literal terminal controls are displayed as visible
+escapes and literal backslashes are doubled.
+
+Unavailable counts are distinct from zero. A queue above 100 requests explicitly
+reports omitted entries. If an approval response is lost, its outcome remains
+unknown and approval stays unavailable until a receipt resolves it; press `r`
+to reconcile. Quitting after dispatch ends the wait and the broker may still
+apply the patch. Rejection remains available with `c2c reject <request-id>`.
 
 `c2c doctor` diagnoses and repairs the local side where possible. If the public endpoint changes and Claude requires the connector to be re-added, it reports the required action explicitly.
 

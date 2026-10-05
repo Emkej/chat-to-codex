@@ -67,7 +67,37 @@
         "docs/local-e2e.md",
         "docs/verification/artifacts/change-008/s3-probe-syntax/summary.json",
         "docs/verification/artifacts/change-008/final-gate/summary.json",
-        "docs/verification/artifacts/change-008/acceptance.json"
+        "docs/verification/artifacts/change-008/acceptance.json",
+        "docs/verification/artifacts/change-008/final-contract-checks/summary.json",
+        "docs/verification/artifacts/change-008/final-current/summary.json"
     ],
-    "closeoutClassification": null
+    "closeoutClassification": {
+        "classifiedAt": "2026-10-05T20:49:59+02:00",
+        "head": "3fb5dc96b4b90ae1433137172ae03125aee8ddcf",
+        "method": "CHANGE-008 final checkpoint ownership classification; local integration remains pending",
+        "owned": {
+            "source": "claimedPaths"
+        },
+        "excludedPreExisting": [
+            ".worktrees/devex-spec001-pilot-b/",
+            "docs/specs/spec-003-c2c-manager-mvp.md",
+            "work/c2c-test-codex-home/config.toml",
+            "work/c2c-test-home/profiles/spec001-chatgpt/agent-sessions/aa044b947ac1.json",
+            "work/c2c-test-home/profiles/spec001-chatgpt/auth/c2c_inst_-lOMTvZdSaw_EPa5S2yrBA.json",
+            "work/c2c-test-home/profiles/spec001-chatgpt/installation.json",
+            "work/c2c-test-home/profiles/spec001-chatgpt/runtime/c2c_inst_-lOMTvZdSaw_EPa5S2yrBA.json",
+            "work/c2c-test-home/profiles/spec001-chatgpt/tunnels/installation.json",
+            "work/c2c-test-home/profiles/spec001-chatgpt/workspaces/registry.json",
+            "work/c2c-test-home/profiles/spec001-chatgpt/workspaces/sessions.json",
+            "work/tools/cloudflared"
+        ],
+        "unexpectedDisposition": {
+            "disposition": "Preserve docs/changes/change-009-approved-local-command-requests.md and docs/specs/spec-004-approved-local-command-execution.md untouched as concurrent unrelated drafts. Retain docs/verification/artifacts/change-008/work-state.json as checkpoint workflow metadata without an implementation claim; include it in the task checkpoint commit.",
+            "paths": [
+                "docs/changes/change-009-approved-local-command-requests.md",
+                "docs/specs/spec-004-approved-local-command-execution.md",
+                "docs/verification/artifacts/change-008/work-state.json"
+            ]
+        }
+    }
 }

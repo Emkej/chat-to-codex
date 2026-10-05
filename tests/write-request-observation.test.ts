@@ -49,11 +49,27 @@ describe("broker-owned observational write reads", () => {
       inFlight++; maximum = Math.max(maximum, inFlight);
       try { return await original(...args); } finally { inFlight--; }
     });
-    const result = await service.observePending("one");
+    let retainedMetadata = 0;
+    const push = Array.prototype.push, splice = Array.prototype.splice;
+    const inspectPage = (array: unknown[], entries: unknown[]) => {
+      if (entries.some((entry) => entry && typeof entry === "object" && "kind" in entry && entry.kind === "patch" && !("patch" in entry))) {
+        retainedMetadata = Math.max(retainedMetadata, array.length + entries.length);
+      }
+    };
+    Array.prototype.push = function (this: unknown[], ...entries: unknown[]) {
+      inspectPage(this, entries); return push.apply(this, entries);
+    };
+    Array.prototype.splice = function (this: unknown[], start: number, remove: number, ...entries: unknown[]) {
+      inspectPage(this, entries); return splice.call(this, start, remove, ...entries);
+    };
+    let result: Awaited<ReturnType<WriteRequestService["observePending"]>>;
+    try { result = await service.observePending("one"); }
+    finally { Array.prototype.push = push; Array.prototype.splice = splice; }
     expect(result.counts).toEqual({ one: 130, two: 1 });
     expect(result.requests).toHaveLength(100);
     expect(result.overflow).toBe(true);
     expect(maximum).toBe(1);
+    expect(retainedMetadata).toBe(100);
     expect(result.requests.map((entry) => entry.id)).toEqual(Array.from({ length: 100 }, (_, i) => record(i).id));
     expect(result.requests.every((entry) => !("patch" in entry))).toBe(true);
     expect(await service.observeRequest(record(0).id, "one", true)).toMatchObject({ patch: record(0).patch });

@@ -59,6 +59,7 @@
 | `execution/` | JSONL execution records written by `c2c record`, read by `execution_summary` / `test_status` |
 | `process/` | Daemon spawn/reuse, health probing, graceful shutdown |
 | `cli/` | `c2c` commands; `--json` everywhere for the Skill |
+| `manager/` | WSL interactive overview, bounded broker observations, scoped request/diff review and explicitly confirmed approval through the existing lifecycle |
 | `config/`, `logger/` | OS-convention state dir, secret-redacting logger |
 
 ## Request lifecycles
@@ -96,6 +97,24 @@ write-state ownership before serving; its lifecycle mutex serializes C2C
 proposals, approvals, and rejections. The service revalidates writes; the
 legacy `src/bridge/server.ts` remains read-only. External filesystem writers
 are outside this lock boundary.
+
+**Manager write-request observation**: the guarded local
+`GET /admin/write-requests/observe` endpoint scans the inventory asynchronously
+under that same lifecycle mutex. One five-second deadline covers transport,
+queueing and sequential record reads. A complete scan aggregates exact workspace
+counts and retains at most 100 receipt entries for a selected workspace, with
+explicit overflow. Failed/incomplete scans supply no partial projection.
+`GET /admin/write-requests/observe/:id?workspaceId=...` returns same-id receipt
+metadata; `includePatch=true` transfers only a selected pending patch. These
+reads project expiry without persisting transitions or pruning. Existing CLI
+reads keep their explicit lazy cleanup semantics.
+
+The Manager uses its existing status refresh and foreground guard. Diff display
+escapes controls without altering broker patch bytes. Confirmed approval calls
+the existing `POST /admin/write-requests/:id/approve`; it applies, rather than
+merely acknowledging, the request. Lost responses retain an unresolved id,
+disable approval and reconcile through the receipt-only read without retrying
+the POST. Cancelling a dispatched wait does not undo broker effects.
 
 SPEC-002 V1 write ownership is supported only on Linux/WSL, where the broker
 uses `flock`. Other platforms fail closed with `WRITE_OWNER_UNAVAILABLE`;

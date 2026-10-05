@@ -12,7 +12,7 @@ import { WorkspacePanel } from "../src/manager/ui/workspace-panel.js";
 import { handleManagerInput, type ManagerInputState } from "../src/manager/ui/manager-input.js";
 
 const controllers: ManagerController[] = [];
-afterEach(() => { controllers.splice(0).forEach((controller) => controller.close()); vi.restoreAllMocks(); });
+afterEach(() => { controllers.splice(0).forEach((controller) => controller.close()); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 function receipt(): WriteRequestReceipt {
   return { id: "wr_000000000000000000000001", kind: "patch", status: "pending", workspaceId: "one", worktreeId: "wt_test", approvalMode: "manual-local", files: [{ path: "file.txt", operation: "update", additions: 1, deletions: 1, resultSha256: "hash" }], preconditions: [], createdAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 3600_000).toISOString() };
@@ -115,7 +115,7 @@ describe("Manager request review lifecycle", () => {
     expect(other.controller.getSnapshot().requestReview?.detail).toBeNull();
   });
 
-  it("starts approval immediately despite an obsolete refresh, then waits before one completion refresh", async () => {
+  it("starts a queue read immediately despite an obsolete refresh, then waits before one completion refresh", async () => {
     const { controller, services, writes } = await fixture();
     await controller.requests.openQueue(); await controller.requests.openDetail();
     const oldRead = deferred<ManagerStatus>(); let oldSignal!: AbortSignal;
@@ -132,6 +132,26 @@ describe("Manager request review lifecycle", () => {
     expect(read).toHaveBeenCalledTimes(2);
     expect(controller.getSnapshot().pendingCounts?.one).toBe(0);
     expect(writes.list).toHaveBeenCalledTimes(2);
+  });
+
+  it("dispatches approval before an obsolete count refresh retires, then starts exactly one completion refresh", async () => {
+    vi.useFakeTimers();
+    const { controller, services, writes } = await fixture();
+    await controller.requests.openQueue(); await controller.requests.openDetail();
+    const oldRead = deferred<ManagerStatus>(); let oldSignal!: AbortSignal;
+    const read = vi.fn().mockImplementationOnce(({ signal }) => { oldSignal = signal; return oldRead.promise; }).mockResolvedValue(status({ one: 0, two: 0 }));
+    services.readStatus = read;
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(controller.getSnapshot().refreshing).toBe(true);
+    expect(controller.requests.requestApproval()).toBe(true);
+    const approval = controller.confirmPendingAction(); await flush();
+    expect(oldSignal.aborted).toBe(true);
+    expect(writes.approve).toHaveBeenCalledTimes(1);
+    expect(controller.getSnapshot().approvalAttempt?.receipt?.status).toBe("applied");
+    expect(read).toHaveBeenCalledTimes(1);
+    oldRead.resolve(status({ one: 999 })); await approval;
+    expect(read).toHaveBeenCalledTimes(2);
+    expect(controller.getSnapshot().pendingCounts?.one).toBe(0);
   });
 
   it("cancels dispatched approval wait on navigation while retaining its unresolved id", async () => {

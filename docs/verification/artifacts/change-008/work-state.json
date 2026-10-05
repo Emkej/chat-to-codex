@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "work_id": "CHANGE-008",
+  "task_title": "[C2C/CH8/P3/closeout] Prepare pending request local closeout",
+  "owner_outcome": "See pending requests per workspace and inspect/apply a selected request from the C2C Manager.",
+  "authoritative_source": "/home/emkej/projects/chat-to-codex/docs/changes/change-008-c2c-manager-pending-write-requests.md",
+  "status": "Ready",
+  "handoff_reason": "Owner-directed pause",
+  "environment": "WSL",
+  "repository_root": "/home/emkej/projects/chat-to-codex",
+  "worktree": "/home/emkej/projects/chat-to-codex",
+  "branch": "codex/change-008-pending-write-requests",
+  "head": "3fb5dc96b4b90ae1433137172ae03125aee8ddcf",
+  "snapshot_note": "Captured before its enclosing final documentation/verification checkpoint commit. Reconcile live HEAD and that checkpoint during closeout.",
+  "relevant_commits": [
+    "911d8ddf93ba486dc909c2b7afea5993b12316d8",
+    "9069bddc28699ff3bd00e3505a0303a58442f8f4",
+    "839739137feafbfe40bfbad309340ef0366bc0dd",
+    "3fb5dc96b4b90ae1433137172ae03125aee8ddcf"
+  ],
+  "git_state": {
+    "staged": [],
+    "unstaged": ["README.md", "docs/architecture.md", "docs/local-e2e.md", "docs/changes/change-008-c2c-manager-pending-write-requests.md", "docs/verification/artifacts/change-008/task-ownership.json", "tests/manager-write-requests.test.ts", "tests/write-request-observation.test.ts"],
+    "untracked": ["docs/verification/artifacts/change-008/acceptance.json", "docs/verification/artifacts/change-008/work-state.json", "docs/verification/artifacts/change-008/final-gate/", "docs/verification/artifacts/change-008/final-current/", "docs/verification/artifacts/change-008/final-contract-checks/", ".worktrees/", "docs/specs/spec-003-c2c-manager-mvp.md", "docs/changes/change-009-approved-local-command-requests.md", "docs/specs/spec-004-approved-local-command-execution.md", "work/"]
+  },
+  "ownership": {
+    "manifest": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-008/task-ownership.json",
+    "tracker": "python3 /home/emkej/.codex/workflows/scripts/track_dirty_paths.py",
+    "classification": "Final-current validation passed before concurrent drafts appeared. Latest manifest closeout classification explicitly preserves the unrelated CHANGE-009/SPEC-004 drafts, and includes the typed handoff as checkpoint workflow metadata without an implementation claim.",
+    "workflow_metadata": "Manifest and typed handoff are workflow metadata, not implementation claims. They are included in the final checkpoint commit."
+  },
+  "ledger": {
+    "completed_slices": ["S1", "S2", "R1", "S3", "S4"],
+    "current_slice": { "id": "S4", "status": "Completed" },
+    "remaining_slices": []
+  },
+  "changed_behavior": {
+    "summary": "Broker-owned bounded non-mutating counts/list/detail/receipt observations; Manager scoped queue and safely escaped navigable diff; separate confirmed canonical approval; retained uncertain attempts with no retry and explicit receipt reconciliation; existing refresh/foreground/exit lifecycle preserved.",
+    "files": ["src/write-requests/observation.ts", "src/write-requests/read-budget.ts", "src/write-requests/lifecycle-mutex.ts", "src/broker/write-request-observation.ts", "src/manager/request-review-controller.ts", "src/manager/write-request-service.ts", "src/manager/request-review-layout.ts", "src/manager/ui/request-review.tsx"]
+  },
+  "validation": [
+    { "check": "pnpm test: 512 tests in 50 suites", "status": "passed", "evidence": "final-current/summary.json" },
+    { "check": "pnpm typecheck", "status": "passed", "evidence": "final-current/summary.json" },
+    { "check": "pnpm build", "status": "passed", "evidence": "final-current/summary.json" },
+    { "check": "git diff --check", "status": "passed", "evidence": "final-current/summary.json" },
+    { "check": "dirty-path ownership validation", "status": "passed", "evidence": "final-current/summary.json" },
+    { "check": "12 disposable terminal cases, local build and installed launcher with candidate import, 80/120 columns; maximum restoration 0.120 seconds", "status": "passed", "evidence": "terminal-acceptance.json" },
+    { "check": "independent broker, Manager and persistent outcome-header review", "status": "passed", "evidence": "acceptance.json" }
+  ],
+  "prerequisite_failure_cache": {
+    "expensive_prerequisite": null, "last_failure_fingerprint": null, "fingerprint_inputs": null, "last_failure": null, "cheap_recheck": null
+  },
+  "decisions_constraints_risks_blockers": {
+    "decisions": ["The explicitly invoked start-work workflow returns READY TO CLOSE before separately invoked close-work integration."],
+    "constraints": ["Preserve unrelated untracked spec/work/worktree data, including concurrent CHANGE-009/SPEC-004 drafts created after final-current ownership validation.", "No push, PR, installation update, live broker restart or deployment was authorized.", "Installed entry was tested only through a temporary process-only import redirect; installed application and live profiles remain unchanged."],
+    "risks": ["Approval cancellation after dispatch ends the response wait only; a broker operation can still apply.", "Later documentation audit should reconcile older blanket read-only claims; later global tooling repair should align handoff metadata ownership treatment."],
+    "blockers": []
+  },
+  "metrics": { "continuation_runs": 0, "context_compactions": 0, "failed_validation_attempts": 8, "owner_decision_round_trips": 0 },
+  "authoritative_slice": { "id": "S4", "boundary": "Documentation alignment and final affected suites/typecheck/build/ownership checks; local integration/closeout belongs to close-work." },
+  "first_remaining_action": ["Use $close-work for CHANGE-008 to reconcile the enclosing final checkpoint commit, close artifacts and integrate the completed topic locally under repository policy."],
+  "current_blocker": "None",
+  "resume_condition": "None"
+}

@@ -1,6 +1,6 @@
 # CHANGE-008: Review Pending Write Requests in C2C Manager
 
-- **Status:** In progress — implementation authorized by `$start-work` on 2026-10-05
+- **Status:** Implemented and verified — ready for local `$close-work`; installation unchanged
 - **Date:** 2026-10-05
 - **Scope:** `chat-to-codex`, WSL Manager only
 - **Primary area:** Workspace overview and local write-request review
@@ -99,7 +99,7 @@ This change does not add request creation/proposal flows, terminal request histo
 - Exercise the installed `c2c manager` path in narrow and wide terminal sessions; verify the diff remains navigable, explicit approval applies exactly once, and cancelling confirmation applies nothing. During slow reads and an already-dispatched approval, verify q/Ctrl+C/SIGTERM restore the terminal within the existing two-second target without promising to undo broker effects.
 - Snapshot the disposable request-state files before and after Manager refresh and request inspection to prove read invariance.
 
-## 7. Draft assumptions
+## 7. Implemented decisions
 
 - “Has requests” is represented as an exact number of active pending requests, rather than a boolean badge.
 - Counts and request-list navigation are scoped to the registered workspace selected in the Manager; request counts include its derived worktrees.
@@ -112,7 +112,7 @@ This change does not add request creation/proposal flows, terminal request histo
 - **Authorization:** Owner invoked `$start-work` for this record on 2026-10-05, authorizing bounded implementation and the workflow's local slice commit gate. Installation, push, PR and deployment remain outside scope.
 - **Execution:** WSL/Linux; `/home/emkej/projects/chat-to-codex`; branch `codex/change-008-pending-write-requests`; start HEAD `30db47c86b29f05cc735fdd0ebe4a12449f269b9`.
 - **Ownership:** `/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-008/task-ownership.json`; tracker `python3 /home/emkej/.codex/workflows/scripts/track_dirty_paths.py`. Pre-existing untracked spec/work/worktree data is excluded.
-- **Metrics:** continuation runs 0; observed context compactions 0; failed validation attempts 7; workflow owner-decision round-trips 0. Four terminal probe failures were fixture-marker wrapping/input synchronization errors; no failed runtime acceptance remains. Superseding terminal evidence is retained below.
+- **Metrics:** continuation runs 0; observed context compactions 0; failed validation attempts 8; workflow owner-decision round-trips 0. Four terminal probe failures were fixture-marker wrapping/input synchronization errors; the final instrumentation attempt was stopped because spying on global array methods recursively recorded the spy's own calls. Plain, finally-restored instrumentation passed. No failed acceptance remains; superseding evidence is retained below.
 - **Preflight:** Node 24.15.0, pinned pnpm 11.24.0 and existing dependencies available; typecheck and write-request/admin baseline passed ([summary](../verification/artifacts/change-008/preflight/summary.json)). Prerequisite failure cache initialized empty.
 
 | Slice | Status | Outcome and boundary |
@@ -121,6 +121,19 @@ This change does not add request creation/proposal flows, terminal request histo
 | S2 — Manager review and approval | Completed | Counts share the existing refresh; scoped queue/diff, explicit confirmation, retained unknown attempts and same-id reconciliation share the foreground guard. Real broker response-loss/cancellation applies once and reconciles without retry. [Gate](../verification/artifacts/change-008/s2-gate/summary.json), [review repair](../verification/artifacts/change-008/s2-review-repair/summary.json), [review](../verification/artifacts/change-008/s2-review.json). |
 | R1 — Persistent uncertain-outcome display | Completed | Unresolved approval id stays in the fixed header at any scroll offset; the footer shares the controller's approval predicate. [Focused gate](../verification/artifacts/change-008/r1-outcome-header/summary.json) and [independent review](../verification/artifacts/change-008/r1-review.json) passed. |
 | S3 — Terminal acceptance | Completed | Twelve disposable tmux cases passed: local and installed-launcher candidate import at 80/120 columns, all hunks/escapes, resize, cancelled confirmation, slow-read exits/deadline, q/Ctrl+C/SIGTERM during dispatched approval, visible terminal receipt, exactly-once apply and count refresh. [Gate](../verification/artifacts/change-008/s3-terminal-final/summary.json), [evidence](../verification/artifacts/change-008/terminal-acceptance.json). Installed files/live profile untouched; scratch and fixture processes removed. |
-| S4 — Documentation and final validation | In progress | README, architecture and local E2E owners aligned; final affected suites/typecheck/build/ownership checks pending. Local integration/closeout belongs to `$close-work`. |
+| S4 — Documentation and final validation | Completed | README, architecture and local E2E owners aligned. All 512 tests in 50 suites, typecheck, build, diff and ownership checks passed; [current final gate](../verification/artifacts/change-008/final-current/summary.json). Direct metadata-retention and approval/obsolete-refresh contract checks passed ([evidence](../verification/artifacts/change-008/final-contract-checks/summary.json)). [Acceptance mapping](../verification/artifacts/change-008/acceptance.json) covers A1–A9. Local integration/closeout belongs to `$close-work`. |
+
+### Ready for local closeout
+
+- Implementation and required candidate acceptance are complete. Broker/Manager slices, the outcome-header repair and terminal probes are committed on the topic branch. Documentation, strengthened final contract tests and verification evidence form the final checkpoint.
+- Terminal restoration in the twelve final cases took at most 0.120 seconds. No disposable fixture process or task-created scratch directory remains.
+- The installed launcher was exercised through a temporary process-only import redirect to the candidate build. The candidate is not installed; installed files, live profiles and existing services remain unchanged. Installation and live restart require separate authorization.
+- The typed closeout handoff is `docs/verification/artifacts/change-008/work-state.json`; ownership manifest classification passed, with task-owned documentation/tests/evidence and pre-existing spec/work/worktree data excluded. Reconcile the enclosing final checkpoint commit before Git integration.
+- Concurrent, unrelated `CHANGE-009` and `SPEC-004` command-execution drafts appeared after final ownership validation. Their headers establish separate scope; they remain untouched and unclaimed. The manifest records their explicit preservation alongside the checkpoint's unclaimed workflow metadata.
+
+### Evidence-backed follow-ups (later, outside CHANGE-008)
+
+1. README's older blanket “read-only / no mutation surface” statements conflict with the existing SPEC-002 proposal and local broker approval path. This matters because users could infer that no local write path exists. A bounded documentation audit has medium ROI for accurate security/product expectations; keep it separate from this Manager change and reconcile the capability owner rather than changing policy.
+2. The installed continuity tracker excludes only its manifest from ownership checks, while the shared contract forbids claiming other workflow metadata. A newly dirty handoff can therefore be reported as unexpected until committed. A scoped workflow-tool repair under `$codex-global-config` has medium ROI by preventing false ownership blocks; do not add another local tracker or duplicate a global rule here.
 - **Draft evidence:** [Source review](../verification/artifacts/change-008/draft-validation.json).
 - **Quality-gate revision:** QG-1–QG-4 from the [original review](../verification/artifacts/change-008/quality-gate-review.json) are addressed in the design and planned validation; [resolution evidence](../verification/artifacts/change-008/review-resolution.json). This is document-level resolution, not proof of implemented behavior.

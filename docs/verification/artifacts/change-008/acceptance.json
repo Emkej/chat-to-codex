@@ -1,0 +1,21 @@
+{
+  "work_id": "CHANGE-008",
+  "implementation": "complete",
+  "local_closeout": "pending explicit close-work invocation",
+  "criteria": {
+    "A1": { "status": "passed", "evidence": ["s1-gate/summary.json", "final-contract-checks/summary.json", "terminal-acceptance.json"], "result": "Exact counts across main/worktree records beyond 100; unavailable is distinct from zero." },
+    "A2": { "status": "passed", "evidence": ["s1-gate/summary.json"], "result": "Workspace-filtered lists and same-id detail reject cross-workspace selection." },
+    "A3": { "status": "passed", "evidence": ["s2-review-repair/summary.json", "terminal-acceptance.json"], "result": "Complete diff/metadata navigation at both widths, controls visibly escaped and literal backslashes distinguishable; original patch/request bytes unchanged." },
+    "A4": { "status": "passed", "evidence": ["s2-gate/summary.json", "terminal-acceptance.json"], "result": "Viewing never applies; separate confirmation calls canonical broker approval and applies exactly once." },
+    "A5": { "status": "passed", "evidence": ["s1-gate/summary.json", "final-current/summary.json"], "result": "Canonical expired/stale/resolved behavior preserved, unavailable outcomes fail closed and completion refresh updates counts." },
+    "A6": { "status": "passed", "evidence": ["s1-gate/summary.json", "terminal-acceptance.json"], "result": "SHA256 snapshots of the complete disposable request inventory stay identical across overview/list/detail reads, including expired and old terminal records." },
+    "A7": { "status": "passed", "evidence": ["final-contract-checks/summary.json", "terminal-acceptance.json"], "result": "Approval dispatch starts before an obsolete read retires; it cannot commit, and exactly one completion refresh follows retirement. Navigation invalidates late reads; q/Ctrl+C/SIGTERM restore terminals." },
+    "A8": { "status": "passed", "evidence": ["s1-gate/summary.json", "final-contract-checks/summary.json"], "result": "Controlled real storage traversal observes at most one in-flight record and at most 100 retained metadata entries; counts remain complete, deadlines/queue cancellation close handles and later reads remain responsive. Summary/list/receipt omit patches." },
+    "A9": { "status": "passed", "evidence": ["s2-gate/summary.json", "r1-outcome-header/summary.json", "terminal-acceptance.json"], "result": "No POST on cancelled confirmation. Real lost-response approval still applies once; receipt reconciliation resolves it without retry, while pending/missing/unavailable/projected-expiry remain unknown." }
+  },
+  "final_validation": { "tests": 512, "suites": 50, "typecheck": "passed", "build": "passed", "diff": "passed", "ownership": "passed", "evidence": "final-current/summary.json" },
+  "terminal": { "cases": 12, "dimensions": ["80x24", "120x24"], "maximum_restoration_seconds": 0.12, "evidence": "terminal-acceptance.json" },
+  "reviews": ["s1-review.json", "s2-review.json", "r1-review.json"],
+  "deployment_boundary": "Installed launcher tested with a process-only candidate import redirect. Installed app files and live profiles were not updated; no live service restart, push, PR or deployment performed.",
+  "scratch": "Disposable terminal broker processes, private tmux servers and task-created scratch directories removed. Retained summaries, focused reviews and reproducible probes remain here."
+}

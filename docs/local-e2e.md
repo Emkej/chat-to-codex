@@ -87,6 +87,8 @@ current path is:
    `c2c approve [request-id]` or rejects with `c2c reject [request-id]`.
    Implicit selection uses the concrete target containing cwd and fails safely
    when multiple requests match.
+   Alternatively, WSL `c2c manager` exposes a selected workspace's queue with
+   `w`, full diff review with Enter, and explicit `v` then `y` approval.
 3. After an applied receipt, ChatGPT calls `list_write_requests` or
    `get_write_request`, independently reads each changed file, and inspects
    `git_diff` when useful. `APPLIED` is not `VERIFIED` or `DONE`; hashes alone
@@ -132,6 +134,16 @@ this result.
   are covered by `tests/mcp-write-requests.test.ts`,
   `tests/write-request-admin.test.ts`, `tests/write-request-cli.test.ts`, and
   `tests/write-requests.test.ts`.
+- **Manager pending review**: exact counts beyond the list cap, bounded
+  sequential reads, whole-read cancellation, byte-identical observational
+  reads, workspace isolation, safe diff rendering and response-loss
+  reconciliation are covered by `tests/write-request-observation*.test.ts`
+  and `tests/manager-write-*.test.ts`. [CHANGE-008 terminal evidence](verification/artifacts/change-008/terminal-acceptance.json)
+  covers 80/120-column navigation, resize, no writes on cancelled confirmation,
+  one canonical apply, and sub-two-second exits during reads/dispatched approvals.
+  The installed launcher was exercised with a process-only import redirect to
+  the candidate build; installed application files and live profiles were not
+  updated by these probes.
 
 ## Legacy per-project bridge
 
