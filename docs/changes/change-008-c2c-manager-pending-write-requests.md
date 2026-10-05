@@ -1,6 +1,6 @@
 # CHANGE-008: Review Pending Write Requests in C2C Manager
 
-- **Status:** Implemented and verified — ready for local `$close-work`; installation unchanged
+- **Status:** Completed — implemented, verified, and integrated locally; installation unchanged
 - **Date:** 2026-10-05
 - **Scope:** `chat-to-codex`, WSL Manager only
 - **Primary area:** Workspace overview and local write-request review
@@ -109,7 +109,7 @@ This change does not add request creation/proposal flows, terminal request histo
 ## 8. Work tracking
 
 - **Owner outcome:** See pending requests per workspace and inspect/apply a selected request from the C2C Manager.
-- **Authorization:** Owner invoked `$start-work` for this record on 2026-10-05, authorizing bounded implementation and the workflow's local slice commit gate. Installation, push, PR and deployment remain outside scope.
+- **Authorization:** Owner invoked `$start-work` for this record on 2026-10-05, authorizing bounded implementation and the workflow's local slice commit gate, then explicitly invoked `$close-work` for local integration. Installation, push, PR and deployment remain outside scope.
 - **Execution:** WSL/Linux; `/home/emkej/projects/chat-to-codex`; branch `codex/change-008-pending-write-requests`; start HEAD `30db47c86b29f05cc735fdd0ebe4a12449f269b9`.
 - **Ownership:** `/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-008/task-ownership.json`; tracker `python3 /home/emkej/.codex/workflows/scripts/track_dirty_paths.py`. Pre-existing untracked spec/work/worktree data is excluded.
 - **Metrics:** continuation runs 0; observed context compactions 0; failed validation attempts 9; workflow owner-decision round-trips 0. This includes the initial ownership check before evidence claims, two broker fixture assertions/comparison attempts, one CRLF diff check, four terminal probe marker/input synchronization attempts, and one final instrumentation attempt stopped because global array spies recursively recorded their own calls. Corrected checks passed; no failed acceptance remains.
@@ -121,15 +121,17 @@ This change does not add request creation/proposal flows, terminal request histo
 | S2 — Manager review and approval | Completed | Counts share the existing refresh; scoped queue/diff, explicit confirmation, retained unknown attempts and same-id reconciliation share the foreground guard. Real broker response-loss/cancellation applies once and reconciles without retry. [Gate](../verification/artifacts/change-008/s2-gate/summary.json), [review repair](../verification/artifacts/change-008/s2-review-repair/summary.json), [review](../verification/artifacts/change-008/s2-review.json). |
 | R1 — Persistent uncertain-outcome display | Completed | Unresolved approval id stays in the fixed header at any scroll offset; the footer shares the controller's approval predicate. [Focused gate](../verification/artifacts/change-008/r1-outcome-header/summary.json) and [independent review](../verification/artifacts/change-008/r1-review.json) passed. |
 | S3 — Terminal acceptance | Completed | Twelve disposable tmux cases passed: local and installed-launcher candidate import at 80/120 columns, all hunks/escapes, resize, cancelled confirmation, slow-read exits/deadline, q/Ctrl+C/SIGTERM during dispatched approval, visible terminal receipt, exactly-once apply and count refresh. [Gate](../verification/artifacts/change-008/s3-terminal-final/summary.json), [evidence](../verification/artifacts/change-008/terminal-acceptance.json). Installed files/live profile untouched; scratch and fixture processes removed. |
-| S4 — Documentation and final validation | Completed | README, architecture and local E2E owners aligned. All 512 tests in 50 suites, typecheck, build, diff and ownership checks passed; [current final gate](../verification/artifacts/change-008/final-current/summary.json). Direct metadata-retention and approval/obsolete-refresh contract checks passed ([evidence](../verification/artifacts/change-008/final-contract-checks/summary.json)). [Acceptance mapping](../verification/artifacts/change-008/acceptance.json) covers A1–A9. Local integration/closeout belongs to `$close-work`. |
+| S4 — Documentation and final validation | Completed | README, architecture and local E2E owners aligned. All 512 tests in 50 suites, typecheck, build, diff and ownership checks passed; [current final gate](../verification/artifacts/change-008/final-current/summary.json). Direct metadata-retention and approval/obsolete-refresh contract checks passed ([evidence](../verification/artifacts/change-008/final-contract-checks/summary.json)). [Acceptance mapping](../verification/artifacts/change-008/acceptance.json) covers A1–A9. Local integration and post-merge checks are recorded in the [closeout evidence](../verification/artifacts/change-008/closeout/summary.json). |
 
-### Ready for local closeout
+### Local closeout completed
 
-- Implementation and required candidate acceptance are complete. Broker/Manager slices, the outcome-header repair and terminal probes are committed on the topic branch. Documentation, strengthened final contract tests and verification evidence form the final checkpoint.
+- The topic checkpoint commit [`a03fe1c`](../verification/artifacts/change-008/closeout/summary.json) was fast-forwarded locally into `main`; the merged topic branch was removed. No dedicated CHANGE-008 worktree existed, and the active repository worktree remains on `main`.
+- The post-merge run passed all 512 tests in 50 suites, typecheck, build, ancestry, and the scoped diff check; see the [post-merge summary](../verification/artifacts/change-008/closeout/post-merge/summary.json). The pre-merge run and review are retained in the [pre-merge summary](../verification/artifacts/change-008/closeout/pre-merge/summary.json) and [conformance review](../verification/artifacts/change-008/conformance-review.json).
 - Terminal restoration in the twelve final cases took at most 0.120 seconds. No disposable fixture process or task-created scratch directory remains.
 - The installed launcher was exercised through a temporary process-only import redirect to the candidate build. The candidate is not installed; installed files, live profiles and existing services remain unchanged. Installation and live restart require separate authorization.
-- The typed closeout handoff is `docs/verification/artifacts/change-008/work-state.json`; ownership manifest classification passed, with task-owned documentation/tests/evidence and pre-existing spec/work/worktree data excluded. Reconcile the enclosing final checkpoint commit before Git integration.
-- Concurrent, unrelated `CHANGE-009` and `SPEC-004` command-execution drafts appeared after final ownership validation. Their headers establish separate scope; they remain untouched and unclaimed. The manifest records their explicit preservation alongside the checkpoint's unclaimed workflow metadata.
+- The completed typed work-state is retained as [closeout history](../verification/artifacts/change-008/closeout/work-state.json); the active handoff path has been retired. Final dirty-path classification passed; the manifest separates CHANGE-008 evidence from preserved unrelated drafts and pre-existing worktree/profile data.
+- The `CHANGE-009` and `SPEC-004` drafts, pre-existing SPEC-003 draft, runtime data under `work/`, and detached DevEx worktree remain untouched. Their untracked paths are recorded in the closeout evidence and ownership manifest.
+- The local `origin/main` ref was not refreshed; at integration capture, local `main` was 15 commits ahead and 0 behind it. No push, PR, installation update, live restart, or deployment occurred.
 
 ### Evidence-backed follow-ups (later, outside CHANGE-008)
 

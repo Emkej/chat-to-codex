@@ -4,31 +4,56 @@
   "task_title": "[C2C/CH8/P3/closeout] Prepare pending request local closeout",
   "owner_outcome": "See pending requests per workspace and inspect/apply a selected request from the C2C Manager.",
   "authoritative_source": "/home/emkej/projects/chat-to-codex/docs/changes/change-008-c2c-manager-pending-write-requests.md",
-  "status": "Ready",
-  "handoff_reason": "Owner-directed pause",
+  "status": "Completed",
+  "handoff_reason": "None",
   "environment": "WSL",
   "repository_root": "/home/emkej/projects/chat-to-codex",
   "worktree": "/home/emkej/projects/chat-to-codex",
-  "branch": "codex/change-008-pending-write-requests",
-  "head": "5ecdfc9452c435b7449031578226de65b59a8737",
-  "snapshot_note": "Final documentation/verification checkpoint is committed. This snapshot precedes its enclosing bookkeeping correction; reconcile live HEAD during closeout.",
+  "branch": "main",
+  "head": "a03fe1c9d04231553ecd06af4134a0c407a63ec7",
+  "snapshot_note": "The completed topic checkpoint was fast-forwarded into main. This integration head precedes the final closeout evidence commit; see closeout/summary.json.",
   "relevant_commits": [
     "911d8ddf93ba486dc909c2b7afea5993b12316d8",
     "9069bddc28699ff3bd00e3505a0303a58442f8f4",
     "839739137feafbfe40bfbad309340ef0366bc0dd",
     "3fb5dc96b4b90ae1433137172ae03125aee8ddcf",
-    "5ecdfc9452c435b7449031578226de65b59a8737"
+    "5ecdfc9452c435b7449031578226de65b59a8737",
+    "a03fe1c9d04231553ecd06af4134a0c407a63ec7"
   ],
   "git_state": {
     "staged": [],
-    "unstaged": ["docs/changes/change-008-c2c-manager-pending-write-requests.md", "docs/verification/artifacts/change-008/work-state.json"],
-    "untracked": [".worktrees/", "docs/specs/spec-003-c2c-manager-mvp.md", "docs/changes/change-009-approved-local-command-requests.md", "docs/specs/spec-004-approved-local-command-execution.md", "work/"]
+    "unstaged": [],
+    "untracked": [
+      ".worktrees/devex-spec001-pilot-b/",
+      "docs/changes/change-009-approved-local-command-requests.md",
+      "docs/specs/spec-003-c2c-manager-mvp.md",
+      "docs/specs/spec-004-approved-local-command-execution.md",
+      "work/c2c-test-codex-home/config.toml",
+      "work/c2c-test-home/profiles/spec001-chatgpt/agent-sessions/aa044b947ac1.json",
+      "work/c2c-test-home/profiles/spec001-chatgpt/auth/c2c_inst_-lOMTvZdSaw_EPa5S2yrBA.json",
+      "work/c2c-test-home/profiles/spec001-chatgpt/installation.json",
+      "work/c2c-test-home/profiles/spec001-chatgpt/runtime/c2c_inst_-lOMTvZdSaw_EPa5S2yrBA.json",
+      "work/c2c-test-home/profiles/spec001-chatgpt/tunnels/installation.json",
+      "work/c2c-test-home/profiles/spec001-chatgpt/workspaces/registry.json",
+      "work/c2c-test-home/profiles/spec001-chatgpt/workspaces/sessions.json",
+      "work/tools/cloudflared"
+    ]
+  },
+  "integration": {
+    "target": "main",
+    "status_at_capture": "merged locally by fast-forward; post-merge checks passed; topic branch removed",
+    "merged_head": "a03fe1c9d04231553ecd06af4134a0c407a63ec7",
+    "removed_local_branch": "codex/change-008-pending-write-requests",
+    "removed_worktrees": [],
+    "reason_no_worktree_removed": "The active repository worktree is now on main. The unrelated detached DevEx worktree remains registered and preserved.",
+    "push_performed": false,
+    "evidence": "docs/verification/artifacts/change-008/closeout/summary.json"
   },
   "ownership": {
     "manifest": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-008/task-ownership.json",
     "tracker": "python3 /home/emkej/.codex/workflows/scripts/track_dirty_paths.py",
-    "classification": "Final-current validation passed before concurrent drafts appeared. Latest manifest closeout classification explicitly preserves the unrelated CHANGE-009/SPEC-004 drafts, and includes the typed handoff as checkpoint workflow metadata without an implementation claim.",
-    "workflow_metadata": "Manifest and typed handoff are workflow metadata, not implementation claims. They are included in the final checkpoint commit."
+    "classification": "Final closeout classification passed on main. CHANGE-008 documentation and closeout evidence are owned by this item; concurrent drafts are dispositioned for preservation; pre-existing worktree, work, and SPEC-003 paths remain excluded.",
+    "workflow_metadata": "The manifest and completed work-state are workflow metadata, not implementation claims. The work-state is retained as final closeout history."
   },
   "ledger": {
     "completed_slices": ["S1", "S2", "R1", "S3", "S4"],
@@ -46,20 +71,24 @@
     { "check": "git diff --check", "status": "passed", "evidence": "final-current/summary.json" },
     { "check": "dirty-path ownership validation", "status": "passed", "evidence": "final-current/summary.json" },
     { "check": "12 disposable terminal cases, local build and installed launcher with candidate import, 80/120 columns; maximum restoration 0.120 seconds", "status": "passed", "evidence": "terminal-acceptance.json" },
-    { "check": "independent broker, Manager and persistent outcome-header review", "status": "passed", "evidence": "acceptance.json" }
+    { "check": "independent broker, Manager and persistent outcome-header review", "status": "passed", "evidence": "acceptance.json" },
+    { "check": "pre-merge pnpm test (512 tests in 50 suites), typecheck, build, diff check and handoff validation", "status": "passed", "evidence": "closeout/pre-merge/summary.json" },
+    { "check": "post-merge pnpm test (512 tests in 50 suites), typecheck and build", "status": "passed", "evidence": "closeout/post-merge/summary.json" },
+    { "check": "fast-forward ancestry, scoped diff and preservation of unrelated untracked paths/worktree", "status": "passed", "evidence": "closeout/post-merge/summary.json" },
+    { "check": "dirty-path closeout classification on main", "status": "passed", "evidence": "task-ownership.json" }
   ],
   "prerequisite_failure_cache": {
     "expensive_prerequisite": null, "last_failure_fingerprint": null, "fingerprint_inputs": null, "last_failure": null, "cheap_recheck": null
   },
   "decisions_constraints_risks_blockers": {
-    "decisions": ["The explicitly invoked start-work workflow returns READY TO CLOSE before separately invoked close-work integration."],
+    "decisions": ["The explicitly invoked start-work workflow returned READY TO CLOSE before separately invoked close-work integration.", "The owner invoked $close-work for local integration and completion; installation, push, PR and deployment remained outside that authorization."],
     "constraints": ["Preserve unrelated untracked spec/work/worktree data, including concurrent CHANGE-009/SPEC-004 drafts created after final-current ownership validation.", "No push, PR, installation update, live broker restart or deployment was authorized.", "Installed entry was tested only through a temporary process-only import redirect; installed application and live profiles remain unchanged."],
     "risks": ["Approval cancellation after dispatch ends the response wait only; a broker operation can still apply.", "Later documentation audit should reconcile older blanket read-only claims; later global tooling repair should align handoff metadata ownership treatment."],
     "blockers": []
   },
   "metrics": { "continuation_runs": 0, "context_compactions": 0, "failed_validation_attempts": 9, "owner_decision_round_trips": 0 },
-  "authoritative_slice": { "id": "S4", "boundary": "Documentation alignment and final affected suites/typecheck/build/ownership checks; local integration/closeout belongs to close-work." },
-  "first_remaining_action": ["Use $close-work for CHANGE-008 to reconcile the enclosing final checkpoint commit, close artifacts and integrate the completed topic locally under repository policy."],
+  "authoritative_slice": { "id": "S4", "boundary": "Documentation alignment and final affected suites/typecheck/build/ownership checks, followed by local integration and closeout." },
+  "first_remaining_action": [],
   "current_blocker": "None",
   "resume_condition": "None"
 }

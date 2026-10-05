@@ -1,7 +1,8 @@
 {
   "work_id": "CHANGE-008",
   "implementation": "complete",
-  "local_closeout": "pending explicit close-work invocation",
+  "local_closeout": "completed: fast-forwarded locally to main; merged topic branch removed; no push",
+  "closeout_evidence": ["closeout/pre-merge/summary.json", "closeout/post-merge/summary.json", "closeout/summary.json", "closeout/work-state.json"],
   "criteria": {
     "A1": { "status": "passed", "evidence": ["s1-gate/summary.json", "final-contract-checks/summary.json", "terminal-acceptance.json"], "result": "Exact counts across main/worktree records beyond 100; unavailable is distinct from zero." },
     "A2": { "status": "passed", "evidence": ["s1-gate/summary.json"], "result": "Workspace-filtered lists and same-id detail reject cross-workspace selection." },

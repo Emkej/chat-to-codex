@@ -4,7 +4,7 @@
     "capturedAt": "2026-10-05T20:15:44+02:00",
     "repositoryRoot": "/home/emkej/projects/chat-to-codex",
     "worktree": "/home/emkej/projects/chat-to-codex",
-    "branch": "codex/change-008-pending-write-requests",
+    "branch": "main",
     "head": "30db47c86b29f05cc735fdd0ebe4a12449f269b9",
     "tracker": "/home/emkej/.codex/workflows/scripts/track_dirty_paths.py",
     "preExistingDirtyPaths": [
@@ -72,14 +72,18 @@
         "docs/verification/artifacts/change-008/final-current/summary.json"
     ],
     "closeoutClassification": {
-        "classifiedAt": "2026-10-05T21:10:10+02:00",
-        "head": "dc1e88bd008d6cd67cfa2565dce85b499d2b13ed",
-        "method": "CHANGE-008 pre-merge closeout classification; preserve unrelated drafts and runtime data",
+        "classifiedAt": "2026-10-05T21:18:20+02:00",
+        "head": "a03fe1c9d04231553ecd06af4134a0c407a63ec7",
+        "method": "CHANGE-008 final closeout classification on main; completed work-state archived",
         "owned": {
             "source": "claimedPaths",
             "additionalSameWorkItemPaths": [
                 "docs/verification/artifacts/change-008/conformance-review.json",
-                "docs/verification/artifacts/change-008/closeout/pre-merge/summary.json"
+                "docs/verification/artifacts/change-008/closeout/pre-merge/summary.json",
+                "docs/verification/artifacts/change-008/closeout/post-merge/summary.json",
+                "docs/verification/artifacts/change-008/closeout/summary.json",
+                "docs/verification/artifacts/change-008/closeout/work-state.json",
+                "docs/verification/artifacts/change-008/work-state.json"
             ]
         },
         "excludedPreExisting": [
@@ -96,7 +100,7 @@
             "work/tools/cloudflared"
         ],
         "unexpectedDisposition": {
-            "disposition": "Preserve the concurrent CHANGE-009 and SPEC-004 drafts untouched; preserve listed pre-existing worktree, work, and SPEC-003 data.",
+            "disposition": "Preserve concurrent CHANGE-009 and SPEC-004 drafts untouched; preserve pre-existing SPEC-003, work data, and detached worktree.",
             "paths": [
                 "docs/changes/change-009-approved-local-command-requests.md",
                 "docs/specs/spec-004-approved-local-command-execution.md"

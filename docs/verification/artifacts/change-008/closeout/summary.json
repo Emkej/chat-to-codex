@@ -1,0 +1,46 @@
+{
+  "work_id": "CHANGE-008",
+  "date": "2026-10-05",
+  "status": "Completed",
+  "implementation_commits": [
+    "911d8ddf93ba486dc909c2b7afea5993b12316d8",
+    "9069bddc28699ff3bd00e3505a0303a58442f8f4",
+    "839739137feafbfe40bfbad309340ef0366bc0dd",
+    "3fb5dc96b4b90ae1433137172ae03125aee8ddcf",
+    "5ecdfc9452c435b7449031578226de65b59a8737",
+    "dc1e88bd008d6cd67cfa2565dce85b499d2b13ed"
+  ],
+  "closeout_checkpoint_commit": "a03fe1c9d04231553ecd06af4134a0c407a63ec7",
+  "integration_target": "main",
+  "integration_result": "local fast-forward succeeded",
+  "integration_base": "30db47c86b29f05cc735fdd0ebe4a12449f269b9",
+  "integration_head_before_final_evidence_commit": "a03fe1c9d04231553ecd06af4134a0c407a63ec7",
+  "removed_local_branch": "codex/change-008-pending-write-requests",
+  "removed_worktrees": [],
+  "active_handoff_retired": {
+    "previous_path": "../work-state.json",
+    "archived_path": "work-state.json",
+    "reason": "The completed work-state retains useful implementation and closeout history, so it was moved out of the active handoff location rather than discarded."
+  },
+  "active_worktree": "/home/emkej/projects/chat-to-codex on main",
+  "preserved_unrelated_worktree": ".worktrees/devex-spec001-pilot-b/ (detached)",
+  "pre_merge_validation": "pre-merge/summary.json",
+  "post_merge_validation": "post-merge/summary.json",
+  "ownership_manifest": "../task-ownership.json",
+  "remote_relationship_before_final_evidence_commit": "The local origin/main ref was not fetched; main was 15 commits ahead and 0 behind at integration capture.",
+  "push_performed": false,
+  "installation_or_deployment": "Not included. The candidate remains uninstalled; installed files, live profiles, and existing services were not updated.",
+  "retained_artifacts": [
+    "../conformance-review.json",
+    "work-state.json",
+    "pre-merge/summary.json",
+    "post-merge/summary.json"
+  ],
+  "unrelated_untracked_paths_preserved": [
+    ".worktrees/devex-spec001-pilot-b/",
+    "docs/changes/change-009-approved-local-command-requests.md",
+    "docs/specs/spec-003-c2c-manager-mvp.md",
+    "docs/specs/spec-004-approved-local-command-execution.md",
+    "work/"
+  ]
+}

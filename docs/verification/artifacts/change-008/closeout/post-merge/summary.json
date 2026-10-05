@@ -1,0 +1,71 @@
+{
+  "work_id": "CHANGE-008",
+  "captured_phase": "after local integration and post-merge verification; before final evidence commit",
+  "date": "2026-10-05",
+  "status": "passed",
+  "integration_target": "main",
+  "integration_result": "local fast-forward succeeded",
+  "integration_base": "30db47c86b29f05cc735fdd0ebe4a12449f269b9",
+  "closeout_checkpoint_commit": "a03fe1c9d04231553ecd06af4134a0c407a63ec7",
+  "integration_head_before_final_evidence_commit": "a03fe1c9d04231553ecd06af4134a0c407a63ec7",
+  "validation": [
+    {
+      "command": "rtk proxy pnpm test",
+      "status": "passed",
+      "test_files": 50,
+      "tests": 512,
+      "duration_seconds": 23.94
+    },
+    {
+      "command": "rtk proxy pnpm typecheck",
+      "status": "passed"
+    },
+    {
+      "command": "rtk proxy pnpm build",
+      "status": "passed"
+    },
+    {
+      "command": "rtk proxy git -c core.whitespace=cr-at-eol diff --check 30db47c86b29f05cc735fdd0ebe4a12449f269b9..HEAD",
+      "status": "passed"
+    },
+    {
+      "command": "rtk proxy git merge-base --is-ancestor a03fe1c HEAD",
+      "status": "passed"
+    }
+  ],
+  "unrelated_state_preservation": {
+    "status": "passed",
+    "method": "Compared the exact untracked Git status inventory before integration with the post-merge inventory; all unrelated paths remained present and unchanged in status.",
+    "preserved_paths": [
+      ".worktrees/devex-spec001-pilot-b/",
+      "docs/changes/change-009-approved-local-command-requests.md",
+      "docs/specs/spec-003-c2c-manager-mvp.md",
+      "docs/specs/spec-004-approved-local-command-execution.md",
+      "work/c2c-test-codex-home/config.toml",
+      "work/c2c-test-home/profiles/spec001-chatgpt/agent-sessions/aa044b947ac1.json",
+      "work/c2c-test-home/profiles/spec001-chatgpt/auth/c2c_inst_-lOMTvZdSaw_EPa5S2yrBA.json",
+      "work/c2c-test-home/profiles/spec001-chatgpt/installation.json",
+      "work/c2c-test-home/profiles/spec001-chatgpt/runtime/c2c_inst_-lOMTvZdSaw_EPa5S2yrBA.json",
+      "work/c2c-test-home/profiles/spec001-chatgpt/tunnels/installation.json",
+      "work/c2c-test-home/profiles/spec001-chatgpt/workspaces/registry.json",
+      "work/c2c-test-home/profiles/spec001-chatgpt/workspaces/sessions.json",
+      "work/tools/cloudflared"
+    ],
+    "registered_worktrees": [
+      "active repository worktree on main",
+      "unrelated detached .worktrees/devex-spec001-pilot-b preserved"
+    ]
+  },
+  "cleanup": {
+    "removed_local_branch": "codex/change-008-pending-write-requests",
+    "removed_worktrees": [],
+    "reason_no_worktree_removed": "The task used the active repository worktree, now on main; the separate detached DevEx worktree is unrelated and remains preserved."
+  },
+  "remote_relationship_before_final_evidence_commit": {
+    "ref": "origin/main",
+    "main_ahead": 15,
+    "main_behind": 0,
+    "fetched": false
+  },
+  "push_performed": false
+}
