@@ -1,11 +1,14 @@
 import { Box, Text, useInput } from "ink";
 import { useEffect, useState } from "react";
-import { getAvailableManagerActions, managerActionForShortcut } from "../action-policy.js";
+import { getAvailableManagerActions } from "../action-policy.js";
 import { getManagerLayout } from "../layout.js";
 import { ManagerController } from "../controller.js";
-import type { ManagerActionOption, ManagerSnapshot } from "../types.js";
+import type { ManagerSnapshot } from "../types.js";
 import { ActionsMenu } from "./actions-menu.js";
 import { Overview } from "./overview.js";
+import { WorkspaceDetail } from "./workspace-detail.js";
+import { detailViewport, workspaceDetailLines } from "../workspace-detail-layout.js";
+import { handleManagerInput } from "./manager-input.js";
 
 function useManagerSnapshot(controller: ManagerController): ManagerSnapshot {
   const [snapshot, setSnapshot] = useState(controller.getSnapshot());
@@ -21,14 +24,10 @@ function HelpPanel() {
       <Text>d Check · f Fix when repairable · p Pair when endpoint is ready</Text>
       <Text>c Confirm displayed connector URL · r Refresh · a Actions · q Quit</Text>
       <Text>Confirmation: y/Enter accept · n/Esc cancel</Text>
-      <Text>↑/↓ select a workspace · ? close help · Ctrl+C quit</Text>
+      <Text>↑/↓ select · Enter detail · Esc back · PgUp/PgDn scroll detail</Text>
+      <Text>? close help · Ctrl+C quit</Text>
     </Box>
   );
-}
-
-function actionAt(actions: ManagerActionOption[], index: number): ManagerActionOption | null {
-  if (actions.length === 0) return null;
-  return actions[Math.max(0, Math.min(index, actions.length - 1))] ?? null;
 }
 
 export function ManagerApp({
@@ -40,13 +39,28 @@ export function ManagerApp({
 }) {
   const snapshot = useManagerSnapshot(controller);
   const [columns, setColumns] = useState(process.stdout.columns ?? 80);
+  const [rows, setRows] = useState(process.stdout.rows ?? 24);
+  const [detailOffset, setDetailOffset] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuIndex, setMenuIndex] = useState(0);
   const [helpOpen, setHelpOpen] = useState(false);
   const actions = getAvailableManagerActions(snapshot);
+  const detailLines = workspaceDetailLines(snapshot, Math.max(1, columns - 2));
+  const viewport = detailViewport(detailLines.length, rows, detailOffset);
 
   useEffect(() => {
-    const updateColumns = () => setColumns(process.stdout.columns ?? 80);
+    if (!snapshot.workspaceDetail) setDetailOffset(0);
+  }, [snapshot.workspaceDetail?.workspaceId]);
+
+  useEffect(() => {
+    setDetailOffset(viewport.offset);
+  }, [viewport.offset]);
+
+  useEffect(() => {
+    const updateColumns = () => {
+      setColumns(process.stdout.columns ?? 80);
+      setRows(process.stdout.rows ?? 24);
+    };
     process.stdout.on("resize", updateColumns);
     updateColumns();
     return () => {
@@ -55,69 +69,12 @@ export function ManagerApp({
   }, []);
 
   useInput((input, key) => {
-    if (key.ctrl && input === "c") {
-      onQuit();
-      return;
-    }
-    if (input === "q") {
-      onQuit();
-      return;
-    }
-    if (snapshot.confirmation) {
-      if (input.toLowerCase() === "y" || key.return) void controller.confirmPendingAction();
-      else if (input.toLowerCase() === "n" || key.escape) controller.cancelConfirmation();
-      return;
-    }
-    if (input === "?") {
-      setHelpOpen((current) => !current);
-      setMenuOpen(false);
-      return;
-    }
-    if (input === "a") {
-      setMenuOpen((current) => !current);
-      setHelpOpen(false);
-      setMenuIndex(0);
-      return;
-    }
-    if (menuOpen) {
-      if (key.escape) {
-        setMenuOpen(false);
-        return;
-      }
-      if (key.upArrow) {
-        setMenuIndex((current) => (current - 1 + actions.length) % actions.length);
-        return;
-      }
-      if (key.downArrow) {
-        setMenuIndex((current) => (current + 1) % actions.length);
-        return;
-      }
-      if (key.return) {
-        const selected = actionAt(actions, menuIndex);
-        if (selected) {
-          setMenuOpen(false);
-          if (selected.id === "quit") onQuit();
-          else void controller.perform(selected.id);
-        }
-      }
-      return;
-    }
-    if (helpOpen && key.escape) {
-      setHelpOpen(false);
-      return;
-    }
-    if (key.upArrow) {
-      controller.moveWorkspaceSelection(-1);
-      return;
-    }
-    if (key.downArrow) {
-      controller.moveWorkspaceSelection(1);
-      return;
-    }
-    const action = managerActionForShortcut(snapshot, input.toLowerCase());
-    if (!action) return;
-    if (action.id === "quit") onQuit();
-    else void controller.perform(action.id);
+    handleManagerInput(input, key, snapshot, controller, {
+      menuOpen, menuIndex, helpOpen, setMenuOpen, setMenuIndex, setHelpOpen, onQuit,
+      pageHeight: viewport.height,
+      resetScroll: () => setDetailOffset(0),
+      scroll: (delta) => setDetailOffset(detailViewport(detailLines.length, rows, viewport.offset + delta).offset),
+    });
   });
 
   const layout = getManagerLayout(columns);
@@ -128,17 +85,21 @@ export function ManagerApp({
 
   return (
     <Box flexDirection="column" paddingX={1}>
-      <Overview snapshot={snapshot} layout={layout} />
+      {snapshot.workspaceDetail ? (
+        !menuOpen && !helpOpen && !snapshot.confirmation ?
+          <WorkspaceDetail lines={detailLines} offset={viewport.offset} height={viewport.height} /> :
+          <Text bold>Workspace detail</Text>
+      ) : <Overview snapshot={snapshot} layout={layout} />}
       {menuOpen ? <ActionsMenu actions={actions} selectedIndex={menuIndex} /> : null}
       {helpOpen ? <HelpPanel /> : null}
       {snapshot.confirmation ? (
         <Text color="yellow" bold>{snapshot.notice}</Text>
       ) : null}
-      <Box marginTop={1}>
+      {!snapshot.workspaceDetail || menuOpen || helpOpen || snapshot.confirmation ? <Box marginTop={1}>
         <Text dimColor wrap="wrap">
-          {hints} · [a] Actions · [?] Help · [q] Quit
+          {hints} · [Enter] Detail · [a] Actions · [?] Help · [q] Quit
         </Text>
-      </Box>
+      </Box> : null}
     </Box>
   );
 }

@@ -112,6 +112,7 @@ function makeLifecycle(
 
 function makeServices(overrides: Partial<ManagerServices> = {}): ManagerServices {
   const defaults: ManagerServices = {
+    readWorkspaceDetail: vi.fn(async () => []),
     readStatus: vi.fn(async () => makeStatus()),
     checkHealth: vi.fn(async () => makeHealth()),
     startBroker: vi.fn(async () => makeLifecycle("start", makeStatus({ broker: "running" }))),
@@ -142,6 +143,100 @@ async function loadedController(services: ManagerServices = makeServices()): Pro
 afterEach(() => {
   for (const controller of controllers.splice(0)) controller.close();
   vi.useRealTimers();
+});
+
+describe("Manager workspace detail lifecycle", () => {
+  it("keeps discovery lazy and reads only the selected workspace", async () => {
+    const services = makeServices({ readWorkspaceDetail: vi.fn(async () => [{ worktreeId: "wt-test", branch: null, commit: "abc123" }]) });
+    const controller = await loadedController(services);
+    controller.selectWorkspace("workspace-b");
+    await controller.refresh();
+    expect(services.readWorkspaceDetail).not.toHaveBeenCalled();
+    await controller.openWorkspaceDetail();
+    expect(services.readWorkspaceDetail).toHaveBeenCalledWith("workspace-b", { signal: expect.any(AbortSignal) });
+    expect(controller.getSnapshot().workspaceDetail).toEqual({ workspaceId: "workspace-b", state: "ready", worktrees: [{ worktreeId: "wt-test", branch: null, commit: "abc123" }] });
+    controller.closeWorkspaceDetail();
+    expect(controller.getSnapshot().selectedWorkspaceId).toBe("workspace-b");
+    for (const action of [services.startBroker, services.restartBroker, services.recoverBroker, services.stopBroker, services.checkHealth, services.createPairing, services.confirmEndpoint]) expect(action).not.toHaveBeenCalled();
+  });
+
+  it("does not discover with no selection or during confirmation", async () => {
+    const emptyServices = makeServices({ readStatus: vi.fn(async () => makeStatus({ workspaces: [] })) });
+    const empty = await loadedController(emptyServices);
+    expect(await empty.openWorkspaceDetail()).toBe(false);
+    expect(emptyServices.readWorkspaceDetail).not.toHaveBeenCalled();
+    const services = makeServices();
+    const controller = await loadedController(services);
+    await controller.perform("stop");
+    expect(await controller.openWorkspaceDetail()).toBe(false);
+    expect(services.readWorkspaceDetail).not.toHaveBeenCalled();
+  });
+
+  it("keeps the foreground guard through cancellation cleanup and ignores late results", async () => {
+    const pending = deferred<[]>();
+    let signal!: AbortSignal;
+    const services = makeServices({ readWorkspaceDetail: vi.fn(async (_id, options) => { signal = options.signal; return pending.promise; }) });
+    const controller = await loadedController(services);
+    const opening = controller.openWorkspaceDetail();
+    expect(controller.getSnapshot().workspaceDetail?.state).toBe("loading");
+    controller.closeWorkspaceDetail();
+    expect(signal.aborted).toBe(true);
+    expect(controller.getSnapshot().activeAction).toBe("detail");
+    expect(await controller.openWorkspaceDetail()).toBe(false);
+    expect(await controller.perform("restart")).toBe(false);
+    controller.selectWorkspace("workspace-b");
+    expect(controller.getSnapshot().selectedWorkspaceId).toBe("workspace-b");
+    pending.resolve([]);
+    await opening;
+    expect(controller.getSnapshot().workspaceDetail).toBeNull();
+    expect(controller.getSnapshot().activeAction).toBeNull();
+    await controller.openWorkspaceDetail();
+    expect(controller.getSnapshot().workspaceDetail?.workspaceId).toBe("workspace-b");
+  });
+
+  it("cancels when selection changes and when the Manager closes", async () => {
+    const pending = deferred<[]>();
+    let signal!: AbortSignal;
+    const services = makeServices({ readWorkspaceDetail: vi.fn(async (_id, options) => { signal = options.signal; return pending.promise; }) });
+    const controller = await loadedController(services);
+    const opening = controller.openWorkspaceDetail();
+    controller.selectWorkspace("workspace-b");
+    expect(signal.aborted).toBe(true);
+    expect(controller.getSnapshot().workspaceDetail).toBeNull();
+    pending.resolve([]);
+    await opening;
+    const closing = controller.openWorkspaceDetail();
+    controller.close();
+    expect(signal.aborted).toBe(true);
+    await closing;
+    expect(controller.getSnapshot().closed).toBe(true);
+  });
+
+  it("drops a removed workspace after a read and redacts failures", async () => {
+    const services = makeServices({
+      readStatus: vi.fn().mockResolvedValueOnce(makeStatus()).mockResolvedValue(makeStatus({ workspaces: [{ id: "workspace-b", name: "Beta", liveSessionCount: null }] })),
+      readWorkspaceDetail: vi.fn(async () => []),
+    });
+    const controller = await loadedController(services);
+    await controller.openWorkspaceDetail();
+    expect(controller.getSnapshot().workspaceDetail).toBeNull();
+    expect(controller.getSnapshot().selectedWorkspaceId).toBe("workspace-b");
+    vi.mocked(services.readWorkspaceDetail).mockRejectedValue(new Error("/private/repository cannot be read"));
+    await controller.openWorkspaceDetail();
+    expect(controller.getSnapshot().workspaceDetail?.state).toBe("unavailable");
+    expect(JSON.stringify(controller.getSnapshot())).not.toContain("/private/repository");
+  });
+
+  it("refreshes the displayed detail without starting a detail polling lane", async () => {
+    vi.useFakeTimers();
+    const services = makeServices();
+    const controller = await loadedController(services);
+    await controller.openWorkspaceDetail();
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(services.readWorkspaceDetail).toHaveBeenCalledTimes(1);
+    await controller.perform("refresh");
+    expect(services.readWorkspaceDetail).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe("Manager action policy and controller", () => {

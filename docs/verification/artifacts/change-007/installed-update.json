@@ -1,0 +1,18 @@
+{
+  "change": "CHANGE-007",
+  "status": "installed",
+  "authorization": "Owner instruction sprav to on 2026-10-05 approved the previously proposed scoped update with backup",
+  "files_verified": 21,
+  "existing_files_backed_up": 11,
+  "backup": "work/change-007-installed-backup",
+  "protected_app_metadata_launchers_skill": "unchanged",
+  "profile_state_operations": 0,
+  "service_restarts": 0,
+  "compatibility_repair": {
+    "path": "dist/workspace/git.js",
+    "change": "Export the existing canonical sanitizedGitEnvironment function; exact original bytes preserved apart from the export keyword",
+    "before_sha256": "f3e1c96b905e779957e637880ba9b1b009704f9e721bf615c3ecf4b4a4ffc312",
+    "after_sha256": "add9913bcbdfb724958600d235c271f5e5162cdbc62d5761411b1ed531689c96",
+    "installed_imports": "passed"
+  }
+}

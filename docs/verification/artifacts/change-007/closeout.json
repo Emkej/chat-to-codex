@@ -1,0 +1,30 @@
+{
+  "work_id": "CHANGE-007",
+  "status": "Completed",
+  "completed_at": "2026-10-05",
+  "owner_outcome": "Open the selected registered workspace's read-only detail in C2C Manager, with responsive cancellable reads and reachable content at both terminal widths.",
+  "completed_slices": ["D0", "S1", "R1", "R2", "S2"],
+  "remaining_slices": [],
+  "blockers": [],
+  "environment": "WSL",
+  "worktree": "/home/emkej/projects/chat-to-codex",
+  "branch": "codex/change-007-plan-review-fixes",
+  "baseline_head": "f66e4b2c62362e75ba43f0d3c73135dd23f83c11",
+  "validation": {
+    "affected_regressions_typecheck_build_diff": "passed; s1-gate/summary.json",
+    "unicode_repair": "passed; unicode-repair/summary.json",
+    "sigterm_repair": "passed; sigterm-repair/summary.json",
+    "independent_review": "passed; review.json",
+    "local_terminal": "passed; terminal-local.json",
+    "installed_imports": "passed; installed-update.json",
+    "installed_terminal": "passed; terminal-installed.json",
+    "installed_rollback_backup": "11 overwritten files retained in work/change-007-installed-backup",
+    "protected_state_launchers_skills_dependencies_services": "preserved"
+  },
+  "ownership_manifest": "task-ownership.json",
+  "tracker": "python3 /home/emkej/.codex/workflows/scripts/track_dirty_paths.py",
+  "metrics": { "continuation_runs": 1, "context_compactions": 0, "failed_validation_attempts": 11, "owner_decision_round_trips": 2 },
+  "git_gate": "One isolated new task commit; no amend, push, merge or hook bypass. This evidence is captured before commit; final commit identity is authoritative in Git.",
+  "active_handoff": "retired",
+  "retained_task_output": "work/change-007-installed-backup contains rollback copies; prepared bundle and disposable fixtures removed"
+}

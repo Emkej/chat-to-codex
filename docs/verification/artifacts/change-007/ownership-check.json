@@ -1,0 +1,7 @@
+{
+  "status": "passed",
+  "owned_paths": 34,
+  "pre_existing_excluded": 11,
+  "unexpected_paths": [],
+  "classification": "isolated implementation and same-work-item evidence; unrelated pre-existing paths preserved"
+}

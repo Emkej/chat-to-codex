@@ -1,0 +1,21 @@
+{
+  "work_id": "CHANGE-007",
+  "baseline": "f66e4b2c62362e75ba43f0d3c73135dd23f83c11",
+  "reviewer": "independent review_change7 subagent under requesting-code-review",
+  "finding": {
+    "priority": "P2",
+    "area": "Unicode wrapping and viewport reachability",
+    "observation": "The initial width table missed U+2329 and U+1B000. Ink could wrap logical lines again and conceal their suffixes outside the scroll range.",
+    "resolution": "Reserve two terminal cells conservatively for non-ASCII graphemes; keep standalone combining marks at zero cells. Narrow Unicode may wrap early without losing content.",
+    "regression": "Every END suffix in 20 worktrees containing each affected character remains reachable through rendered 80-column viewports.",
+    "status": "resolved; independently rechecked"
+  },
+  "sigterm_repair_review": {
+    "root_cause": "A once SIGTERM handler disappeared before Ink's already-dispatched signal-exit callback could inspect listener ownership; it could re-send SIGTERM before the Manager's finally restored the screen.",
+    "resolution": "Keep the Manager handler registered with process.on until existing finally cleanup removes it after restoration. requestExit remains idempotent.",
+    "status": "independently reviewed; no actionable findings",
+    "regression": "Invoke the actual registered raw listener and assert it remains registered before finally, then is removed after restoration."
+  },
+  "remaining_actionable_findings": [],
+  "evidence": "unicode-repair/summary.json"
+}

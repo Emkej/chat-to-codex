@@ -1,0 +1,18 @@
+{
+  "work_id": "CHANGE-007",
+  "date": "2026-10-04",
+  "scope": "Plan corrections only; implementation remains unauthorized",
+  "resolved_review_items": [
+    "Specify bounded, cancellable asynchronous worktree reads with shared canonical validation and direct slow-process verification.",
+    "Specify detail viewport scrolling and overflow acceptance at both required terminal sizes."
+  ],
+  "checks": {
+    "relative_links": "PASS: all three document links resolve locally",
+    "whitespace": "PASS: no trailing whitespace; git diff --no-index --check emitted no whitespace diagnostics (exit 1 reflects the untracked file difference)",
+    "draft_boundary": "PASS: Draft status and owner approval prerequisite retained",
+    "acceptance_structure": "PASS: A1 through A6 each appear once; A4 and A6 include direct verification of the corrected design properties",
+    "authority_review": "PASS: preserves SPEC-003 sections 17.1, 17.2 and 17.4; no new scheduler, duplicated validation authority or runtime implementation"
+  },
+  "not_run": ["repository tests", "typecheck", "build", "slow-process runtime verification", "terminal acceptance", "installation"],
+  "committed": false
+}

@@ -45,7 +45,7 @@ let app: FakeApp;
 let controller: FakeController;
 let writes: string[];
 let stdoutWrite: ReturnType<typeof vi.spyOn>;
-let once: ReturnType<typeof vi.spyOn>;
+let on: ReturnType<typeof vi.spyOn>;
 let removeListener: ReturnType<typeof vi.spyOn>;
 let quitCallback: (() => void) | undefined;
 
@@ -62,7 +62,7 @@ function restoreTTY(): void {
 }
 
 function expectSigtermListenerRemovedAfterRestoration(): void {
-  const registration = once.mock.calls.find(([event]) => event === "SIGTERM");
+  const registration = on.mock.calls.find(([event]) => event === "SIGTERM");
   const handler = registration?.[1];
   expect(handler).toEqual(expect.any(Function));
   expect(removeListener).toHaveBeenCalledWith("SIGTERM", handler);
@@ -103,13 +103,13 @@ beforeEach(() => {
     writes.push(chunk.toString());
     return true;
   }) as typeof process.stdout.write);
-  once = vi.spyOn(process, "once");
+  on = vi.spyOn(process, "on");
   removeListener = vi.spyOn(process, "removeListener");
 });
 
 afterEach(() => {
   stdoutWrite.mockRestore();
-  once.mockRestore();
+  on.mockRestore();
   removeListener.mockRestore();
   renderMock.mockReset();
   managerControllerMock.mockReset();
@@ -197,6 +197,25 @@ describe("C2C Manager terminal lifecycle", () => {
     expectSigtermListenerRemovedAfterRestoration();
   });
 
+  it("keeps SIGTERM ownership until the alternate screen has been restored", async () => {
+    app.waitUntilExit.mockImplementation(() => new Promise<void>(() => undefined));
+    const managerPromise = runManager();
+    const registration = on.mock.calls.find(([event]) => event === "SIGTERM");
+    const handler = registration?.[1] as (() => void);
+    const raw = process.rawListeners("SIGTERM").find((listener) =>
+      listener === handler || (listener as { listener?: unknown }).listener === handler
+    );
+    expect(raw).toEqual(expect.any(Function));
+    raw!.call(process);
+    // Ink's already-dispatched signal-exit listener runs before the finally
+    // continuation. It must still observe a Manager listener at this point.
+    expect(process.listeners("SIGTERM")).toContain(handler);
+    await managerPromise;
+    expect(process.listeners("SIGTERM")).not.toContain(handler);
+    expect(writes).toEqual([ENTER_ALT_SCREEN, LEAVE_ALT_SCREEN]);
+    expectSigtermListenerRemovedAfterRestoration();
+  });
+
   it("keeps the SIGTERM callback synchronous while completing teardown after close fails", async () => {
     const teardownError = new Error("close failed from SIGTERM");
     controller.close.mockImplementation(() => {
@@ -205,7 +224,7 @@ describe("C2C Manager terminal lifecycle", () => {
     app.waitUntilExit.mockImplementation(() => new Promise<void>(() => undefined));
 
     const managerPromise = runManager();
-    const registration = once.mock.calls.find(([event]) => event === "SIGTERM");
+    const registration = on.mock.calls.find(([event]) => event === "SIGTERM");
     const handler = registration?.[1] as (() => void) | undefined;
     expect(handler).toEqual(expect.any(Function));
     expect(() => handler!()).not.toThrow();

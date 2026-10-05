@@ -1,0 +1,121 @@
+{
+  "contract_version": 2,
+  "name": "s1-quality-gate",
+  "status": "passed",
+  "counts": {
+    "passed": 4,
+    "failed": 0,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 4,
+  "skipped": 0,
+  "total": 4,
+  "results": [
+    {
+      "name": "affected-regressions",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 7.717,
+      "attempt": 1,
+      "argv": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "tests/manager-controller.test.ts",
+        "tests/manager-detail.test.ts",
+        "tests/manager-layout.test.ts",
+        "tests/manager-refresh.test.ts",
+        "tests/manager-entry.test.ts",
+        "tests/cli-manager.test.ts",
+        "tests/worktrees.test.ts",
+        "tests/worktrees-async.test.ts",
+        "tests/mcp-worktrees.test.ts",
+        "tests/local-target.test.ts",
+        "tests/broker-session-cli.test.ts"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-007/s1-gate",
+      "stdout_log": "01-affected-regressions.stdout.log",
+      "stderr_log": "01-affected-regressions.stderr.log",
+      "error": null
+    },
+    {
+      "name": "typecheck",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 3.928,
+      "attempt": 1,
+      "argv": [
+        "pnpm",
+        "run",
+        "typecheck"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-007/s1-gate",
+      "stdout_log": "02-typecheck.stdout.log",
+      "stderr_log": "02-typecheck.stderr.log",
+      "error": null
+    },
+    {
+      "name": "build",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 4.025,
+      "attempt": 1,
+      "argv": [
+        "pnpm",
+        "run",
+        "build"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-007/s1-gate",
+      "stdout_log": "03-build.stdout.log",
+      "stderr_log": "03-build.stderr.log",
+      "error": null
+    },
+    {
+      "name": "diff-check",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.014,
+      "attempt": 1,
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        "src/manager",
+        "src/workspace/worktrees.ts",
+        "src/workspace/worktree-read.ts",
+        "tests/manager-controller.test.ts",
+        "tests/manager-detail.test.ts",
+        "tests/worktrees-async.test.ts"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-007/s1-gate",
+      "stdout_log": "04-diff-check.stdout.log",
+      "stderr_log": "04-diff-check.stderr.log",
+      "error": null
+    }
+  ],
+  "attempts": [
+    {
+      "number": 1,
+      "checks": [
+        "affected-regressions",
+        "typecheck",
+        "build",
+        "diff-check"
+      ],
+      "statuses": {
+        "affected-regressions": "passed",
+        "typecheck": "passed",
+        "build": "passed",
+        "diff-check": "passed"
+      }
+    }
+  ]
+}

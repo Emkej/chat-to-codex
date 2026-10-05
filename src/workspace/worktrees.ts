@@ -7,6 +7,37 @@ import { runGit, type GitCommandResult } from "./git.js";
 export type WorktreeRunner = (root: string, args: string[], gitDir?: string) => GitCommandResult;
 export type WslPathResolver = (windowsPath: string) => string | null;
 
+/** Internal read instructions; both executors use the same ownership checks. */
+export interface WorktreeReadCommand {
+  executable: "git" | "wslpath";
+  root: string;
+  args: string[];
+  gitDir?: string;
+}
+type WorktreeRead<T> = Generator<WorktreeReadCommand, T, GitCommandResult>;
+
+function executeRead<T>(read: WorktreeRead<T>, runner: WorktreeRunner): T {
+  let step = read.next();
+  while (!step.done) {
+    const command = step.value;
+    const converted = command.executable === "wslpath" ? defaultWslPathResolver(command.args[1]!) : null;
+    const result = command.executable === "git"
+      ? runner(command.root, command.args, command.gitDir)
+      : { ok: converted !== null, stdout: converted ?? "", stderr: "", code: converted ? 0 : 1 };
+    step = read.next(result);
+  }
+  return step.value;
+}
+
+function* gitRead(root: string, args: string[], gitDir?: string): WorktreeRead<GitCommandResult> {
+  return yield { executable: "git", root, args, gitDir };
+}
+
+function* gitPathRead(root: string, arg: string, gitDir?: string): WorktreeRead<string | null> {
+  const result = yield* gitRead(root, ["rev-parse", arg], gitDir);
+  return result.ok ? canonicalGitPath(root, result.stdout) : null;
+}
+
 export interface WorktreeResolutionOptions {
   /** Enable the constrained fallback only for broker-derived worktrees. */
   allowCrossNamespace?: boolean;
@@ -110,11 +141,14 @@ function defaultWslPathResolver(windowsPath: string): string | null {
   }
 }
 
-function resolveWindowsDrivePath(input: string, options: WorktreeResolutionOptions): string | null {
+function* resolveWindowsDrivePathRead(input: string, options: WorktreeResolutionOptions): WorktreeRead<string | null> {
   if (!options.allowCrossNamespace || !currentWslDistro(options) || !isWindowsDrivePath(input)) {
     return null;
   }
-  const converted = (options.resolveWslPath ?? defaultWslPathResolver)(input.trim());
+  const result = options.resolveWslPath ? null : yield { executable: "wslpath", root: process.cwd(), args: ["-u", input.trim()] };
+  const converted = options.resolveWslPath
+    ? options.resolveWslPath(input.trim())
+    : result?.ok ? result.stdout.trim() : null;
   return converted && converted.startsWith("/") ? converted : null;
 }
 
@@ -128,12 +162,12 @@ function resolveWslUncPath(input: string, options: WorktreeResolutionOptions): s
   return path.posix.normalize(suffix.startsWith("/") ? suffix : `/${suffix}`);
 }
 
-function canonicalNamespacePath(
+function* canonicalNamespacePathRead(
   input: string,
   base: string,
   options: WorktreeResolutionOptions,
   kind: "file" | "directory"
-): string | null {
+): WorktreeRead<string | null> {
   const value = input.trim();
   if (!value) return null;
 
@@ -145,7 +179,7 @@ function canonicalNamespacePath(
     // Reject foreign-distro WSL paths and arbitrary network UNC paths alike.
     return null;
   } else if (isWindowsDrivePath(value)) {
-    resolved = resolveWindowsDrivePath(value, options);
+    resolved = yield* resolveWindowsDrivePathRead(value, options);
   } else {
     resolved = path.isAbsolute(value) ? value : path.resolve(base, value);
   }
@@ -153,13 +187,13 @@ function canonicalNamespacePath(
   return kind === "file" ? canonicalFile(resolved) : canonicalDirectory(resolved);
 }
 
-function candidateRoot(
+function* candidateRootRead(
   input: string,
   options: WorktreeResolutionOptions
-): { root: string; translated: boolean } | null {
+): WorktreeRead<{ root: string; translated: boolean } | null> {
   const normal = canonicalDirectory(input);
   if (normal) return { root: normal, translated: false };
-  const translated = resolveWindowsDrivePath(input, options) ?? resolveWslUncPath(input, options);
+  const translated = (yield* resolveWindowsDrivePathRead(input, options)) ?? resolveWslUncPath(input, options);
   if (!translated) return null;
   const root = canonicalDirectory(translated);
   return root ? { root, translated: true } : null;
@@ -167,12 +201,12 @@ function candidateRoot(
 
 type GitdirPointerFormat = "prefixed" | "bare";
 
-function readGitdirPointer(
+function* readGitdirPointerRead(
   pointerFile: string,
   options: WorktreeResolutionOptions,
   targetKind: "file" | "directory",
   format: GitdirPointerFormat
-): { raw: string; resolved: string } | null {
+): WorktreeRead<{ raw: string; resolved: string } | null> {
   try {
     if (!fs.lstatSync(pointerFile).isFile()) return null;
     const lines = fs.readFileSync(pointerFile, "utf8").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
@@ -181,7 +215,7 @@ function readGitdirPointer(
     if (format === "bare" && /^gitdir:\s*/i.test(line)) return null;
     const raw = format === "bare" ? line : line.match(/^gitdir:\s*(.+)$/i)?.[1]?.trim();
     if (!raw) return null;
-    const resolved = canonicalNamespacePath(raw, path.dirname(pointerFile), options, targetKind);
+    const resolved = yield* canonicalNamespacePathRead(raw, path.dirname(pointerFile), options, targetKind);
     return resolved ? { raw, resolved } : null;
   } catch {
     return null;
@@ -261,25 +295,25 @@ function gitCommonDirectory(root: string, runner: WorktreeRunner, gitDir?: strin
   return canonicalGitPath(root, result.stdout);
 }
 
-function isInsideWorkTree(root: string, runner: WorktreeRunner): boolean {
-  const result = runner(root, ["rev-parse", "--is-inside-work-tree"]);
-  return result.ok && result.stdout.trim() === "true";
-}
-
 const defaultWorktreeRunner: WorktreeRunner = (root, args, gitDir) => runGit(root, args, gitDir);
 
 function readInventory(root: string, runner: WorktreeRunner): WorktreeInventory {
+  return executeRead(readInventoryRead(root), runner);
+}
+
+function* readInventoryRead(root: string): WorktreeRead<WorktreeInventory> {
   const canonicalRoot = canonicalDirectory(root);
-  if (!canonicalRoot || !isInsideWorkTree(canonicalRoot, runner)) {
+  const inside = canonicalRoot ? yield* gitRead(canonicalRoot, ["rev-parse", "--is-inside-work-tree"]) : null;
+  if (!canonicalRoot || !inside?.ok || inside.stdout.trim() !== "true") {
     return { available: true, records: [], mainRoot: null, repositoryIdentity: null };
   }
 
-  let result = runner(canonicalRoot, ["worktree", "list", "--porcelain", "-z"]);
+  let result = yield* gitRead(canonicalRoot, ["worktree", "list", "--porcelain", "-z"]);
   if (!result.ok) {
     // Git 2.34 and some vendor builds do not support -z for `worktree list`.
     // Keep the NUL-delimited form when available, then fall back to the
     // machine-readable porcelain form supported by those installations.
-    result = runner(canonicalRoot, ["worktree", "list", "--porcelain"]);
+    result = yield* gitRead(canonicalRoot, ["worktree", "list", "--porcelain"]);
   }
   if (!result.ok) {
     throw new WorktreeError("WORKTREE_DISCOVERY_FAILED", "Git worktree discovery is unavailable.");
@@ -289,8 +323,8 @@ function readInventory(root: string, runner: WorktreeRunner): WorktreeInventory 
   const main = records[0];
   const mainRoot = main && !main.bare ? canonicalDirectory(main.root, canonicalRoot) : null;
   const repositoryIdentity =
-    mainRoot && gitTopLevel(mainRoot, runner) === mainRoot
-      ? gitCommonDirectory(mainRoot, runner)
+    mainRoot && (yield* gitPathRead(mainRoot, "--show-toplevel")) === mainRoot
+      ? yield* gitPathRead(mainRoot, "--git-common-dir")
       : null;
   return { available: true, records, mainRoot, repositoryIdentity };
 }
@@ -302,14 +336,23 @@ function validateExplicitWorktreeTarget(
   runner: WorktreeRunner,
   options: WorktreeResolutionOptions
 ): string | null {
+  return executeRead(validateExplicitWorktreeTargetRead(workTree, gitDir, repositoryIdentity, options), runner);
+}
+
+function* validateExplicitWorktreeTargetRead(
+  workTree: string,
+  gitDir: string,
+  repositoryIdentity: string,
+  options: WorktreeResolutionOptions
+): WorktreeRead<string | null> {
   const canonicalGitDir = canonicalDirectory(gitDir);
   if (!canonicalGitDir || !isInsideLinkedWorktreeAdminArea(repositoryIdentity, canonicalGitDir)) return null;
-  if (gitTopLevel(workTree, runner, canonicalGitDir) !== workTree) return null;
-  if (gitCommonDirectory(workTree, runner, canonicalGitDir) !== repositoryIdentity) return null;
+  if ((yield* gitPathRead(workTree, "--show-toplevel", canonicalGitDir)) !== workTree) return null;
+  if ((yield* gitPathRead(workTree, "--git-common-dir", canonicalGitDir)) !== repositoryIdentity) return null;
 
   const expectedPointer = canonicalFile(path.join(workTree, ".git"));
-  const forwardPointer = readGitdirPointer(path.join(workTree, ".git"), options, "directory", "prefixed");
-  const reversePointer = readGitdirPointer(path.join(canonicalGitDir, "gitdir"), options, "file", "bare");
+  const forwardPointer = yield* readGitdirPointerRead(path.join(workTree, ".git"), options, "directory", "prefixed");
+  const reversePointer = yield* readGitdirPointerRead(path.join(canonicalGitDir, "gitdir"), options, "file", "bare");
   if (
     !expectedPointer ||
     !forwardPointer ||
@@ -328,12 +371,20 @@ function validateCandidate(
   runner: WorktreeRunner,
   options: WorktreeResolutionOptions
 ): DerivedWorktree | null {
+  return executeRead(validateCandidateRead(record, repositoryIdentity, options), runner);
+}
+
+function* validateCandidateRead(
+  record: ParsedWorktree,
+  repositoryIdentity: string,
+  options: WorktreeResolutionOptions
+): WorktreeRead<DerivedWorktree | null> {
   if (record.bare || !record.commit) return null;
-  const rootInfo = candidateRoot(record.root, options);
+  const rootInfo = yield* candidateRootRead(record.root, options);
   if (!rootInfo) return null;
   const { root } = rootInfo;
 
-  if (!record.prunable && gitTopLevel(root, runner) === root && gitCommonDirectory(root, runner) === repositoryIdentity) {
+  if (!record.prunable && (yield* gitPathRead(root, "--show-toplevel")) === root && (yield* gitPathRead(root, "--git-common-dir")) === repositoryIdentity) {
     return {
       worktreeId: worktreeIdFor(repositoryIdentity, root),
       branch: record.branch,
@@ -343,13 +394,13 @@ function validateCandidate(
   }
 
   if (!options.allowCrossNamespace || !currentWslDistro(options)) return null;
-  const pointer = readGitdirPointer(path.join(root, ".git"), options, "directory", "prefixed");
+  const pointer = yield* readGitdirPointerRead(path.join(root, ".git"), options, "directory", "prefixed");
   if (!pointer) return null;
   // The compatibility path is intentionally limited to the documented
   // current-distro WSL UNC pointer. A translated root alone must never make
   // a prunable candidate eligible.
   if (!resolveWslUncPath(pointer.raw, options)) return null;
-  const gitDir = validateExplicitWorktreeTarget(root, pointer.resolved, repositoryIdentity, runner, options);
+  const gitDir = yield* validateExplicitWorktreeTargetRead(root, pointer.resolved, repositoryIdentity, options);
   if (!gitDir) return null;
   return {
     worktreeId: worktreeIdFor(repositoryIdentity, root),
@@ -367,7 +418,7 @@ function candidateRootForId(
   options: WorktreeResolutionOptions
 ): string | null {
   if (record.bare || !record.commit) return null;
-  const root = candidateRoot(record.root, options)?.root;
+  const root = executeRead(candidateRootRead(record.root, options), defaultWorktreeRunner)?.root;
   return root && worktreeIdFor(repositoryIdentity, root) === worktreeId ? root : null;
 }
 
@@ -377,14 +428,27 @@ export function discoverDerivedWorktrees(
   runner: WorktreeRunner = defaultWorktreeRunner,
   options: WorktreeResolutionOptions = {}
 ): DerivedWorktree[] {
-  const inventory = readInventory(mainRoot, runner);
-  if (!inventory.mainRoot || !inventory.repositoryIdentity) return [];
+  return executeRead(derivedWorktreeRead(mainRoot, options), runner);
+}
+
+/** Canonical validation program used by synchronous consumers and the async reader. */
+export function* derivedWorktreeRead(
+  mainRoot: string,
+  options: WorktreeResolutionOptions = {},
+  requireMainRoot = false
+): WorktreeRead<DerivedWorktree[]> {
+  const inventory = yield* readInventoryRead(mainRoot);
   const canonicalRoot = canonicalDirectory(mainRoot);
-  if (!canonicalRoot || canonicalRoot !== inventory.mainRoot) return [];
-  return inventory.records
-    .slice(1)
-    .map((record) => validateCandidate(record, inventory.repositoryIdentity!, runner, options))
-    .filter((candidate): candidate is DerivedWorktree => candidate !== null);
+  if (!inventory.mainRoot || !inventory.repositoryIdentity || !canonicalRoot || canonicalRoot !== inventory.mainRoot) {
+    if (requireMainRoot) throw new WorktreeError("WORKTREE_DISCOVERY_FAILED", "Workspace detail is unavailable.");
+    return [];
+  }
+  const candidates: DerivedWorktree[] = [];
+  for (const record of inventory.records.slice(1)) {
+    const candidate = yield* validateCandidateRead(record, inventory.repositoryIdentity, options);
+    if (candidate) candidates.push(candidate);
+  }
+  return candidates;
 }
 
 /** Resolve one opaque linked-worktree id without accepting a client-supplied path. */

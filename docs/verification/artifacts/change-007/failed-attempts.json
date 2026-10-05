@@ -1,0 +1,61 @@
+{
+  "work_id": "CHANGE-007",
+  "failed_validation_attempts": 11,
+  "attempts": [
+    {
+      "check": "focused manager-detail",
+      "failure": "Test expected a space after a bell removed by stripVTControlCharacters.",
+      "resolution": "Corrected the expectation; focused-corrected/summary.json passed."
+    },
+    {
+      "check": "terminal probe attempt 1",
+      "failure": "Long overview values scrolled its heading offscreen; waiting for that heading was an invalid harness assumption.",
+      "resolution": "Wait for the available Start broker hint before opening detail; keep overview outside redesign scope."
+    },
+    {
+      "check": "terminal probe attempt 2",
+      "failure": "Slow-command fixture never produced its process marker.",
+      "resolution": "Investigated fixture subprocess environment."
+    },
+    {
+      "check": "terminal probe attempt 3",
+      "failure": "Slow-command fixture marker still absent after explicit tmux environment propagation.",
+      "resolution": "Added a fixture-only commonjs package boundary; the extensionless test Git executable had inherited the repository's module type."
+    },
+    {
+      "check": "terminal probe attempt 4",
+      "failure": "SIGTERM did not restore the normal screen.",
+      "resolution": "Added a targeted diagnostic of exit method and interpreted alternate-screen state."
+    },
+    {
+      "check": "terminal probe attempt 5",
+      "failure": "Confirmed SIGTERM left alternate_on=1 and the shell reported Terminated.",
+      "resolution": "Bounded R1 lifecycle repair keeps SIGTERM listener ownership through restoration."
+    },
+    {
+      "check": "dirty-path validation",
+      "failure": "New verification outputs were unclassified, while code claims and pre-existing exclusions were correct.",
+      "resolution": "Classify workflow outputs with closeout additional-same-work-item paths, without claiming metadata."
+    },
+    {
+      "check": "Installed terminal startup",
+      "failure": "The older installed Git module lacked the sanitizer export.",
+      "resolution": "R2 export-only repair with backup; installed terminal acceptance passed."
+    },
+    {
+      "check": "Installed Manager import diagnostic",
+      "failure": "Confirmed missing sanitizedGitEnvironment named export.",
+      "resolution": "Exported the existing function; services/UI import check passed."
+    },
+    {
+      "check": "Installed repair byte verification 1",
+      "failure": "Edit tool appended an EOF newline.",
+      "resolution": "Preserved exact original bytes apart from the export keyword."
+    },
+    {
+      "check": "Installed repair byte verification 2",
+      "failure": "Initial newline normalization check still differed at EOF.",
+      "resolution": "Verified the logical change then restored original EOF convention; exact byte check passed."
+    }
+  ]
+}

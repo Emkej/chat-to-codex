@@ -14,8 +14,11 @@ import {
 } from "../admin/installation-lifecycle.js";
 import { getInstallationStatus, type InstallationStatus } from "../admin/installation-status.js";
 import { createInstallationPairing } from "../broker/daemon.js";
+import { readWorkspaceDetail } from "./workspace-detail-service.js";
+import type { WorkspaceDetailWorktree } from "./types.js";
 
 export interface ManagerServices {
+  readWorkspaceDetail(workspaceId: string, options: { signal: AbortSignal }): Promise<WorkspaceDetailWorktree[]>;
   readStatus(options: { signal: AbortSignal }): Promise<InstallationStatus>;
   checkHealth(options: {
     fix: boolean;
@@ -32,6 +35,7 @@ export interface ManagerServices {
 }
 
 export const managerServices: ManagerServices = {
+  readWorkspaceDetail,
   readStatus: getInstallationStatus,
   checkHealth: checkInstallationHealth,
   startBroker: startInstallationBroker,

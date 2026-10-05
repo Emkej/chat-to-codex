@@ -1,0 +1,91 @@
+{
+  "contract_version": 2,
+  "name": "baseline",
+  "status": "passed",
+  "counts": {
+    "passed": 3,
+    "failed": 0,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 3,
+  "skipped": 0,
+  "total": 3,
+  "results": [
+    {
+      "name": "manager-baseline",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 5.921,
+      "attempt": 1,
+      "argv": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "tests/manager-controller.test.ts",
+        "tests/manager-refresh.test.ts",
+        "tests/manager-layout.test.ts",
+        "tests/manager-entry.test.ts",
+        "tests/cli-manager.test.ts"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-007/preflight",
+      "stdout_log": "01-manager-baseline.stdout.log",
+      "stderr_log": "01-manager-baseline.stderr.log",
+      "error": null
+    },
+    {
+      "name": "worktree-baseline",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 3.939,
+      "attempt": 1,
+      "argv": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "tests/worktrees.test.ts"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-007/preflight",
+      "stdout_log": "02-worktree-baseline.stdout.log",
+      "stderr_log": "02-worktree-baseline.stderr.log",
+      "error": null
+    },
+    {
+      "name": "typecheck-baseline",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 4.127,
+      "attempt": 1,
+      "argv": [
+        "pnpm",
+        "run",
+        "typecheck"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-007/preflight",
+      "stdout_log": "03-typecheck-baseline.stdout.log",
+      "stderr_log": "03-typecheck-baseline.stderr.log",
+      "error": null
+    }
+  ],
+  "attempts": [
+    {
+      "number": 1,
+      "checks": [
+        "manager-baseline",
+        "worktree-baseline",
+        "typecheck-baseline"
+      ],
+      "statuses": {
+        "manager-baseline": "passed",
+        "worktree-baseline": "passed",
+        "typecheck-baseline": "passed"
+      }
+    }
+  ]
+}

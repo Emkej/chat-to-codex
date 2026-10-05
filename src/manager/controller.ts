@@ -17,6 +17,7 @@ function initialSnapshot(): ManagerSnapshot {
     connectorInstruction: { kind: "none" },
     pairing: null,
     selectedWorkspaceId: null,
+    workspaceDetail: null,
     activeAction: null,
     confirmation: null,
     refreshing: false,
@@ -50,6 +51,7 @@ export class ManagerController {
   private readonly listeners = new Set<ManagerListener>();
   private readonly refreshCoordinator: RefreshCoordinator<InstallationStatus>;
   private actionAbort: AbortController | null = null;
+  private detailGeneration = 0;
   private started = false;
 
   constructor(
@@ -85,6 +87,53 @@ export class ManagerController {
     if (this.snapshot.closed || this.snapshot.activeAction) return;
     this.patch({ notice: "Refreshing installation status.", error: null });
     await this.refreshCoordinator.refresh();
+    if (this.snapshot.workspaceDetail) await this.openWorkspaceDetail();
+  }
+
+  async openWorkspaceDetail(): Promise<boolean> {
+    const workspaceId = this.snapshot.selectedWorkspaceId;
+    if (!workspaceId || this.snapshot.closed || this.snapshot.activeAction || this.snapshot.confirmation) return false;
+    const generation = ++this.detailGeneration;
+    const retiredRead = this.refreshCoordinator.beginForegroundAction();
+    const abort = new AbortController();
+    this.actionAbort = abort;
+    const previous = this.snapshot.workspaceDetail;
+    this.patch({
+      workspaceDetail: { workspaceId, state: "loading", worktrees: previous?.workspaceId === workspaceId ? previous.worktrees : [] },
+      activeAction: "detail",
+    });
+    try {
+      const worktrees = await this.services.readWorkspaceDetail(workspaceId, { signal: abort.signal });
+      if (this.isDetailCurrent(workspaceId, generation) && !abort.signal.aborted) {
+        this.patch({ workspaceDetail: { workspaceId, state: "ready", worktrees } });
+      }
+    } catch {
+      if (this.isDetailCurrent(workspaceId, generation) && !abort.signal.aborted) {
+        this.patch({ workspaceDetail: { workspaceId, state: "unavailable", worktrees: [] } });
+      }
+    } finally {
+      if (this.actionAbort === abort) this.actionAbort = null;
+      if (!this.snapshot.closed) {
+        try {
+          await this.refreshCoordinator.refreshAfterAction(retiredRead);
+        } finally {
+          if (!this.snapshot.closed) this.patch({ activeAction: null });
+        }
+      }
+    }
+    return true;
+  }
+
+  closeWorkspaceDetail(): void {
+    if (!this.snapshot.workspaceDetail) return;
+    this.detailGeneration += 1;
+    if (this.snapshot.activeAction === "detail") this.actionAbort?.abort();
+    this.patch({ workspaceDetail: null });
+  }
+
+  private isDetailCurrent(workspaceId: string, generation: number): boolean {
+    return !this.snapshot.closed && generation === this.detailGeneration &&
+      this.snapshot.workspaceDetail?.workspaceId === workspaceId && this.snapshot.selectedWorkspaceId === workspaceId;
   }
 
   async perform(action: ManagerAction): Promise<boolean> {
@@ -348,6 +397,14 @@ export class ManagerController {
 
   private patch(patch: Partial<ManagerSnapshot>): void {
     if (this.snapshot.closed && patch.closed !== true) return;
+    const detail = this.snapshot.workspaceDetail;
+    const selected = patch.selectedWorkspaceId === undefined ? this.snapshot.selectedWorkspaceId : patch.selectedWorkspaceId;
+    const status = patch.status === undefined ? this.snapshot.status : patch.status;
+    if (detail && (selected !== detail.workspaceId || !status?.workspaces.some((workspace) => workspace.id === detail.workspaceId))) {
+      this.detailGeneration += 1;
+      if (this.snapshot.activeAction === "detail") this.actionAbort?.abort();
+      patch.workspaceDetail = null;
+    }
     this.snapshot = { ...this.snapshot, ...patch };
     for (const listener of this.listeners) listener(this.snapshot);
   }

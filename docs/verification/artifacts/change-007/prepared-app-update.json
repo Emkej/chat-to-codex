@@ -1,0 +1,115 @@
+{
+  "change": "CHANGE-007",
+  "status": "prepared; not installed",
+  "target": "/home/emkej/.c2c/app",
+  "files": [
+    {
+      "path": "dist/manager/controller.js",
+      "prepared_sha256": "aa4eedbfa9664418c9fb974eaf1f4f0bb067e18746bfa3d3ce5d43f5ed199ec9",
+      "installed_before_sha256": "490e3e83cd65ee8875a54ae2a7145cdbd120028e589ea7dd33764fa050844f8e"
+    },
+    {
+      "path": "dist/manager/controller.js.map",
+      "prepared_sha256": "cb3e875f5e9c2cabc2d5caad134a98a84ed6cb99e7006ab495a7663027f2db71",
+      "installed_before_sha256": "117dd44a4e43bba3cbb56ca7d1cd2f51478f606be4b9028064c3acde9255c4c6"
+    },
+    {
+      "path": "dist/manager/services.js",
+      "prepared_sha256": "dcb40913c09a47fef0ed0b2e6c27409087edd7a1bf5dbc586c8e0474b3096ff4",
+      "installed_before_sha256": "1727fdabfafd635702fada91d580d1ca723911d6a47843ec5b61954f36b0e87e"
+    },
+    {
+      "path": "dist/manager/services.js.map",
+      "prepared_sha256": "7722e7d79e7d199bc39057516ef4660456311efbefc230153fec75a2e68bd8aa",
+      "installed_before_sha256": "a91e189daffcb667ceca4f1099d1fbaf985b6db63209e0e7065dfb3f2c91ed3f"
+    },
+    {
+      "path": "dist/manager/ui/manager-app.js",
+      "prepared_sha256": "75922bc69118fb33b611637f024432809efed050b51ff9faa2e2506fa687dd31",
+      "installed_before_sha256": "da7d96bfa91eb54e174ee00962a504db55e3d924ff8d5364b0e494a30cb3be0e"
+    },
+    {
+      "path": "dist/manager/ui/manager-app.js.map",
+      "prepared_sha256": "cd78e027456bbfa8e1edcdb2721eb033aebe09841915f956885915044ed37bdb",
+      "installed_before_sha256": "0a5a0e53f0ae517477e4c81b3d6d35a05249114dd9ad5c32f740ae2357cb4be0"
+    },
+    {
+      "path": "dist/workspace/worktrees.js",
+      "prepared_sha256": "5c149a150c89644e3fd29b45428db22f526430f1c7b855c3a0f1fcf4f38de994",
+      "installed_before_sha256": "95ef6703b0286442482bf2481d8e4dba198e89b73f3b40d966b1d4a6320375e8"
+    },
+    {
+      "path": "dist/workspace/worktrees.js.map",
+      "prepared_sha256": "a7802081e439e0e32d5bfb240f930d38745cda3383687e0a0764742478e39052",
+      "installed_before_sha256": "9a73f3d740dbc10d92f6f2dff0859ad845b5cadde12a84b0f9aecbbcb0f1bca9"
+    },
+    {
+      "path": "dist/workspace/worktree-read.js",
+      "prepared_sha256": "10cd63324af89eff58a9074abdf618c0eb31cc1956b36a59a9d152f713d41e60",
+      "installed_before_sha256": null
+    },
+    {
+      "path": "dist/workspace/worktree-read.js.map",
+      "prepared_sha256": "2e676f495c36911e5858e3888db5bcc1605eadd8e19e9760941e87d2dc3020df",
+      "installed_before_sha256": null
+    },
+    {
+      "path": "dist/manager/workspace-detail-service.js",
+      "prepared_sha256": "2c4a756ae71c0fc986991ae39c78d7e41c646ec7185e0b33632222493325f8df",
+      "installed_before_sha256": null
+    },
+    {
+      "path": "dist/manager/workspace-detail-service.js.map",
+      "prepared_sha256": "f28ccd3f46d7ec3ba1be3101c4412608c27e3bc6e9e2341c108940d373a41e4f",
+      "installed_before_sha256": null
+    },
+    {
+      "path": "dist/manager/workspace-detail-layout.js",
+      "prepared_sha256": "e63eaee54839799a5589a16ab236c57e823c29aefdf0a085a8e45bceb828e6c6",
+      "installed_before_sha256": null
+    },
+    {
+      "path": "dist/manager/workspace-detail-layout.js.map",
+      "prepared_sha256": "3dff4b6ec72c5a7df66794166384758588a4ab455f8b0ac8f95740b84eacae6c",
+      "installed_before_sha256": null
+    },
+    {
+      "path": "dist/manager/ui/workspace-detail.js",
+      "prepared_sha256": "22d5b6161c12ec0455da08b3295d2c5c4207d1f5a446eff8552ce21844024916",
+      "installed_before_sha256": null
+    },
+    {
+      "path": "dist/manager/ui/workspace-detail.js.map",
+      "prepared_sha256": "22ad3bf265c5ba9dc015c529017900c80e79125249f09fe3eeaecffc91c539a4",
+      "installed_before_sha256": null
+    },
+    {
+      "path": "dist/manager/ui/manager-input.js",
+      "prepared_sha256": "240ed3b36d163ff35b5e19c1bb1c38ed99f8806d51303128b91be12a73a916e9",
+      "installed_before_sha256": null
+    },
+    {
+      "path": "dist/manager/ui/manager-input.js.map",
+      "prepared_sha256": "977bb2e2b3c5ae538f0af33bd3d651cfebc6173c8cbf8d6c2d3de860d39c4b1c",
+      "installed_before_sha256": null
+    },
+    {
+      "path": "dist/manager/index.js",
+      "prepared_sha256": "b13da440a59e9a1221e31203bec69dd3d5dcd8dbe581ece577083f61f2ae7c2f",
+      "installed_before_sha256": "42c151a372710743f775be860a40f141e3d802bc992fa4251d6f10718e134f7a"
+    },
+    {
+      "path": "dist/manager/index.js.map",
+      "prepared_sha256": "be1446a16ab0b635dea7fe018f1a4b66c39231303e986e8dfb06800f2a37d999",
+      "installed_before_sha256": "cadef7d628edcf144a56f2018b35ea1acda136154856b2d8460a4a44e9094722"
+    }
+  ],
+  "dependency_contract": "unchanged",
+  "excluded": [
+    "profile/state",
+    "launchers",
+    "skills",
+    "broker restart",
+    "dependencies"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "work_id": "CHANGE-007",
+  "date": "2026-10-04",
+  "scope": "Draft document only; no implementation authorization",
+  "source_revision": "8f098397ddb8c7c9a242c465ed53c859d6ac61f3",
+  "draft_creation_branch": "codex/change-007-manager-workspace-detail",
+  "checks": {
+    "spec_phase_2_scope": "PASS: Enter/Esc, selected detail, lazy validated worktrees, branch/commit, no filesystem paths",
+    "static_source_review": "PASS: existing workspace panel, input entry point and snapshot types inspected",
+    "usage_roi": "UNVERIFIED: owner example and implementation approval still required",
+    "relative_links": "PASS",
+    "json_parse": "PASS",
+    "whitespace": "PASS: explicit per-line scan of both new files",
+    "acceptance_coverage": "PASS: six criteria with planned validation; no execution claimed",
+    "pre_existing_content": "PASS: all 29 baseline dirty/untracked file hashes unchanged"
+  },
+  "concurrent_activity": {
+    "observed_head": "1b06ddcf95d25df6f7860c75c74eeb4ac6a4a1fc",
+    "observed_branch": "codex/docs-connector-and-review-records",
+    "disposition": "Another task advanced HEAD/index and changed the active branch during drafting. No unchanged-HEAD/index claim; no attempt to restore its branch or history. The draft remains uncommitted."
+  },
+  "not_run": ["repository tests", "typecheck", "build", "terminal acceptance", "installation"],
+  "commits": false,
+  "merge": false,
+  "push": false
+}

@@ -31,6 +31,18 @@ export interface PairingCode {
   expiresAt: number;
 }
 
+export interface WorkspaceDetailWorktree {
+  worktreeId: string;
+  branch: string | null;
+  commit: string | null;
+}
+
+export interface WorkspaceDetailState {
+  workspaceId: string;
+  state: "loading" | "ready" | "unavailable";
+  worktrees: WorkspaceDetailWorktree[];
+}
+
 export interface ManagerSnapshot {
   status: InstallationStatus | null;
   health: InstallationHealthResult | null;
@@ -38,7 +50,8 @@ export interface ManagerSnapshot {
   connectorInstruction: ConnectorInstruction;
   pairing: PairingCode | null;
   selectedWorkspaceId: string | null;
-  activeAction: ManagerAction | null;
+  workspaceDetail: WorkspaceDetailState | null;
+  activeAction: ManagerAction | "detail" | null;
   confirmation: "stop" | "confirm" | null;
   refreshing: boolean;
   notice: string | null;

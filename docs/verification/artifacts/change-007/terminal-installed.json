@@ -1,0 +1,62 @@
+{
+  "entry": "installed",
+  "terminal": "tmux 3.2a",
+  "fixture_only": true,
+  "services_started": false,
+  "persistent_state_unchanged": true,
+  "results": [
+    {
+      "dimensions": "80x24",
+      "overflow_and_all_branch_suffixes": "passed",
+      "refresh_offset_preserved": "passed",
+      "resize_offset_clamped": "passed",
+      "refresh_after_fixture_inventory_shrink": "not run",
+      "Esc_selection_preserved": "passed",
+      "normal_screen_restored": "passed"
+    },
+    {
+      "dimensions": "120x24",
+      "overflow_and_all_branch_suffixes": "passed",
+      "refresh_offset_preserved": "passed",
+      "resize_offset_clamped": "passed",
+      "refresh_after_fixture_inventory_shrink": "passed",
+      "Esc_selection_preserved": "passed",
+      "normal_screen_restored": "passed"
+    },
+    {
+      "slow_read_exit": "q",
+      "loading_visible": true,
+      "restoration_seconds": 0.149,
+      "owned_processes_retired": true,
+      "normal_screen_usable": true
+    },
+    {
+      "slow_read_exit": "Ctrl+C",
+      "loading_visible": true,
+      "restoration_seconds": 0.146,
+      "owned_processes_retired": true,
+      "normal_screen_usable": true
+    },
+    {
+      "slow_read_exit": "SIGTERM",
+      "loading_visible": true,
+      "restoration_seconds": 0.141,
+      "owned_processes_retired": true,
+      "normal_screen_usable": true
+    },
+    {
+      "slow_read_exit": "Esc+q",
+      "loading_visible": true,
+      "restoration_seconds": 0.169,
+      "owned_processes_retired": true,
+      "normal_screen_usable": true
+    },
+    {
+      "slow_read_exit": "deadline+q",
+      "loading_visible": true,
+      "restoration_seconds": 0.098,
+      "owned_processes_retired": true,
+      "normal_screen_usable": true
+    }
+  ]
+}

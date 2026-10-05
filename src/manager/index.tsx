@@ -48,7 +48,9 @@ export async function runManager(): Promise<void> {
   };
   const onSigterm = () => requestExit();
 
-  process.once("SIGTERM", onSigterm);
+  // Keep ownership through teardown: Ink's signal-exit listener must still
+  // see our handler after processing the same signal, until restoration.
+  process.on("SIGTERM", onSigterm);
   try {
     process.stdout.write(ENTER_ALT_SCREEN);
     alternateScreenActive = true;
