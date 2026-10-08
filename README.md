@@ -208,6 +208,7 @@ See [docs/security.md](docs/security.md) for the threat model and [SECURITY.md](
 ```text
 c2c setup
 c2c use
+c2c remove [workspace-id]
 c2c broker start
 c2c broker status
 c2c broker pair
@@ -226,6 +227,12 @@ c2c stop
 ```
 
 Use `--json` on non-interactive commands for tooling. `c2c manager` requires an interactive terminal.
+
+`c2c remove` unregisters the registered target containing the current directory;
+`c2c remove <workspace-id>` removes an explicit registration, including a stale
+registration whose original root is no longer available. Removal ends that
+workspace's broker sessions but does not delete repositories or Git worktrees.
+Use `c2c use --end` when only the current session binding should end.
 
 On WSL, the Manager shows each workspace's active pending write-request count,
 including its worktrees. Select a workspace and press `w` to open its queue,

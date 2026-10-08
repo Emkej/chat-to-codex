@@ -174,7 +174,7 @@ a domain.
 
 1. **Domain model + tests** — done (`installation.json`, registry, sessions).
 2. **Registry-backed broker MCP resolution** — done (opaque `workspace` arg).
-3. **Session lifecycle in CLI** — done (`c2c use`, `c2c use --end`, heartbeats).
+3. **Workspace/session lifecycle in CLI** — done (`c2c use`, `c2c use --end`, `c2c remove`, heartbeats).
 4. **MCP integration** — done (`tests/broker.test.ts`, `tests/mcp-integration.test.ts`).
 5. **OAuth installation migration** — done (`c2c broker migrate-auth`, broker OAuth tests).
 6. **CLI lifecycle + stable connector UX** — done (`c2c setup --mode`, `broker tunnel`).
@@ -198,7 +198,7 @@ a domain.
 | 6 | Registered workspace deleted/moved | Root no longer resolves → operations fail closed; registration can be repaired locally. |
 | 7 | OAuth token survives broker restart | By design (persisted store) — it authorizes the installation, scoped tools still confine reads. |
 | 8 | Session expires, OAuth valid | Sessions gate local Codex capabilities/status, not the installation token; workspace stays readable only if registered. |
-| 9 | Workspace revoked locally | `remove(id)` → id no longer resolves → fail closed. |
+| 9 | Workspace revoked locally | `c2c remove [workspace-id]` delegates to `remove(id)`; the id no longer resolves, broker sessions end, and reads fail closed. |
 | 10 | Legacy workspace-bound OAuth state after upgrade | Schema-detected, read non-destructively, explicit upgrade; legacy files kept for rollback. |
 | 11 | Claude reconnects with same connector | Same installation identity; no re-pairing. |
 | 12 | Tunnel endpoint changes | With named tunnel it should not; if it does, re-add connector (existing repair flow). |

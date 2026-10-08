@@ -43,6 +43,7 @@ import {
 import { PRODUCT_NAME, VERSION } from "../version.js";
 import { registerWriteRequestCommands } from "./write-requests.js";
 import { registerManagerCommand } from "./manager-command.js";
+import { registerWorkspaceRemoveCommand } from "./workspace-remove.js";
 
 const program = new Command();
 
@@ -181,6 +182,7 @@ program
 
 registerWriteRequestCommands(program);
 registerManagerCommand(program);
+registerWorkspaceRemoveCommand(program);
 
 // ---------------------------------------------------------------- serve (internal)
 
