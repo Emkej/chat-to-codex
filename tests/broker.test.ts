@@ -90,6 +90,7 @@ describe("broker tool surface", () => {
     const names = tools.map((tool) => tool.name).sort();
     expect(names).toEqual([
       "execution_summary",
+      "get_command_request",
       "get_write_request",
       "git_browse",
       "git_compare",
@@ -103,11 +104,12 @@ describe("broker tool surface", () => {
       "list_write_requests",
       "propose_patch",
       "read_file",
+      "request_command",
       "search_workspace",
       "test_status",
       "workspace_info",
     ]);
-    for (const tool of tools.filter((item) => item.name !== "propose_patch")) {
+    for (const tool of tools.filter((item) => !["propose_patch", "request_command"].includes(item.name))) {
       expect(tool.annotations?.readOnlyHint).toBe(true);
     }
     expect(tools.find((tool) => tool.name === "propose_patch")?.annotations).toMatchObject({

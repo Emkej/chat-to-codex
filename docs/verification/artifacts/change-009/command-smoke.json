@@ -1,0 +1,19 @@
+{
+  "status": "passed",
+  "platform": "linux",
+  "node": "v24.15.0",
+  "checks": [
+    "fresh explicit command-only OAuth pairing/PKCE",
+    "existing read scope cannot create commands",
+    "request creation does not execute",
+    "installed CLI explicit ID approval returns started",
+    "literal argv, one execution, nonzero terminal MCP success, complete stdout/stderr",
+    "duplicate approval cannot respawn",
+    "explicit CLI output inspection",
+    "installed CLI rejection without execution"
+  ],
+  "limitations": [
+    "Disposable installed layout with repository dependency symlink; production installer, external tunnel and browser UI were not exercised",
+    "Fixed production timeout is covered with internal short-deadline runner tests, not a ten-minute smoke wait"
+  ]
+}

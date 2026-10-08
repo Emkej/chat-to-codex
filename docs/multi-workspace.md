@@ -19,6 +19,7 @@ C2C Workspace Broker  ── one stable MCP URL (Cloudflare Named Tunnel)
  │   └── Derived targets  worktree_id → validated linked root (live Git view)
  ├── Session Registry     session_id → workspace_id (local only)
  ├── Write Request Service (broker-owned, local state)
+ ├── Command Request Service (separate lifecycle, same installation writer)
  └── scoped MCP reads, repository snapshot reads, pending patch proposals, and receipt reads
 ```
 
@@ -44,6 +45,10 @@ direct file or execution tool. When explicitly authorized with
 `workspace.write`, it may submit a narrow patch proposal; the proposal changes
 only local C2C pending state. The local `c2c approve` command is required for
 workspace mutation.
+With explicit `workspace.command`, it may separately create an exact argv/cwd
+request and inspect its receipt. Creation starts nothing; only the user's local
+`c2c approve cr_...` starts one attempt. Approval is not sandboxing and output
+may disclose local data. Commands do not inherit the patch rollback contract.
 
 SPEC-002 V1 write requests are supported only on Linux/WSL. Windows support is
 deferred to future separately validated work; macOS is out of scope unless
@@ -63,12 +68,16 @@ strictly against the local Workspace Registry:
 - resolvable only against locally registered workspaces
 - never convertible into arbitrary filesystem access (every path operation
   canonicalizes and confines beneath the resolved root, as today)
-- missing/unknown/unregistered workspace id → fail closed (no default)
+- omitted workspace is valid only with exactly one registration; zero/multiple
+  registrations and unknown/revoked explicit targets fail closed
 - an optional opaque `worktree` selector is resolved only beneath a registered
   main worktree; paths are never accepted from the client
 - patch proposals and remote receipt reads use the same resolved
   `workspaceId` plus optional `worktreeId`; receipts are filtered to that
   concrete target and never contain raw patch bodies or absolute paths
+- command requests store the resolved concrete target ids and re-resolve those
+  ids at approval. Command metadata never exposes absolute roots; arbitrary
+  approved command output may contain paths or other sensitive local data.
 
 `list_workspaces()` enumerates registered workspace ids.
 `list_worktrees(workspace)` enumerates current derived ids beneath an eligible
@@ -123,6 +132,9 @@ Rejected alternatives:
   readers and four repository snapshot readers (14 read tools), `propose_patch`
   (one pending-request tool), and
   `list_write_requests` / `get_write_request` (two read-only receipt tools).
+  Linux/WSL brokers with initialized command state also expose `request_command`
+  and observational `get_command_request`, both requiring explicit non-default
+  `workspace.command`. No remote command list/approval/cancellation/retry exists.
 - Legacy bridge: the existing nine read-only tools remain exact-root-only; it
   does not expose `list_worktrees` or any write-request tool.
 - `workspace_info`, `list_directory`, `read_file`, `search_workspace`,
@@ -141,6 +153,10 @@ through the registry/capability layer at request time.
 Requirements preserved: DCR, PKCE, token validation, revocation, one-time
 pairing. A token authorizes exactly one installation; it cannot reach
 another installation's broker.
+
+Existing tokens never gain `workspace.command` on refresh. Request it explicitly
+through fresh OAuth authorization; consent includes local execution and captured
+output. The legacy bridge excludes command scope and tools.
 
 Migration is schema-detected and non-destructive: legacy workspace-keyed
 auth files are readable, upgraded explicitly into installation identity,

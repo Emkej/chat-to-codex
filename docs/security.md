@@ -66,6 +66,10 @@ of default or implicit grants; only `propose_patch` requires it. Receipt tools
 require `workspace.read`. Tools enforce scopes individually
 (`INSUFFICIENT_SCOPE`). Existing tokens retain their recorded scopes on
 refresh, so a connector must reauthorize to obtain repository access.
+Broker-only `workspace.command` is also explicit and non-default: both command
+creation and captured-output inspection require it. Fresh OAuth consent covers
+locally approved execution and possible output disclosure, including when the
+command scope is requested alone. Old tokens never acquire it on refresh.
 Access tokens: 1 hour. Refresh tokens: 30 days, rotated. Installation-level
 tokens authorize the broker; workspace access resolves through the local
 registry and, when requested, the registered main worktree's current
@@ -101,13 +105,43 @@ The shared boundary rejects workspace `.git` and `.c2c` control paths,
 delete/rename/move, binary and mode-only changes. It also protects the
 canonical C2C installation state directory and C2C home roots. A patch is
 limited to 1 MiB, 50 files, and 1 MiB per source/result file; updates require
-the exact original-byte SHA-256 precondition. No shell or command execution is
-available. These checks serialize C2C writes and detect stale targets; they do
+the exact original-byte SHA-256 precondition. The patch lifecycle never executes
+commands. These checks serialize C2C writes and detect stale targets; they do
 not control arbitrary external filesystem writers.
 
 After an applied receipt, ChatGPT must independently re-read affected files
 and inspect the relevant diff before reporting success. A receipt or matching
 hash alone does not establish semantic correctness.
+
+## Approved commands (SPEC-004 V1)
+
+`request_command` only creates pending state. The user must deliberately run
+`c2c approve cr_...` locally; remote clients cannot approve, reject, list, retry
+or cancel commands. Local routes reuse loopback/admin-token protection and reject
+proxy-forwarded requests. No-id approval/rejection continues to select patches
+only. Cwd is canonicalized within the selected target at creation and before
+spawn; argv boundaries are immutable, with no implicit shell parsing or env input.
+
+**Approval is not a sandbox.** Approved programs run as the broker's local user
+with its derived environment. They may access secrets, files outside cwd, the
+network and Git, including destructive effects. Explicit shells/interpreters are
+allowed. There is no rollback, executable pinning or secret redaction guarantee.
+Captured output may disclose arbitrary local data; it is never sent to normal
+C2C logs. CLI argv/reason/output escape terminal controls, including in JSON mode.
+
+A durable running claim prevents automatic retry, including after response loss,
+timeout or restart; this is not an exactly-once OS creation guarantee. One running
+slot includes capture and persistence. A ten-minute deadline plus at most five
+seconds local cleanup bounds waits. Live cleanup uses pidfd-bound group signaling
+only when supported, otherwise verified-leader/no-signal fallback. Restart can
+signal only the verified leader; descendants may survive either degraded cleanup
+or deliberate session escape. No numeric check-then-killpg path exists.
+
+Each retained stream is capped at 256 KiB; remote responses default to 8192 bytes
+per stream and allow 0–65536. Size truncation is distinct from incomplete capture.
+Terminal persistence failure blocks additional execution approvals until broker
+restart/repair, without claiming terminal success. Approval transport loss or
+cancellation is an unknown outcome reconciled by inspecting the same request id.
 
 ## Storage
 
@@ -115,6 +149,13 @@ State lives under the C2C state directory (`~/.c2c/state` after systemwide
 install, or the OS app-data convention), directories 0700, files 0600. Named
 tunnel metadata lives there too — never in the project. Only SHA-256 hashes of
 tokens are persisted.
+
+Command JSON lives in `command-requests/` with owner-only atomic records under
+the existing installation writer lease. Pending TTL and terminal read availability
+are sixty minutes each. Reads are observational; files are pruned lazily at
+startup, before create/approve/reject and after successful terminal persistence.
+The read cutoff is not a deletion deadline: sensitive output may remain on disk
+indefinitely while the broker is idle or stopped.
 
 **V1 limitation**: client registrations and token hashes are file-based rather
 than OS-keychain-based. Raw tokens are never written anywhere.
@@ -124,10 +165,13 @@ than OS-keychain-based. Raw tokens are never written anywhere.
 Claude cannot directly write/delete files, run shell commands, commit, register
 workspaces, select arbitrary filesystem roots, nominate worktree paths, or
 create Codex sessions. The broker exposes no general-purpose file writer or
-command tool. An explicitly authorized client may submit a narrow unified-text
+direct command executor. An explicitly authorized client may submit a narrow unified-text
 proposal; only the local C2C approval path applies it. A client may select only
 an opaque registered workspace id and optional opaque derived worktree id
 validated by the broker. With `git.repository.read`, it may also request
 bounded content from exact branch refs through `list_branches`, `git_browse`,
 `git_search`, and `git_compare`; these calls cannot fetch, checkout, or mutate
 the repository.
+
+Separately, `workspace.command` permits one-shot command requests and bounded
+receipt reads. Only explicit local id approval starts the stored command.

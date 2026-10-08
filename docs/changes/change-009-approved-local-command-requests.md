@@ -1,6 +1,6 @@
 # CHANGE-009: Approved Local Command Requests
 
-- **Status:** Draft — not authorized for implementation
+- **Status:** Implemented locally — pending workflow closeout and integration
 - **Date:** 2026-10-05
 - **Scope:** `chat-to-codex`, Linux/WSL installation broker and local CLI
 - **Authority:** [SPEC-004](../specs/spec-004-approved-local-command-execution.md)
@@ -246,10 +246,10 @@ Challenge only with repository evidence: fixed 10-minute execution/capture deadl
 
 If a stronger security property than explicit human approval is required, state it directly. The likely answer is a real sandbox, not command heuristics.
 
-## 20. Draft status
+## 20. Execution status
 
-This is planning-only. No implementation branch, installation change, push, deployment, or merge is authorized.
+Implementation was explicitly authorized on 2026-10-08 and completed on `codex/change-009-approved-commands`, isolated from the planning checkout. S1–S4 runtime verification is recorded in [CHANGE-009 evidence](../verification/artifacts/change-009/ledger.md).
 
-Implementation begins only after the SPEC/CHANGE pair passes review and normal C2C work-start authorization is given.
+Local installation update, push, PR, deployment and merge remain unauthorized. Workflow closeout and integration are the next steps.
 
-The four quality-gate findings are addressed in this draft's contracts and planned validation; [resolution evidence](../verification/artifacts/spec-004/quality-gate-resolution.json) records document-level checks, not implemented runtime behavior.
+The original [quality-gate resolution evidence](../verification/artifacts/spec-004/quality-gate-resolution.json) remains planning evidence; it is not substituted for runtime validation. Approved contracts above are unchanged.

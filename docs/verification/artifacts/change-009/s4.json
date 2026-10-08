@@ -1,0 +1,70 @@
+{
+  "slice": "S4",
+  "status": "completed",
+  "branch": "codex/change-009-approved-commands",
+  "baseline": "fb28ac79e7f03b1753167e0278fa4178aa1f6cb5",
+  "tests": {
+    "files": 55,
+    "passed": 574
+  },
+  "checks": [
+    {
+      "command": "pnpm test --maxWorkers=2",
+      "status": "passed",
+      "duration_seconds": 38.531
+    },
+    {
+      "command": "pnpm typecheck",
+      "status": "passed",
+      "duration_seconds": 4.177
+    },
+    {
+      "command": "pnpm build",
+      "status": "passed",
+      "duration_seconds": 4.878
+    },
+    {
+      "command": "git diff --check",
+      "status": "passed",
+      "duration_seconds": 0.011
+    },
+    {
+      "command": "node scripts/command-e2e.mjs --evidence /tmp/c2c-change-009-verification/command-smoke-final.json",
+      "status": "passed",
+      "duration_seconds": 2.822
+    }
+  ],
+  "review": {
+    "status": "passed",
+    "agent": "s1_review",
+    "findings": "No remaining serious security/lifecycle issue; smoke old-scope denial documentation finding resolved and rechecked."
+  },
+  "runtime": {
+    "platform": "Linux/WSL",
+    "node": "v24.15.0",
+    "pidfd_group_probe": "group",
+    "real_process_checks": [
+      "timeout/shutdown/immediate cleanup",
+      "live inherited descendant group termination",
+      "delayed EOF",
+      "descendant-held pipes",
+      "restart verified surviving leader"
+    ]
+  },
+  "prior_failures": [
+    {
+      "command": "pnpm test",
+      "result": "570 passed / 3 failed at default concurrency",
+      "resolution": "Incorrect immediate-stop incomplete-output assertion removed: natural EOF during awaited cleanup permits complete capture. Existing worktrees-async/write-request-observation deadline failures did not recur with two workers; their production code and tests unchanged."
+    },
+    {
+      "command": "pnpm typecheck",
+      "result": "Earlier prerequisite could not start during ENOSPC",
+      "resolution": "Owner-approved three-cache cleanup; subsequent typecheck passed"
+    }
+  ],
+  "limits": [
+    "Disposable installed layout with repository dependency symlink; production installer, external tunnel and browser UI were not exercised",
+    "Fixed production timeout is covered with internal short-deadline runner tests, not a ten-minute smoke wait"
+  ]
+}

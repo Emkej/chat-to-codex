@@ -25,7 +25,9 @@ the installation broker, complete OAuth (DCR + PKCE + one-time pairing), use
 scoped reads and receipts, and submit a pending patch proposal only with
 explicit `workspace.write`. Proposal creates C2C pending state without changing
 project files; local `c2c approve` is required before the broker applies it.
-There is no native direct `apply_patch` path or command-execution tool.
+There is no native direct `apply_patch` path or direct remote command executor.
+Linux/WSL also supports separately scoped, explicitly locally approved one-shot
+command requests as described below.
 
 **Claude Web UI clicks: not machine-verified.** The scripted connector client
 (`scripts/poc-client.mjs` and Vitest MCP integration tests) exercise the same
@@ -101,6 +103,38 @@ The clipboard/file/stdin `c2c patch` import is conditional on Probe B being
 blocked, so it is not part of this supported host configuration. Native
 `apply_patch` is conditional on Probe A being supported and is not shipped for
 this result.
+
+## SPEC-004 disposable command acceptance
+
+Build the candidate, then stage a disposable application/profile/workspace and
+exercise its launcher without changing `~/.c2c` or the installed skill:
+
+```bash
+pnpm build
+node scripts/command-e2e.mjs --evidence /tmp/c2c-command-smoke.json
+```
+
+The smoke performs fresh OAuth DCR/PKCE/pairing with explicit
+`workspace.command`, creates pending state with no process effects, discovers
+the exact request through the staged `c2c pending`, starts once using
+`c2c approve cr_...`, and reads a bounded terminal result through MCP.
+It verifies duplicate approval cannot execute again and old scopes are denied.
+The staged app uses candidate build files and shared runtime dependencies;
+it does not update the user's installation or start a public tunnel.
+
+Review exact argv/cwd with `c2c pending cr_...`; `--output` is explicit and
+`--diff` remains patch-only. Approval is not sandboxing. A started receipt is
+not a completed test: inspect status, exit code, truncation and
+`output_incomplete`. Lost approval responses are unknown and must be reconciled
+by id without retry. Terminal read availability is sixty minutes; on-disk cleanup
+is lazy at startup and named lifecycle mutations, without a deletion deadline.
+
+Focused command tests cover scope/target/admin boundaries, safe terminal display,
+one-running lifecycle, delayed EOF, bounded capture/cleanup and pidfd fallback.
+Runtime-supported group cleanup is tested conditionally; unsupported kernels
+verify safe leader-only fallback. Restart recovery is deliberately leader-only,
+can leave descendants, and never auto-retries. See CHANGE-009 verification
+artifacts for the actual checks and environment-specific evidence.
 
 ## What automated tests validate
 

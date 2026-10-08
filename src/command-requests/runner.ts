@@ -41,10 +41,10 @@ export function runCommand(argv: string[], cwd: string, options: RunnerOptions =
     finished = true;
     if (!spawned) accept(null);
     clearTimeout(deadline);
-    const result = !spawned ? emptyResult() : {
+    const result = !spawned && status === "failed" ? emptyResult() : {
       exitCode, signal: exitSignal, stdout: out.take(), stderr: err.take(),
       stdoutTruncated: out.truncated, stderrTruncated: err.truncated,
-      outputIncomplete: captureError || !stdoutEnded || !stderrEnded,
+      outputIncomplete: !spawned || captureError || !stdoutEnded || !stderrEnded,
       ...(termination ? { termination } : {}),
     };
     // Forced local closure never waits for a descendant holding inherited pipes.
@@ -86,6 +86,10 @@ export function runCommand(argv: string[], cwd: string, options: RunnerOptions =
     child = (options.spawnProcess ?? spawn)(argv[0]!, argv.slice(1), {
       cwd, shell: false, detached: true, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env },
     });
+    // OS creation can precede Node's spawn event. Shutdown in this interval still
+    // needs a pidfd-verifiable leader, without claiming confirmed startup early.
+    const initialIdentity = child.pid ? readLinuxProcessIdentity(child.pid) : undefined;
+    if (initialIdentity?.kind === "present") leader = initialIdentity.identity;
     child.once("spawn", () => {
       spawned = true;
       const identity = child?.pid ? readLinuxProcessIdentity(child.pid) : undefined;

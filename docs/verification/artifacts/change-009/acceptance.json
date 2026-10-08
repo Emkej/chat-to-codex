@@ -1,0 +1,16 @@
+{
+  "work_id": "CHANGE-009",
+  "acceptance": [
+    {"ids": ["A1", "A4", "A5", "A6", "A7", "A8", "A9", "A11", "A14", "A15", "A20", "A21"], "status": "passed", "evidence": ["tests/command-requests.test.ts", "tests/command-acceptance.test.ts", "tests/command-process-signal.test.ts"]},
+    {"ids": ["A2", "A13", "A17", "A19", "A22", "A23"], "status": "passed", "evidence": ["tests/command-broker.test.ts", "tests/oauth-broker.test.ts", "tests/write-owner.test.ts", "tests/broker.test.ts"]},
+    {"ids": ["A3", "A10", "A16", "A24"], "status": "passed", "evidence": ["tests/command-request-cli.test.ts", "tests/command-broker.test.ts", "command-smoke.json"]},
+    {"ids": ["A12"], "status": "passed", "evidence": ["full pnpm test --maxWorkers=2, including existing patch lifecycle, broker/admin, OAuth, CLI and Manager suites"]},
+    {"ids": ["A18"], "status": "passed", "evidence": ["docs/architecture.md", "docs/security.md", "docs/protocol.md", "docs/multi-workspace.md", "docs/local-e2e.md", "skill/SKILL.md", "independent S4 review"]}
+  ],
+  "limits": [
+    "Short internal deadline seams verify timeout/capture semantics; no ten-minute wall-clock production timeout wait was performed.",
+    "Linux/WSL runtime supports pidfd group signaling; unsupported/different/absent/not-leader branches execute the real Python helper with controlled syscall/procfs seams.",
+    "Restart tested with a real surviving leader and durable running record, not a forcibly killed production broker. Residual spawn-to-identity persistence crash window and surviving descendants remain specified limitations.",
+    "Disposable installed app/profile uses built files with dependency symlink. Production installer, public tunnel and browser UI are not exercised."
+  ]
+}

@@ -235,3 +235,43 @@ proposal plus local approval is the current path. See the [probe evidence](verif
 This SPEC-002 V1 write path is supported only on Linux/WSL. Windows support is
 deferred to separately validated future work; macOS is out of scope unless
 separately proposed.
+
+## Approved command lifecycle and verification
+
+Ordinary execution and recovery remain owned by Codex. The Linux/WSL broker
+adds one exception: a remote client with freshly authorized, explicit
+`workspace.command` may submit `request_command` with argv, relative cwd and
+reason, then inspect that exact id with `get_command_request`. Preserve opaque
+workspace/worktree selectors; omission requires exactly one registration.
+Creation returns pending state plus `c2c approve cr_...`; it executes nothing.
+The user reviews mixed `c2c pending` or full indexed `c2c pending cr_...` detail,
+then explicitly runs `c2c approve cr_...` or `c2c reject cr_...`. No-id verbs
+select patches only. The remote client must never approve on the user's behalf.
+
+Approval is not sandboxing: approved code runs with local user permissions and
+broker-derived environment, can affect files outside cwd, and may disclose local
+data in output. There is no general rollback or automatic retry. Existing/default
+tokens cannot create or read command requests; perform fresh OAuth authorization
+using the existing reauthorization guidance in `skill/SKILL.md`. Do not revoke
+all installation tokens merely to upgrade one connector's scope.
+
+`running` alone can be a durable pre-spawn claim; only `started_at` confirms
+startup. Approval returns promptly after confirmed spawn, not command completion.
+Read the terminal receipt before claiming success: `completed` with exit code 0
+and `output_incomplete=false` can support successful command execution; exit 1
+is a completed failing test, and `failed`/`interrupted` never proves a passed
+test. Natural EOF/close determines completion. Use semantic test evidence too.
+Inspect `resolution_code` and independent retained/response truncation markers.
+Default output is 8192 bytes per stream; request a bounded expansion up to 65536
+only when needed, without automatic repeated reads. Local `--output` explicitly
+shows retained tails; `--diff` remains patch-only.
+
+Lost/cancelled/timed-out approval transport has an unknown outcome. Reconcile
+with `c2c pending cr_...` or `get_command_request`; never repeat the POST or
+automatically submit a replacement. Timeout/restart never auto-respawns. A new
+attempt requires a new request and new local approval.
+
+Terminal reads become unavailable sixty minutes after resolution. Files are
+cleaned lazily during startup and named lifecycle mutations; an idle/stopped
+broker provides no on-disk deletion deadline. Restart cleanup is leader-only;
+descendants may survive, and there is a spawn-to-identity-persistence crash window.

@@ -7,7 +7,7 @@ Authority: docs/specs/spec-004-approved-local-command-execution.md and docs/chan
 Execution: Linux/WSL; /home/emkej/projects/chat-to-codex-change-009; codex/change-009-approved-commands; baseline fb28ac79e7f03b1753167e0278fa4178aa1f6cb5.
 Ownership manifest: work/change-009/task-ownership.json. Tracker: python3 /home/emkej/.codex/workflows/scripts/track_dirty_paths.py. Clean baseline captured before authoritative-document transfer. Original checkout and unrelated dirty paths excluded.
 
-Metrics: continuation runs 0; observed compactions 0; failed validation attempts 2; owner decision round-trips 1.
+Metrics: continuation runs 1; observed compactions 1; failed validation attempts 4; owner decision round-trips 2.
 
 | Slice | Status | Success and validation |
 | --- | --- | --- |
@@ -15,7 +15,7 @@ Metrics: continuation runs 0; observed compactions 0; failed validation attempts
 | S1 Domain/runner | Completed | Strict atomic store; observational availability; single running claim; exact argv; bounded capture/cleanup; pidfd-safe recovery; focused domain and regression tests/typecheck passed; independent review clear after fixes. See s1.json. |
 | S2 Authorization/broker | Completed | Explicit scope/consent, target ownership, local admin and MCP integration/security tests passed; SDK malformed-input error mapping corrected after independent review. See s2.json. |
 | S3 CLI | Completed | Explicit cr_ routing, mixed discovery, shared safe terminal rendering, explicit output, unknown lost/cancelled response outcomes; focused CLI/Manager regressions and typecheck passed. See s3.json. |
-| S4 Docs/acceptance | In progress | Canonical docs/skill; affected regressions, full tests, typecheck, build, diff check and disposable broker acceptance. Also verify cleanup in the OS-creation/Node-spawn-event interval. |
+| S4 Docs/acceptance | Completed | Canonical docs/skill aligned; 55 suites / 574 tests passed with two workers; typecheck, build, diff check and disposable installed-layout OAuth/MCP/CLI acceptance passed. Real pidfd group cleanup, immediate interruption, delayed/held EOF and surviving-leader restart verified. Independent review clear. See s4.json, command-smoke.json and acceptance.json. |
 
 Final gate: review each slice, retain focused evidence, commit coherent validated slices locally. No installation update, push, PR or merge.
 

@@ -19,7 +19,7 @@
              │  Admin API (local)  │
              │  Write-request service │
              └──────────┬──────────┘
-                        │ scoped reads / locally approved patch
+                        │ scoped reads / approved patch or command
                         ▼
              ┌─────────────────────┐
              │ Registered Workspace│
@@ -36,9 +36,11 @@
 - **Bring your AI chat sessions to Codex.** The bridge never re-implements a coding harness.
 - **Conversation = control plane**: tiny `[C2C]` state messages (< 1 KB).
 - **MCP = data plane**: Claude pulls files/diffs/search results itself.
-- **No generic writer or executor**: `propose_patch` can create a pending
+- **No direct remote writer or executor**: `propose_patch` can create a pending
   request when Probe B is supported; the local `c2c approve` path performs the
   workspace write through the shared policy.
+  `request_command` stores exact argv/cwd for one explicit local approval;
+  it never executes at creation. Approval is not sandboxing.
 - **The registered workspace is the durable security boundary**: the broker may
   select a validated derived worktree beneath a registered Git main worktree.
 - **Repository refs are a separate read boundary**: only a registered main
@@ -50,8 +52,9 @@
 | Module | Responsibility |
 | --- | --- |
 | `bridge/` | Express app assembly, loopback-only listener, port fallback, runtime state, admin API |
-| `mcp/` | Broker McpServer with 14 scoped read tools, `propose_patch`, and two read-only receipt tools; the legacy bridge remains at 9 read-only tools. Stateless Streamable HTTP transport (fresh server per request, JSON responses) |
+| `mcp/` | Broker McpServer with 14 scoped readers, patch proposal/two receipt tools, and the separately scoped command request/receipt pair when initialized; legacy bridge remains at 9 readers. Stateless Streamable HTTP transport (fresh server per request, JSON responses) |
 | `write-requests/` | Exact unified-text patch preparation, protected-path/precondition checks, broker lifecycle serialization, staging/rollback, and terminal receipt persistence |
+| `command-requests/` | Separate command store, observational receipts, serialized one-attempt lifecycle, exact argv runner, bounded capture and pidfd-safe interruption/recovery |
 | `auth/` | OAuth 2.1 authorization server: discovery metadata (RFC 8414 + Protected Resource Metadata), dynamic client registration (RFC 7591), authorization-code + PKCE (S256 only), refresh rotation, revocation (RFC 7009). Opaque tokens stored as SHA-256 hashes |
 | `pairing/` | PairingCode lifecycle: CSPRNG generation, TTL, attempt limits, IP rate limit, one-time use |
 | `workspace/` | Canonical-path containment (realpath of deepest existing ancestor), sensitive-file policy, `.c2cignore`, paginated read/list, ripgrep search with Node fallback, git status/diff with pagination |
@@ -115,6 +118,33 @@ the existing `POST /admin/write-requests/:id/approve`; it applies, rather than
 merely acknowledging, the request. Lost responses retain an unresolved id,
 disable approval and reconcile through the receipt-only read without retrying
 the POST. Cancelling a dispatched wait does not undo broker effects.
+
+**Approved commands (SPEC-004, Linux/WSL)**: broker-only `request_command` and
+`get_command_request` require explicit, non-default `workspace.command`.
+The existing target resolver stores concrete workspace/worktree ids; omitted
+workspace is valid only with one registration. Local `c2c approve cr_...`
+revalidates cwd, persists a running claim, then invokes exact argv without an
+implicit shell or stdin/TTY. The response confirms startup only after Node's
+`spawn` event. One command occupies the installation slot until child close,
+natural stdout/stderr EOF and terminal persistence; nonzero exit is completed.
+The patch service and mutex remain separate. Both domains reuse the existing
+installation writer lease and `.write-requests-owner.lock` physical key.
+
+The fixed ten-minute execution/capture deadline remains active after leader
+exit. Each stream retains a 256 KiB tail while continuously draining; remote
+reads project 8192 UTF-8 bytes by default, optionally 0–65536 per stream.
+Interruption retires local pipes/listeners/handles within five further seconds,
+using a verified leader pidfd for runtime-supported group signaling, or safe
+leader-only/no-signal fallback. Restart signals only a verified surviving leader,
+records `BROKER_RESTART`, and never retries. Descendants may survive; OS spawn
+and identity persistence have a residual crash window. A terminal persistence
+failure pins running visibility and blocks further approvals in that process.
+
+Command reads never persist expiry or prune. Pending approval and terminal
+read windows are each sixty minutes. Startup, before create/approve/reject and
+after successful terminal persistence perform lazy cleanup; idle/stopped brokers
+can retain files indefinitely. Command initialization failure omits this
+capability while keeping patch tools and unrelated reads available.
 
 SPEC-002 V1 write ownership is supported only on Linux/WSL, where the broker
 uses `flock`. Other platforms fail closed with `WRITE_OWNER_UNAVAILABLE`;
