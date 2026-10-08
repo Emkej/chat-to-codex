@@ -1,0 +1,61 @@
+{
+  "date": "2026-10-05",
+  "scope": "Planning-only repair of the four SPEC-004 / CHANGE-009 quality-gate findings",
+  "branch": "codex/spec-004-plan-fixes",
+  "repository_head": "fb28ac79e7f03b1753167e0278fa4178aa1f6cb5",
+  "documents": [
+    {
+      "path": "docs/specs/spec-004-approved-local-command-execution.md",
+      "before_sha256": "c091df775f19fa5ea2c3e6b1f570c0c45246dac1458c04c92d64242a38cf7cd5",
+      "after_sha256": "d9f47a4e793fc943178bdafa7ff172a02c63ee488bedf04c6bcd74c19758fa7c",
+      "before_lines": 437,
+      "after_lines": 460
+    },
+    {
+      "path": "docs/changes/change-009-approved-local-command-requests.md",
+      "before_sha256": "acb74d612ae5c24fe2128724e374d16d3c69093a681e56553aa349dc142dabc5",
+      "after_sha256": "989629925877710188f33743e8908cc8c7f3c81b91d3e13dd8ad50023d3ff151",
+      "before_lines": 247,
+      "after_lines": 247
+    }
+  ],
+  "findings": [
+    {
+      "id": "QG-1",
+      "resolution": "Child exit records an outcome but does not finalize capture. Normal completion requires close and natural EOF; a claimed interruption cannot be reclassified by later callbacks. The deadline stays active after leader exit, with a five-second interruption cleanup budget and an independent output_incomplete marker.",
+      "spec_sections": [8, 10, 11, 14, 21, 22],
+      "change_sections": [8, 9, 10, 14, 17, 18],
+      "planned_evidence": "Delayed EOF, descendant-held pipes, capture errors, no unsafe signaling, bounded handle/buffer cleanup, slot release after persistence, and late-callback races."
+    },
+    {
+      "id": "QG-2",
+      "resolution": "SPEC-004 owns both optional-workspace schemas and the existing single-registration default rule. CHANGE-009 references that owner. Approval uses stored concrete target ids.",
+      "spec_sections": [5, 21, 22],
+      "change_sections": [5, 14, 17],
+      "planned_evidence": "Both tools with zero/one/multiple registrations, explicit invalid targets, cross-target ids, and registry changes between creation and approval."
+    },
+    {
+      "id": "QG-3",
+      "resolution": "The 60-minute terminal window limits read availability. Startup and named lifecycle mutations prune files lazily, without a maximum disk-residence guarantee. Pending expiry retains its original time.",
+      "spec_sections": [12, 17, 21, 22, 23],
+      "change_sections": [8, 14, 15, 17, 19],
+      "planned_evidence": "Exact availability cutoff, unchanged files during idle observational reads, each named cleanup trigger, and no running-record pruning or expiry-window extension."
+    },
+    {
+      "id": "QG-4",
+      "resolution": "The existing skill/SKILL.md is explicitly included in implementation documentation synchronization, with a narrow local-approval exception, reauthorization, and terminal receipt interpretation. Shipped instructions are not changed before the capability exists.",
+      "spec_sections": [21, 22, 23],
+      "change_sections": [14, 15, 17, 18],
+      "planned_evidence": "Representative allowed, denied, and boundary workflow cases covering proposal, explicit local id approval, old-token denial, reauthorization, and interrupted/incomplete results."
+    }
+  ],
+  "validation": {
+    "manual_diff_review": "passed: both draft diffs inspected against all four findings",
+    "document_contract_assertions": "passed: canonical target rule, capture/interruption lifecycle, availability/deletion distinction, workflow owner, and draft-only authorization",
+    "acceptance_ids": "passed: unique contiguous V1-V25 and A1-A20",
+    "whitespace_check": "passed: git diff --no-index --check against task-start copies of both drafts emitted no diagnostics",
+    "checker_note": "The initial wrapper incorrectly expected exit 0 from --no-index. It was corrected to accept exit 1 for differences only when diagnostics are empty; the corrected checks passed.",
+    "runtime_tests_build_typecheck": "not run: this revision changes planning documents only"
+  },
+  "authorization": "The user authorized correcting the review findings. Feature implementation, commit, installation, push, and merge were not performed."
+}

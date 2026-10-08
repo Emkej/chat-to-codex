@@ -90,11 +90,27 @@ export async function signalLinuxProcessIdentity(
   signal?: AbortSignal,
   timeoutMs = 1_500
 ): Promise<LinuxProcessSignalResult> {
+  return signalIdentity(expected, signal, timeoutMs, false) as Promise<LinuxProcessSignalResult>;
+}
+
+/** Live command cleanup only. Restart recovery must use leader-only signaling above. */
+export async function signalLinuxOwnedProcessGroup(
+  expected: LinuxProcessIdentity
+): Promise<LinuxProcessSignalResult | "group"> {
+  return signalIdentity(expected, undefined, 1_500, true);
+}
+
+async function signalIdentity(
+  expected: LinuxProcessIdentity,
+  signal: AbortSignal | undefined,
+  timeoutMs: number,
+  preferGroup: boolean
+): Promise<LinuxProcessSignalResult | "group"> {
   if (process.platform !== "linux") throw new Error("Safe broker signaling requires Linux pidfd support");
   if (signal?.aborted) throw signal.reason ?? new Error("Process signal was cancelled");
 
   const script = [
-    "import os, signal, sys",
+    "import os, signal, sys, errno",
     "pid = int(sys.argv[1])",
     "expected = sys.argv[2]",
     "if not hasattr(os, 'pidfd_open') or not hasattr(signal, 'pidfd_send_signal'):",
@@ -113,6 +129,14 @@ export async function signalLinuxProcessIdentity(
     "        sys.exit(14)",
     "    if actual != expected:",
     "        sys.exit(12)",
+    "    if sys.argv[3] == 'group' and fields[2] == str(pid):",
+    "        try:",
+    // Linux UAPI PIDFD_SIGNAL_PROCESS_GROUP = 1 << 2; runtime probe, no kernel-version guess.
+    "            signal.pidfd_send_signal(pidfd, signal.SIGTERM, None, 4)",
+    "            sys.exit(10)",
+    "        except OSError as error:",
+    "            if error.errno not in (errno.EINVAL, errno.ENOSYS, errno.EOPNOTSUPP):",
+    "                raise",
     "    signal.pidfd_send_signal(pidfd, signal.SIGTERM)",
     "except ProcessLookupError:",
     "    sys.exit(11)",
@@ -121,7 +145,7 @@ export async function signalLinuxProcessIdentity(
   ].join("\n");
 
   try {
-    await execFileAsync("python3", ["-c", script, String(expected.pid), expected.startTimeTicks], {
+    await execFileAsync("python3", ["-c", script, String(expected.pid), expected.startTimeTicks, preferGroup ? "group" : "leader"], {
       timeout: timeoutMs,
       signal,
       encoding: "utf8",
@@ -130,6 +154,7 @@ export async function signalLinuxProcessIdentity(
   } catch (error) {
     if (signal?.aborted) throw signal.reason ?? error;
     const code = String((error as NodeJS.ErrnoException).code ?? "");
+    if (code === "10") return "group";
     if (code === "11") return "absent";
     if (code === "12") return "different";
     const detail = error instanceof Error ? error.message : String(error);

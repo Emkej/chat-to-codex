@@ -1,0 +1,12 @@
+{
+  "slice": "S1",
+  "status": "passed",
+  "checks": [
+    {"command": "pnpm exec vitest run tests/command-requests.test.ts tests/command-process-signal.test.ts tests/write-requests.test.ts tests/write-owner.test.ts tests/installation-lifecycle.test.ts", "status": "passed", "duration_seconds": 6.815},
+    {"command": "pnpm typecheck", "status": "passed", "duration_seconds": 6.316},
+    {"command": "git diff --check", "status": "passed"}
+  ],
+  "review": "Independent S1 reviewer: no remaining actionable findings after pinned-running receipt on persistence failure and retirement of runner event listeners",
+  "direct_evidence": ["durable claim before spawn", "no process on creation", "literal argv and closed stdin", "multi-MiB drain and bounded tails", "exit before delayed EOF remains busy", "timeout and capture-error cleanup with absent leader", "late callbacks cannot overwrite interruption", "terminal persistence failure blocks approvals", "post-rename persistence error cannot expose terminal success", "observational expiry byte invariance and exact cutoff", "restart signals leader only without respawn", "cwd symlink revalidation", "Python helper runtime group/unsupported/absent/different/exit-race branches"],
+  "environment_limits": "Process-group syscall branches use controlled syscall fixtures; real-kernel cleanup remains part of acceptance validation"
+}

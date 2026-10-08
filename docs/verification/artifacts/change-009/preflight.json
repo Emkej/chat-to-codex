@@ -1,0 +1,20 @@
+{
+  "environment": "Linux/WSL",
+  "worktree": "/home/emkej/projects/chat-to-codex-change-009",
+  "branch": "codex/change-009-approved-commands",
+  "main_head": "fb28ac79e7f03b1753167e0278fa4178aa1f6cb5",
+  "source_checkout_head": "a68a8b8e4426e3c54087491ba07937ffacdea137",
+  "source_dirty_paths": ["README.md", "docs/multi-workspace.md", "src/cli/index.ts", "untracked parallel changes and work artifacts"],
+  "isolation": "Clean worktree from main; only the three owner-named authoritative documents copied; original files preserved",
+  "source_document_sha256": {
+    "SPEC-004": "99a34e49ae1ff183e49da47b1e342e868a456e4ebf7ea77b2d8a5a6afb0a95c3",
+    "CHANGE-009": "517d2259974da2ec2aef8e7ed06645abe8194bd98d6503b5a302678e8f9b88ab"
+  },
+  "node": "v24.15.0",
+  "pnpm": "11.24.0",
+  "dependency_preparation": "pnpm install --frozen-lockfile passed; offline attempt lacked policy metadata; no lockfile or manifest changes",
+  "baseline": {"pnpm typecheck": "passed", "pnpm exec vitest run tests/broker-runtime-identity.test.ts tests/write-owner.test.ts": "passed"},
+  "failure_cache": null,
+  "ownership_tracker": "python3 /home/emkej/.codex/workflows/scripts/track_dirty_paths.py",
+  "ownership_manifest": "work/change-009/task-ownership.json"
+}
