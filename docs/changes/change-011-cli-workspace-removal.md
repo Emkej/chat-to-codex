@@ -1,6 +1,6 @@
 # CHANGE-011: CLI Workspace Removal
 
-- **Status:** Implemented locally — validation passed; integration pending
+- **Status:** Completed — implemented, validated and locally integrated
 - **Date:** 2026-10-06
 - **Scope:** `chat-to-codex`, local CLI workspace lifecycle
 - **Authority:** [SPEC-001](../specs/spec-001-worktree-aware-workspace-access-consolidated.md) local target resolution and [multi-workspace architecture](../multi-workspace.md) durable workspace revocation

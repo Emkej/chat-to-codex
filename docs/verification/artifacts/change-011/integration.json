@@ -1,0 +1,71 @@
+{
+  "work_id": "CHANGE-011",
+  "date": "2026-10-08",
+  "status": "integrated and post-merge verified",
+  "integration": {
+    "target": "main",
+    "strategy": "local fast-forward",
+    "base": "ca3b4a1b96618de7dfc408517a6a62face47ff72",
+    "implementation_commit": "e8caad3f4b0ebfa1c51b57532341099971acb118",
+    "target_head_after_implementation": "e8caad3f4b0ebfa1c51b57532341099971acb118",
+    "source_scope": "Six reviewed CHANGE-011 files only; the pre-existing line-ending configuration commit was excluded as unrelated.",
+    "remote_relationship_after_implementation": {
+      "ref": "origin/main",
+      "ahead": 24,
+      "behind": 0,
+      "fetched": false
+    }
+  },
+  "validation": {
+    "dependency_install": {
+      "command": "pnpm install --frozen-lockfile",
+      "status": "passed; 198 packages reused and pnpm-lock.yaml unchanged"
+    },
+    "pre_merge": {
+      "focused_tests": {
+        "command": "pnpm vitest run tests/workspace-remove-cli.test.ts tests/local-target.test.ts tests/broker.test.ts",
+        "status": "passed; 3 files and 33 tests"
+      },
+      "typecheck": "passed: pnpm typecheck",
+      "build": "passed: pnpm build",
+      "cli_help": "passed: c2c root help, c2c remove help, and c2ct remove help",
+      "staged_diff_check": "passed: git diff --cached --check"
+    },
+    "post_merge": {
+      "focused_tests": "passed; 3 files and 33 tests",
+      "typecheck": "passed: pnpm typecheck",
+      "build": "passed: pnpm build",
+      "cli_help": "passed: c2c root help and c2ct remove help",
+      "diff_check": "passed: git diff --check ca3b4a1b96618de7dfc408517a6a62face47ff72..HEAD",
+      "implementation_ancestry": "passed: implementation commit is an ancestor of main"
+    }
+  },
+  "preservation": {
+    "source_checkout": {
+      "branch": "codex/spec-004-plan-fixes",
+      "head": "a68a8b8e4426e3c54087491ba07937ffacdea137",
+      "status_sha256": "6731c574ad83968ced65cd2caf5a064fc0d0903328fe9726b8dcdb7e5eb52ed9",
+      "unstaged_binary_diff_sha256": "a1a077f81172efddb986c99d904cc4146ee829ac8bd1698b67cd140f962afa35",
+      "staged_binary_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "index_entries_sha256": "ac11cd892f81af0dc930f24b3d1c7f0312f51b4c302f0645b2390ec9ef681950",
+      "untracked_inventory_sha256": "db8ccef97a1e1c8a3054d9b5c25ad8b03b66c9553d9beac64101b1b8e2b5feec",
+      "untracked_inventory_entry_count": 337,
+      "verified_unchanged_after_integration": true
+    },
+    "preexisting_worktree": {
+      "path": ".worktrees/devex-spec001-pilot-b",
+      "head": "84100faae738c67d08248a473349e8757c84c354",
+      "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "preserved": true
+    }
+  },
+  "resources_created_for_integration": {
+    "worktree": "../chat-to-codex-change-011",
+    "topic_branch": "codex/change-011-cli-workspace-removal"
+  },
+  "external_actions": {
+    "push": false,
+    "fetch": false,
+    "installed_profile_update": false
+  }
+}
