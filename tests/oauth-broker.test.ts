@@ -69,6 +69,16 @@ async function authorizeWithPairing(clientId: string, challenge: string, pairing
 }
 
 describe("broker OAuth", () => {
+  it.each(["workspace.command", "workspace.command workspace.write"])("describes elevated %s grants accurately", async (scope) => {
+    const clientId = await registerClient(), { challenge } = pkceVerifierAndChallenge();
+    const url = authorizationUrl(clientId, challenge); url.searchParams.set("scope", scope);
+    const html = await (await fetch(url, { redirect: "manual" })).text();
+    expect(html).not.toContain("is requesting read-only access");
+    expect(html).toContain("locally approved command execution");
+    expect(html).toContain("read their captured output");
+    expect(html).toContain("may disclose local data");
+    if (scope.includes("workspace.write")) expect(html).toContain("text-patch write access");
+  });
   it("completes pairing + PKCE against the installation principal", async () => {
     const clientId = await registerClient();
     const { verifier, challenge } = pkceVerifierAndChallenge();

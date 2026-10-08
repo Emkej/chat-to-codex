@@ -1,0 +1,11 @@
+{
+  "slice": "S2",
+  "status": "passed",
+  "checks": [
+    {"command": "pnpm exec vitest run tests/command-broker.test.ts tests/oauth-broker.test.ts tests/mcp-write-requests.test.ts tests/oauth.test.ts tests/write-request-admin.test.ts", "status": "passed", "duration_seconds": 6.899},
+    {"command": "pnpm typecheck", "status": "passed", "duration_seconds": 9.344},
+    {"command": "git diff --check", "status": "passed"}
+  ],
+  "review": "Independent reviewer identified pre-callback SDK malformed-input errors; normalized through domain validation and tested through real MCP clients",
+  "direct_evidence": ["explicit non-default broker-only scope", "command-only and combined elevated consent", "exact creation and state-dependent receipts", "completed nonzero exit remains MCP success", "output projection limits and UTF-8", "zero/one/multiple and explicit invalid selectors", "stored concrete workspace/worktree approval targets", "cross-target indistinguishability", "loopback/admin-token and forwarded-header protection", "observational local/remote reads", "command initialization failure omits tools while preserving patch and reads"]
+}

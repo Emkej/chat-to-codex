@@ -13,8 +13,8 @@ Metrics: continuation runs 0; observed compactions 0; failed validation attempts
 | --- | --- | --- |
 | Environment | Completed | Frozen dependency installation; offline attempt failed on missing policy metadata, online frozen installation passed without manifest/lockfile changes. |
 | S1 Domain/runner | Completed | Strict atomic store; observational availability; single running claim; exact argv; bounded capture/cleanup; pidfd-safe recovery; focused domain and regression tests/typecheck passed; independent review clear after fixes. See s1.json. |
-| S2 Authorization/broker | In progress | Explicit scope/consent, target ownership, local admin and MCP integration/security tests. |
-| S3 CLI | Planned | Explicit cr_ routing, mixed discovery, escaped exact argv/output, unknown transport outcomes; focused CLI tests. |
+| S2 Authorization/broker | Completed | Explicit scope/consent, target ownership, local admin and MCP integration/security tests passed; SDK malformed-input error mapping corrected after independent review. See s2.json. |
+| S3 CLI | In progress | Explicit cr_ routing, mixed discovery, escaped exact argv/output, unknown transport outcomes; focused CLI tests. |
 | S4 Docs/acceptance | Planned | Canonical docs/skill; affected regressions, full tests, typecheck, build, diff check and disposable broker acceptance. |
 
 Final gate: review each slice, retain focused evidence, commit coherent validated slices locally. No installation update, push, PR or merge.

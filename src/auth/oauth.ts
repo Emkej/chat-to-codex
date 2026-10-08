@@ -111,10 +111,15 @@ function pairingPage(opts: {
     "execution.read": "Read Codex execution summaries",
     offline_access: "Stay connected between sessions",
     "workspace.write": "Apply approved unified text patches to this workspace",
+    "workspace.command": "Request locally approved commands and read their captured output (which may disclose local data)",
     "git.repository.read": "Read Git branches and committed repository snapshots",
   };
   const scopeList = opts.scopes.map((scope) => `<li>${escapeHtml(scopeLabels[scope] ?? scope)}</li>`).join("");
-  const accessDescription = opts.scopes.includes("workspace.write")
+  const accessDescription = opts.scopes.includes("workspace.command")
+    ? opts.scopes.includes("workspace.write")
+      ? "is requesting locally approved command execution, captured output and text-patch write access through"
+      : "is requesting locally approved command execution and captured output access through"
+    : opts.scopes.includes("workspace.write")
     ? "is requesting narrow C2C text-patch write access through"
     : "is requesting read-only access through";
   const errorHtml = opts.error ? `<p class="error" role="alert">${escapeHtml(opts.error)}</p>` : "";

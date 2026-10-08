@@ -2,6 +2,7 @@ import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { ensureDir, getStateDir, writeSecureJson } from "../config/paths.js";
+import { COMMAND_SCOPE } from "../command-requests/types.js";
 
 export const SUPPORTED_SCOPES = [
   "workspace.read",
@@ -17,6 +18,7 @@ export const REPOSITORY_READ_SCOPE = "git.repository.read" as const;
 export const BROKER_SUPPORTED_SCOPES = [
   ...SUPPORTED_SCOPES,
   REPOSITORY_READ_SCOPE,
+  COMMAND_SCOPE,
 ] as const;
 
 export type Scope = (typeof BROKER_SUPPORTED_SCOPES)[number];

@@ -34,6 +34,9 @@ import { WriteRequestService } from "../write-requests/service.js";
 import { WriteRequestStore } from "../write-requests/store.js";
 import { createWriteRequestAdminRouter } from "./write-request-admin.js";
 import { captureBrokerRuntimeIdentity } from "./runtime-identity.js";
+import { CommandRequestService } from "../command-requests/service.js";
+import { CommandRequestStore } from "../command-requests/store.js";
+import { createCommandRequestAdminRouter } from "./command-request-admin.js";
 
 export const CONNECTOR_DISPLAY_NAME = "Chat to Codex";
 
@@ -58,6 +61,7 @@ export interface Broker {
   authStore: AuthStore;
   pairing: PairingManager;
   writeRequests: WriteRequestService | undefined;
+  commandRequests: CommandRequestService | undefined;
   tunnel: TunnelProvider;
   port: number;
   host: string;
@@ -202,9 +206,10 @@ export async function startBroker(opts: BrokerOptions = {}): Promise<Broker> {
   // ---- MCP endpoint (bearer-protected) --------------------------------------
 
   let writeRequests: WriteRequestService | undefined;
+  let commandRequests: CommandRequestService | undefined;
   const mcpHandler = createMcpHttpHandler(
     () => {
-      return createMcpServer({ registry, sessions, brokerIdentity, ...(writeRequests ? { writeRequests } : {}), logger });
+      return createMcpServer({ registry, sessions, brokerIdentity, ...(writeRequests ? { writeRequests } : {}), ...(commandRequests ? { commandRequests } : {}), logger });
     },
     logger
   );
@@ -390,6 +395,20 @@ export async function startBroker(opts: BrokerOptions = {}): Promise<Broker> {
       });
       writeRequests = lifecycle;
       app.use("/admin/write-requests", createWriteRequestAdminRouter(lifecycle, adminGuard));
+      try {
+        const commands = new CommandRequestService({
+          store: new CommandRequestStore(stateDir),
+          resolveTarget: (workspaceId, worktreeId) => {
+            const target = resolveRegisteredWorkspaceTarget(registry, workspaceId, worktreeId);
+            return { workspace: target.workspace, workspaceId: target.registration.id, ...(target.worktreeId ? { worktreeId: target.worktreeId } : {}) };
+          },
+        });
+        await commands.initialize();
+        app.use("/admin/command-requests", createCommandRequestAdminRouter(commands, adminGuard));
+        commandRequests = commands;
+      } catch {
+        logger.warn("Command capability is unavailable; command state requires local repair.");
+      }
     } else {
       logger.warn("Write-request tools are unavailable on this platform; starting the broker read-only.");
     }
@@ -447,6 +466,7 @@ export async function startBroker(opts: BrokerOptions = {}): Promise<Broker> {
     if (closed) return;
     closed = true;
     try {
+      await commandRequests?.close();
       await tunnel.stop().catch(() => undefined);
       await new Promise<void>((resolve) => server.close(() => resolve()));
       if (opts.persistRuntime !== false && !leaveRuntimeForLifecycleReconciliation) {
@@ -465,6 +485,7 @@ export async function startBroker(opts: BrokerOptions = {}): Promise<Broker> {
     authStore,
     pairing,
     writeRequests: lifecycle,
+    commandRequests,
     tunnel,
     port,
     host,
