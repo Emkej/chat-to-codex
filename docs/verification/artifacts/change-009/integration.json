@@ -1,0 +1,80 @@
+{
+  "work_id": "CHANGE-009",
+  "date": "2026-10-08",
+  "status": "integrated and post-merge verified; cleanup pending",
+  "integration": {
+    "target": "main",
+    "strategy": "local fast-forward",
+    "base": "fb28ac79e7f03b1753167e0278fa4178aa1f6cb5",
+    "implementation_head_before_closeout_evidence": "c7503890a8d9665aff806c8cd5a9785e92c3bcd9",
+    "source_commits": [
+      "5d1f3602eb6d88b5c44a6c137dce975af50418a5",
+      "f883e94fed604a75550c07e754531b78ef9111dc",
+      "23f7ce0871b9916610e544d4fdf448c966e925de",
+      "050c6941e41b4670d6b06dfd084fc28f2ac6ee7f",
+      "c7503890a8d9665aff806c8cd5a9785e92c3bcd9"
+    ],
+    "source_scope": "All five commits and their changed paths were reviewed against the CHANGE-009 ownership manifest.",
+    "remote_relationship": {
+      "ref": "origin/main",
+      "ahead": 21,
+      "behind": 0,
+      "fetched": false
+    }
+  },
+  "post_merge_validation": {
+    "dependency_install": {
+      "command": "pnpm install --frozen-lockfile",
+      "status": "passed; lockfile unchanged; 198 packages reused from the local store"
+    },
+    "full_suite": {
+      "command": "pnpm test --maxWorkers=2",
+      "status": "passed",
+      "test_files": 55,
+      "tests": 574,
+      "duration_seconds": 53.89
+    },
+    "typecheck": {
+      "command": "pnpm typecheck",
+      "status": "passed"
+    },
+    "build": {
+      "command": "pnpm build",
+      "status": "passed"
+    },
+    "diff_check": {
+      "command": "git -c core.whitespace=cr-at-eol diff --check fb28ac79e7f03b1753167e0278fa4178aa1f6cb5..HEAD",
+      "status": "passed"
+    },
+    "implementation_ancestry": {
+      "command": "git merge-base --is-ancestor c7503890a8d9665aff806c8cd5a9785e92c3bcd9 HEAD",
+      "status": "passed"
+    }
+  },
+  "preservation": {
+    "planning_checkout": {
+      "branch": "codex/spec-004-plan-fixes",
+      "head": "a68a8b8e4426e3c54087491ba07937ffacdea137",
+      "status_entries": 22,
+      "untracked_inventory_sha256": "3ada1f508b284c6834936a8bbab83196510364b26f4b9b1cdb5dbee0fbffbb45",
+      "verified_unchanged_after_integration": true
+    },
+    "preexisting_worktree": {
+      "path": ".worktrees/devex-spec001-pilot-b",
+      "status": "preserved"
+    }
+  },
+  "resources": {
+    "integration_worktree": "/home/emkej/projects/chat-to-codex-closeout-change-009",
+    "topic_worktree": "/home/emkej/projects/chat-to-codex-change-009",
+    "topic_branch": "codex/change-009-approved-commands",
+    "cleanup": "pending final closeout verification"
+  },
+  "external_actions": {
+    "installation_update": false,
+    "push": false,
+    "pull_or_fetch": false,
+    "pull_request": false,
+    "deployment": false
+  }
+}

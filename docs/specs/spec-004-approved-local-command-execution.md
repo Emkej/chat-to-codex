@@ -1,16 +1,17 @@
 # SPEC-004 — Approved Local Command Execution
 
-**Status:** Draft
+**Status:** V1 conformant for Linux/WSL<br>
+**Implementation:** [CHANGE-009](../changes/change-009-approved-local-command-requests.md), locally integrated into `main`; see [integration evidence](../verification/artifacts/change-009/integration.json)<br>
 **Date:** 2026-10-05
 **Repository:** `chat-to-codex`
-**Target branch:** implementation branch from `main`
-**Review baseline:** `refs/heads/main` at `fb28ac79e7f03b1753167e0278fa4178aa1f6cb5` (verified during 2026-10-08 review; recheck at implementation start)
+**Target branch:** `main` (local integration)
+**Implementation baseline:** `refs/heads/main` at `fb28ac79e7f03b1753167e0278fa4178aa1f6cb5` (verified at implementation start on 2026-10-08)
 **Scope:** Explicitly approved, one-shot local command execution for the installation broker
 **Related canonical docs:** `docs/architecture.md`, `docs/security.md`, `docs/multi-workspace.md`, `docs/local-e2e.md`, `docs/specs/spec-001-worktree-aware-workspace-access-consolidated.md`, `docs/specs/spec-002-approved-local-patch-writes.md`
 
 ## 1. Summary
 
-C2C currently exposes read-only inspection and a narrow approved text-patch write capability. It deliberately exposes no generic command executor.
+Before SPEC-004, C2C exposed read-only inspection and a narrow approved text-patch write capability, with no command-request flow. This SPEC adds the local approval path without creating a generic remote command executor.
 
 That leaves a high-frequency workflow outside the bridge:
 
@@ -241,7 +242,7 @@ Request locally approved commands and read their captured output
 
 `get_command_request` also requires `workspace.command`, because command output may contain arbitrary local data. `workspace.read` alone MUST NOT grant captured command output.
 
-The existing OAuth pairing introduction currently branches only on `workspace.write` (`src/auth/oauth.ts`). It MUST treat a command-only grant as elevated, **not read-only**, add a dedicated `workspace.command` label covering approved local execution and possible output disclosure, and retain accurate wording when both command and patch scopes are requested. Validate the command-only consent case.
+The OAuth pairing introduction MUST treat a command-only grant as elevated, **not read-only**, use a dedicated `workspace.command` label covering approved local execution and possible output disclosure, and retain accurate wording when both command and patch scopes are requested. CHANGE-009 implements and validates this consent behavior.
 
 ## 7. Request input
 

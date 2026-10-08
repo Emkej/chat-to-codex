@@ -1,11 +1,11 @@
 # CHANGE-009: Approved Local Command Requests
 
-- **Status:** Completed — implemented, validated and closed locally; not integrated
+- **Status:** Completed — implemented, validated and locally integrated
 - **Date:** 2026-10-05
 - **Scope:** `chat-to-codex`, Linux/WSL installation broker and local CLI
 - **Authority:** [SPEC-004](../specs/spec-004-approved-local-command-execution.md)
 - **Related:** [SPEC-002](../specs/spec-002-approved-local-patch-writes.md); patch behavior remains unchanged
-- **Baseline:** `refs/heads/main` at `fb28ac79e7f03b1753167e0278fa4178aa1f6cb5` (verified 2026-10-08; recheck at work start)
+- **Baseline:** `refs/heads/main` at `fb28ac79e7f03b1753167e0278fa4178aa1f6cb5` (verified at implementation start on 2026-10-08)
 - **Primary areas:** command-request service/store/runner, broker MCP surface, OAuth scopes/consent, local admin router, CLI dispatch, process recovery, tests and canonical docs
 
 ## 1. Outcome
@@ -40,9 +40,9 @@ This CHANGE implements SPEC-004 and does not extend SPEC-002.
 
 Command requests receive their own domain service/persistence. Do not refactor `WriteRequestService` into a generic action service as a prerequisite.
 
-## 3. Observed current behavior
+## 3. Observed baseline behavior
 
-Current code has `propose_patch`, local `c2c approve/reject`, a patch-specific `WriteRequestService`, explicit `workspace.write`, loopback/admin-token write-request routes, owner-only state, Linux `flock` write ownership, Linux PID/start-time process identity helpers, and no command MCP tool.
+At the implementation baseline, code had `propose_patch`, local `c2c approve/reject`, a patch-specific `WriteRequestService`, explicit `workspace.write`, loopback/admin-token write-request routes, owner-only state, Linux `flock` write ownership, Linux PID/start-time process identity helpers, and no command MCP tool.
 
 Current write-request records are structurally patch-specific (`kind: "patch"`, files, preconditions, patch body). Preserve that boundary.
 
@@ -72,7 +72,7 @@ Prefer a broker-only `COMMAND_SCOPE = "workspace.command"` constant similar to `
 
 Include it in broker-supported scopes, not default scopes and not legacy bridge scopes.
 
-OAuth consent describes both locally approved execution and captured output. Existing tokens do not gain the scope. Fix the existing `src/auth/oauth.ts` pairing introduction (currently branches only on `workspace.write`) so command-only `workspace.command` cannot show read-only language; add an explicit scope label and test command-only and combined grants.
+OAuth consent describes both locally approved execution and captured output. Existing tokens do not gain the scope. The `src/auth/oauth.ts` pairing introduction treats command-only `workspace.command` as elevated rather than read-only, uses an explicit scope label, and describes combined command and patch grants accurately.
 
 ## 7. Source layout
 
@@ -250,6 +250,6 @@ If a stronger security property than explicit human approval is required, state 
 
 Implementation was explicitly authorized on 2026-10-08 and completed on `codex/change-009-approved-commands`, isolated from the planning checkout. S1–S4 runtime verification is recorded in [CHANGE-009 evidence](../verification/artifacts/change-009/ledger.md).
 
-Local workflow closeout is complete; [closeout evidence](../verification/artifacts/change-009/closeout.json) records ownership, retained runtime evidence and the retired active handoff. The implementation topic branch/worktree is retained because merge is not authorized. Local installation update, push, PR, deployment and merge remain unauthorized and require a separate owner instruction.
+Local workflow closeout and fast-forward integration into `main` are complete; [integration evidence](../verification/artifacts/change-009/integration.json) records the target, post-merge validation, ownership and preservation results. [The earlier closeout record](../verification/artifacts/change-009/closeout.json) captures the pre-integration checkpoint. No local installation update, push, PR or deployment was performed.
 
 The original [quality-gate resolution evidence](../verification/artifacts/spec-004/quality-gate-resolution.json) remains planning evidence; it is not substituted for runtime validation. Approved contracts above are unchanged.
