@@ -1,6 +1,6 @@
 # CHANGE-009: Approved Local Command Requests
 
-- **Status:** Implemented locally — pending workflow closeout and integration
+- **Status:** Completed — implemented, validated and closed locally; not integrated
 - **Date:** 2026-10-05
 - **Scope:** `chat-to-codex`, Linux/WSL installation broker and local CLI
 - **Authority:** [SPEC-004](../specs/spec-004-approved-local-command-execution.md)
@@ -250,6 +250,6 @@ If a stronger security property than explicit human approval is required, state 
 
 Implementation was explicitly authorized on 2026-10-08 and completed on `codex/change-009-approved-commands`, isolated from the planning checkout. S1–S4 runtime verification is recorded in [CHANGE-009 evidence](../verification/artifacts/change-009/ledger.md).
 
-Local installation update, push, PR, deployment and merge remain unauthorized. Workflow closeout and integration are the next steps.
+Local workflow closeout is complete; [closeout evidence](../verification/artifacts/change-009/closeout.json) records ownership, retained runtime evidence and the retired active handoff. The implementation topic branch/worktree is retained because merge is not authorized. Local installation update, push, PR, deployment and merge remain unauthorized and require a separate owner instruction.
 
 The original [quality-gate resolution evidence](../verification/artifacts/spec-004/quality-gate-resolution.json) remains planning evidence; it is not substituted for runtime validation. Approved contracts above are unchanged.

@@ -16,5 +16,6 @@
   "baseline": {"pnpm typecheck": "passed", "pnpm exec vitest run tests/broker-runtime-identity.test.ts tests/write-owner.test.ts": "passed"},
   "failure_cache": null,
   "ownership_tracker": "python3 /home/emkej/.codex/workflows/scripts/track_dirty_paths.py",
-  "ownership_manifest": "work/change-009/task-ownership.json"
+  "ownership_manifest": "docs/verification/artifacts/change-009/ownership.json",
+  "original_ownership_manifest": "work/change-009/task-ownership.json (retired after local closeout)"
 }

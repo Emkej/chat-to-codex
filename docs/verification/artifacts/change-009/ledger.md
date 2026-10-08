@@ -5,7 +5,7 @@ Owner outcome: request_command → explicit local approval → one execution att
 Authority: docs/specs/spec-004-approved-local-command-execution.md and docs/changes/change-009-approved-local-command-requests.md. Implementation authorized by the owner on 2026-10-08, superseding draft-only authorization text. Planning evidence is not runtime validation.
 
 Execution: Linux/WSL; /home/emkej/projects/chat-to-codex-change-009; codex/change-009-approved-commands; baseline fb28ac79e7f03b1753167e0278fa4178aa1f6cb5.
-Ownership manifest: work/change-009/task-ownership.json. Tracker: python3 /home/emkej/.codex/workflows/scripts/track_dirty_paths.py. Clean baseline captured before authoritative-document transfer. Original checkout and unrelated dirty paths excluded.
+Archived ownership manifest: ownership.json. Tracker: python3 /home/emkej/.codex/workflows/scripts/track_dirty_paths.py. Clean baseline captured before authoritative-document transfer. Original checkout and unrelated dirty paths excluded.
 
 Metrics: continuation runs 1; observed compactions 1; failed validation attempts 4; owner decision round-trips 2.
 
@@ -16,6 +16,7 @@ Metrics: continuation runs 1; observed compactions 1; failed validation attempts
 | S2 Authorization/broker | Completed | Explicit scope/consent, target ownership, local admin and MCP integration/security tests passed; SDK malformed-input error mapping corrected after independent review. See s2.json. |
 | S3 CLI | Completed | Explicit cr_ routing, mixed discovery, shared safe terminal rendering, explicit output, unknown lost/cancelled response outcomes; focused CLI/Manager regressions and typecheck passed. See s3.json. |
 | S4 Docs/acceptance | Completed | Canonical docs/skill aligned; 55 suites / 574 tests passed with two workers; typecheck, build, diff check and disposable installed-layout OAuth/MCP/CLI acceptance passed. Real pidfd group cleanup, immediate interruption, delayed/held EOF and surviving-leader restart verified. Independent review clear. See s4.json, command-smoke.json and acceptance.json. |
+| Local closeout | Completed | Owner requested immediate closeout; task-only ownership classified, security/runtime evidence retained, active handoff and temporary ownership metadata retired. Topic branch/worktree retained; integration and release actions remain unauthorized. See closeout.json. |
 
 Final gate: review each slice, retain focused evidence, commit coherent validated slices locally. No installation update, push, PR or merge.
 
