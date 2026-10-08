@@ -5,7 +5,7 @@
 - **Scope:** `chat-to-codex`, Linux/WSL local CLI, SPEC-002 manual-local patch review
 - **Authority:** [SPEC-002](../specs/spec-002-approved-local-patch-writes.md), especially patch preparation, manual-local approval, stale detection, and §19.7 inspection before approval
 - **Related:** [CHANGE-008](change-008-c2c-manager-pending-write-requests.md) remains unchanged; [CHANGE-009](change-009-approved-local-command-requests.md) is a separate command-request capability
-- **Baseline:** `refs/heads/main` at `fb28ac79e7f03b1753167e0278fa4178aa1f6cb5`
+- **Baseline:** `main` at `e323589ee9c2482bf6cb5a9d9b44bf82b86f402f` (verified 2026-10-08; recheck before implementation)
 - **Primary areas:** write-request preparation/revalidation helpers, local CLI review, temporary snapshot materialization, Git difftool process handling, focused tests and SPEC-002 documentation alignment
 
 ## 1. Outcome
@@ -180,7 +180,7 @@ Do not add:
 - `--trust-exit-code`,
 - a temporary Git repository solely to enable `--dir-diff`.
 
-Git's existing `diff.guitool` / `diff.tool` configuration is the integration boundary.
+Git's existing `--gui` difftool selection is the integration boundary. Git resolves `diff.guitool` with its documented fallback configuration; C2C adds no viewer setting or tool-specific selection.
 
 ## 9. Multi-file and create behavior
 
