@@ -1,0 +1,11 @@
+{
+  "slice": "S3",
+  "status": "passed",
+  "checks": [
+    {"command": "pnpm exec vitest run tests/command-request-cli.test.ts tests/write-request-cli.test.ts tests/manager-write-requests.test.ts tests/cli-manager.test.ts", "status": "passed", "duration_seconds": 9.144},
+    {"command": "pnpm typecheck", "status": "passed", "duration_seconds": 12.167},
+    {"command": "git diff --check", "status": "passed"}
+  ],
+  "review": "Independent reviewer found null successful approval body bypassing unknown-outcome handling; fixed non-null shape guard and added null/object/malformed JSON regression cases",
+  "direct_evidence": ["mixed target-filtered pending discovery", "full indexed argv boundaries", "safe C0/C1/bidi display including roundtrippable JSON", "explicit --output and patch-only --diff", "one POST for explicit cr_ approval/rejection", "no-id verbs only select patches", "lost/invalid/cancelled approval response reports unknown and reconciles by GET", "SIGINT/SIGTERM handlers retire", "patch-only broker discovery remains usable"]
+}

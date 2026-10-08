@@ -126,6 +126,7 @@ describe("registered write-request CLI commands", () => {
 
   it("lists pending requests without exposing patch content by default", async () => {
     const fetchMock = mockAdminApi((url) => {
+      if (url.pathname === "/admin/command-requests") return { requests: [] };
       expect(url.pathname).toBe("/admin/write-requests");
       return { requests: [{ ...receipt("wr_one"), patch: "must not be returned" }] };
     });
@@ -136,11 +137,12 @@ describe("registered write-request CLI commands", () => {
     expect(payload.requests).toHaveLength(1);
     expect(payload.requests[0]).toMatchObject({ request_id: "wr_one", status: "pending" });
     expect(payload.requests[0]).not.toHaveProperty("patch");
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("shows the patch for the single pending request in JSON mode", async () => {
     const fetchMock = mockAdminApi((url) => {
+      if (url.pathname === "/admin/command-requests") return { requests: [] };
       if (url.pathname === "/admin/write-requests") return { requests: [receipt("wr_one")] };
       expect(url.pathname).toBe("/admin/write-requests/wr_one");
       expect(url.searchParams.get("includePatch")).toBe("true");
@@ -153,7 +155,7 @@ describe("registered write-request CLI commands", () => {
       ok: true,
       requests: [{ request_id: "wr_one", patch: "--- a/file.txt\n+++ b/file.txt\n" }],
     });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it("implicitly approves the one cwd-matched request without another prompt", async () => {

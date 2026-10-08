@@ -1,18 +1,7 @@
 import { wrapDetailValue } from "./workspace-detail-layout.js";
 import type { ManagerSnapshot } from "./types.js";
-
-/** Escape input controls without losing LF boundaries or confusing literal backslashes. */
-export function escapeReviewText(value: string, preserveNewlines = false): string {
-  return Array.from(value, (character) => {
-    const code = character.codePointAt(0)!;
-    if (preserveNewlines && character === "\n") return character;
-    if (character === "\\") return "\\\\";
-    if (code < 32 || (code >= 127 && code <= 159) || /[\p{Cf}\p{Zl}\p{Zp}]/u.test(character)) {
-      return "\\u{" + code.toString(16).padStart(4, "0") + "}";
-    }
-    return character;
-  }).join("");
-}
+import { escapeTerminalText as escapeReviewText } from "../terminal/escape.js";
+export { escapeTerminalText as escapeReviewText } from "../terminal/escape.js";
 
 export function requestReviewLines(snapshot: ManagerSnapshot, columns: number): string[] {
   const review = snapshot.requestReview;

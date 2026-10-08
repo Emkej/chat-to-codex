@@ -5,6 +5,8 @@ import { adminFetch } from "../process/daemon.js";
 import { resolveContainingLocalTarget, type LocalTargetRegistration } from "../workspace/local-target.js";
 import type { WriteRequestDetails } from "../write-requests/service.js";
 import type { WriteRequestReceipt } from "../write-requests/types.js";
+import { CommandRequestCliError, commandRequestAction, describeCommand, listPendingCommands, printCommandAction } from "./command-requests.js";
+import { escapeTerminalText, terminalSafeJson } from "../terminal/escape.js";
 
 interface CliWriteRequest {
   request_id: string;
@@ -83,7 +85,7 @@ async function relevantPendingRequests(existingRuntime?: RuntimeState) {
     "GET",
     `/admin/write-requests?${query.toString()}`
   );
-  return { runtime, requests };
+  return { runtime, requests, target: { workspaceId: target.registration.id, ...(target.worktreeId ? { worktreeId: target.worktreeId } : {}) } };
 }
 
 async function readRequest(runtime: Awaited<ReturnType<typeof ensureBroker>>, id: string, includePatch: boolean) {
@@ -136,15 +138,15 @@ function describeRequest(record: CliWriteRequest): void {
 
 function reportError(error: unknown, json: boolean): void {
   const code =
-    error instanceof WriteRequestCliError
+    error instanceof WriteRequestCliError || error instanceof CommandRequestCliError
       ? error.code
       : "ADMIN_REQUEST_FAILED";
-  const status = error instanceof WriteRequestCliError ? error.status : undefined;
+  const status = error instanceof WriteRequestCliError || error instanceof CommandRequestCliError ? error.status : undefined;
   const message = error instanceof Error ? error.message : String(error);
   const candidates = error instanceof WriteRequestCliError ? error.candidates : [];
   if (json) {
     say(
-      JSON.stringify({
+      terminalSafeJson({
         ok: false,
         error: code,
         ...(status !== undefined ? { status } : {}),
@@ -153,7 +155,7 @@ function reportError(error: unknown, json: boolean): void {
       })
     );
   } else {
-    say(`✗ ${message}`);
+    say(`✗ ${error instanceof CommandRequestCliError ? escapeTerminalText(message) : message}`);
     if (candidates.length > 0) {
       for (const candidate of candidates) say(`  ${candidate.id} (${candidate.files.length} file(s))`);
     }
@@ -164,12 +166,21 @@ function reportError(error: unknown, json: boolean): void {
 export function registerWriteRequestCommands(program: Command): void {
   program
     .command("pending")
-    .description("List pending write requests for the current workspace or inspect one request")
+    .description("List pending patch/command requests for the current target or inspect one explicit id")
     .argument("[request-id]")
     .option("--diff", "show the pending unified-text patch")
+    .option("--output", "show retained command output for an explicit cr_ id")
     .option("--json", "machine-readable output", false)
-    .action(async (requestId: string | undefined, options: { diff?: boolean; json: boolean }) => {
+    .action(async (requestId: string | undefined, options: { diff?: boolean; output?: boolean; json: boolean }) => {
       try {
+        if (options.output && !requestId?.startsWith("cr_")) throw new CommandRequestCliError("COMMAND_INVALID", "--output requires an explicit cr_ request id.");
+        if (requestId?.startsWith("cr_")) {
+          if (options.diff) throw new CommandRequestCliError("COMMAND_INVALID", "--diff is available only for patch requests.");
+          const detail = await commandRequestAction(await ensureBroker(), requestId, "detail", options.output);
+          if (options.json) say(terminalSafeJson({ ok: true, requests: [detail] }));
+          else describeCommand(detail, true, options.output);
+          return;
+        }
         if (requestId) {
           const runtime = await ensureBroker();
           const detail = await readRequest(runtime, requestId, Boolean(options.diff));
@@ -183,16 +194,17 @@ export function registerWriteRequestCommands(program: Command): void {
           return;
         }
 
-        const { runtime, requests } = await relevantPendingRequests();
+        const { runtime, requests, target } = await relevantPendingRequests();
         if (options.diff && requests.length > 1) selectOnePendingRequest(requests);
+        const commands = await listPendingCommands(runtime, target);
         const items = options.diff
           ? await Promise.all(requests.map(async (request) => toCliWriteRequest(await readRequest(runtime, request.id, true), true)))
           : requests.map((request) => toCliWriteRequest(request));
         if (options.json) {
-          say(JSON.stringify({ ok: true, requests: items }));
+          say(terminalSafeJson({ ok: true, requests: [...items, ...commands] }));
           return;
         }
-        if (items.length === 0) {
+        if (items.length === 0 && commands.length === 0) {
           say("No pending write requests for the current target.");
           return;
         }
@@ -200,6 +212,7 @@ export function registerWriteRequestCommands(program: Command): void {
           describeRequest(item);
           if (options.diff && item.patch !== undefined) say(item.patch);
         }
+        for (const command of commands) describeCommand(command);
       } catch (error) {
         reportError(error, options.json);
       }
@@ -207,11 +220,15 @@ export function registerWriteRequestCommands(program: Command): void {
 
   program
     .command("approve")
-    .description("Approve and apply one pending write request")
+    .description("Approve one request; commands require an explicit cr_ id")
     .argument("[request-id]")
     .option("--json", "machine-readable output", false)
     .action(async (requestId: string | undefined, options: { json: boolean }) => {
       try {
+        if (requestId?.startsWith("cr_")) {
+          printCommandAction(await commandRequestAction(await ensureBroker(), requestId, "approve"), "approve", options.json);
+          return;
+        }
         let selectedId = requestId;
         let runtime: Awaited<ReturnType<typeof ensureBroker>>;
         if (selectedId) {
@@ -237,11 +254,15 @@ export function registerWriteRequestCommands(program: Command): void {
 
   program
     .command("reject")
-    .description("Reject one pending write request")
+    .description("Reject one request; commands require an explicit cr_ id")
     .argument("[request-id]")
     .option("--json", "machine-readable output", false)
     .action(async (requestId: string | undefined, options: { json: boolean }) => {
       try {
+        if (requestId?.startsWith("cr_")) {
+          printCommandAction(await commandRequestAction(await ensureBroker(), requestId, "reject"), "reject", options.json);
+          return;
+        }
         let selectedId = requestId;
         let runtime: Awaited<ReturnType<typeof ensureBroker>>;
         if (selectedId) {
