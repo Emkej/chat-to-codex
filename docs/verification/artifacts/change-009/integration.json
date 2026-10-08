@@ -1,12 +1,13 @@
 {
   "work_id": "CHANGE-009",
   "date": "2026-10-08",
-  "status": "integrated and post-merge verified; cleanup pending",
+  "status": "integrated and post-merge verified; topic resources cleaned",
   "integration": {
     "target": "main",
     "strategy": "local fast-forward",
     "base": "fb28ac79e7f03b1753167e0278fa4178aa1f6cb5",
     "implementation_head_before_closeout_evidence": "c7503890a8d9665aff806c8cd5a9785e92c3bcd9",
+    "closeout_evidence_commit": "168a6ee35d4a0f356fb1039041345afc0c8ef477",
     "source_commits": [
       "5d1f3602eb6d88b5c44a6c137dce975af50418a5",
       "f883e94fed604a75550c07e754531b78ef9111dc",
@@ -17,7 +18,7 @@
     "source_scope": "All five commits and their changed paths were reviewed against the CHANGE-009 ownership manifest.",
     "remote_relationship": {
       "ref": "origin/main",
-      "ahead": 21,
+      "ahead": 22,
       "behind": 0,
       "fetched": false
     }
@@ -65,10 +66,18 @@
     }
   },
   "resources": {
-    "integration_worktree": "/home/emkej/projects/chat-to-codex-closeout-change-009",
-    "topic_worktree": "/home/emkej/projects/chat-to-codex-change-009",
-    "topic_branch": "codex/change-009-approved-commands",
-    "cleanup": "pending final closeout verification"
+    "integration_worktree": {
+      "path": "/home/emkej/projects/chat-to-codex-closeout-change-009",
+      "created_for_closeout": true
+    },
+    "topic_worktree": {
+      "path": "/home/emkej/projects/chat-to-codex-change-009",
+      "status": "removed after successful integration and verification"
+    },
+    "topic_branch": {
+      "name": "codex/change-009-approved-commands",
+      "status": "deleted after ancestry verification"
+    }
   },
   "external_actions": {
     "installation_update": false,
