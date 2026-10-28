@@ -1,6 +1,6 @@
 # CHANGE-013: Patch Authoring, Diagnostics, and Create-Path Ergonomics
 
-- **Status:** Partial — implementation and task-scoped validation complete; one unrelated full-suite failure remains
+- **Status:** Completed — implementation, task-scoped validation, and live MCP acceptance passed; one unrelated full-suite failure remains
 - **Date:** 2026-10-28
 - **Project:** `chat-to-codex`
 - **Baseline:** `main` at `2a01d1b` (clean on 2026-10-28; recheck before implementation)
@@ -167,3 +167,12 @@ this document was committed to `main`. S3 passed deterministic ancestor and
 rollback security checks; the implementation makes no claim of universal
 hostile-race freedom. The unrelated full-suite failure is recorded in the
 CHANGE-013 verification ledger and does not affect the task-owned tests.
+
+## 10. Live MCP acceptance (2026-10-28)
+
+- Test broker revision `c3225b6`, profile `test`; `workspace.write` granted and both `propose_patch` and `propose_text_edits` discoverable.
+- Ten live negative scenarios rejected safely: malformed diff, mismatched hunk, missing/ambiguous exact text, path traversal, protected path, no-op, ordered-edit atomic failure, create-parent conflict, and unknown workspace. Rejections created no pending requests.
+- `propose_patch` produced one pending request for two files under previously missing directories; local approval applied both and independent MCP reads verified their content.
+- `propose_text_edits` produced one pending request with three edits across two files; local `pending --diff` showed the expected changes; approval applied them and independent MCP reads verified the result.
+- A concurrently proposed edit against the old source was rejected as `stale`, without overwriting the approved changes; zero requests remained pending.
+- Focused write-request verification: 106 tests passed; rollback regressions passed. `pnpm typecheck` and `pnpm build` passed. Full suite: 616 passed, one unrelated `tests/manager-detail.test.ts` whitespace assertion failure. Test fixtures must be removed after verification.
