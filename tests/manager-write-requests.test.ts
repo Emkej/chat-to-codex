@@ -191,13 +191,14 @@ describe("safe request presentation and input", () => {
     const { controller } = await fixture({ detail: vi.fn(async () => request) });
     await controller.requests.openQueue(); await controller.requests.openDetail();
     const lines = requestReviewLines(controller.getSnapshot(), columns - 2), seen: string[] = [];
+    expect(lines.join("\n")).not.toMatch(/[\x00-\x08\x0b-\x1f\x7f-\x9f]/);
     for (let offset = 0; offset < lines.length; offset += 20) {
       const viewport = detailViewport(lines.length, 24, offset);
       const screen = renderToString(createElement(RequestReview, { lines, ...viewport, detail: true }), { columns });
       expect(screen.split("\n").length).toBeLessThanOrEqual(24);
       seen.push(screen);
     }
-    const text = seen.join("\n");
+    const text = seen.join("\n").replace(/\x1b\[[0-9;]*m/g, ""); // Remove Ink's own bold/dim styling.
     expect(text).not.toMatch(/[\x00-\x08\x0b-\x1f\x7f-\x9f]/);
     expect(text).toContain("\\u{001b}[31m"); expect(text).toContain("\\\\u{001b}");
     for (let i = 0; i < 80; i++) expect(text).toContain(`END-${i}`);
