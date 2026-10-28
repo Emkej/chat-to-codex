@@ -170,13 +170,13 @@ describe("broker tool surface", () => {
       );
       expect(branches.branches.some((branch) => branch.ref === "refs/heads/repo-snapshot")).toBe(true);
 
-      const browsed = jsonOf<{ kind: string; content: string }>(
-        await repositoryClient.callTool({
-          name: "git_browse",
-          arguments: { workspace: flowId, ref: "refs/heads/repo-snapshot", path: "BRANCH_MARKER.txt" },
-        })
-      );
+      const browseResult = await repositoryClient.callTool({
+        name: "git_browse",
+        arguments: { workspace: flowId, ref: "refs/heads/repo-snapshot", path: "BRANCH_MARKER.txt" },
+      });
+      const browsed = jsonOf<{ kind: string; content: string }>(browseResult);
       expect(browsed).toMatchObject({ kind: "file", content: "this is an unchecked-out branch" });
+      expect(browseResult.structuredContent).toEqual({ data: browsed });
 
       const searched = jsonOf<{ matches: { path: string; line: number; text: string }[] }>(
         await repositoryClient.callTool({

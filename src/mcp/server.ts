@@ -57,11 +57,16 @@ const WORKTREE_ARG = "Opaque worktree id from list_worktrees; never a filesystem
 
 type ToolResult = {
   content: { type: "text"; text: string }[];
+  structuredContent?: { data: unknown };
   isError?: boolean;
 };
 
 function ok(data: unknown): ToolResult {
   return { content: [{ type: "text", text: JSON.stringify(data, null, 2)}] };
+}
+
+function okWithStructuredData(data: unknown): ToolResult {
+  return { ...ok(data), structuredContent: { data } };
 }
 
 function fail(code: string, message: string): ToolResult {
@@ -482,7 +487,8 @@ export function createMcpServer(ctx: McpContext): McpServer {
             limit: args.limit,
             expectedCommit: args.expected_commit,
           });
-          return ok(toRemoteBrowseResult(result));
+          const response = toRemoteBrowseResult(result);
+          return result.kind === "file" ? okWithStructuredData(response) : ok(response);
         } catch (error) {
           return mapError(error);
         }
@@ -766,7 +772,7 @@ export function createMcpServer(ctx: McpContext): McpServer {
       const target = resolveTarget(ctx, args);
       if ("content" in target) return target;
       try {
-        return ok(await target.workspace.readFile(args.path, { startLine: args.start_line, endLine: args.end_line }));
+        return okWithStructuredData(await target.workspace.readFile(args.path, { startLine: args.start_line, endLine: args.end_line }));
       } catch (error) {
         return mapError(error);
       }
