@@ -67,9 +67,14 @@ When the user starts a session in a project, register it and learn its identity:
    current opaque checked-out worktree targets; that tool does not enumerate
    repository branches. For other branches, use broker-only `list_branches`,
    `git_browse`, `git_search`, or `git_compare`, which require
-   `git.repository.read`. The client must never send a filesystem path. Do not
-   ask C2C to register a linked worktree independently when its registered main
-   already covers it.
+   `git.repository.read`. For current-workspace inspection, use `workspace_info`,
+   `read_file`/`read_files`, `search_workspace`, and `git_diff`; use
+   `git_history` only for bounded metadata from an exact committed ref. The
+   client must never send a filesystem path. Do not ask C2C to register a linked
+   worktree independently when its registered main already covers it.
+   `workspace_info.capabilities` distinguishes broker registration from the
+   current caller's authorization; it does not prove that a remote connector
+   refreshed its cached tool list.
 4. When a Codex session ends, run `c2c use --end --json` to clear the local session binding.
 5. Route repairs through `c2c doctor --json` (installation-aware) or `c2c broker status`; per-project bridges (`c2c start`) are legacy compatibility only.
 6. In the Codex desktop app, sandboxed commands may fail with EPERM or `fetch failed` when they touch the broker (loopback requests, daemon spawn, state writes). The broker is a system service that is usually already running — first try `c2c broker status`; if it reports the state as unclear, rerun the command with sandbox escalation approved, or in a regular terminal. Do not conclude the broker is down from a sandboxed failure alone.
@@ -176,16 +181,21 @@ Use `c2c doctor --json` as the repair authority (installation broker, endpoint, 
 - ChatGPT repository tool is missing entirely: verify the broker revision and
   refresh MCP tool discovery before changing OAuth state. Use a new
   conversation only if the current conversation still exposes the stale tool
-  schema.
+  schema. For command tools, call `workspace_info` and distinguish
+  `registered_on_server: false` (`service_uninitialized` or
+  `platform_unsupported`) from a registered capability with
+  `unavailable_reason: scope_missing`; do not treat the latter as a missing
+  broker tool or infer `connector_refresh_required` from broker state alone.
 
 ## Security
 
 The remote MCP client authorizes one C2C installation. Workspace access is a
 local capability resolved through registered opaque ids and validated derived
 worktree ids; canonical filesystem roots never cross the connector boundary.
-The connector has scoped read tools, sanitized read-only receipts, and the
-narrow proposal tool described above. Repository snapshot tools are broker-only,
-require `git.repository.read`, resolve through a registered main worktree, and
-accept exact local or remote-tracking refs without checkout or fetch. The
-broker applies workspace changes only after local approval; it does not expose
-a general writer or command executor.
+The connector has scoped read tools, sanitized read-only receipts, bounded bulk
+reads and capability diagnostics, and the narrow proposal tool described above.
+Repository snapshot tools are broker-only, require `git.repository.read`,
+resolve through a registered main worktree, and accept exact local or
+remote-tracking refs without checkout or fetch. The broker applies workspace
+changes only after local approval; it does not expose a general writer or direct
+command executor.

@@ -194,6 +194,12 @@ describe("command broker security and public contracts", () => {
     expect(broker.commandRequests).toBeUndefined(); expect(broker.writeRequests).toBeDefined();
     const c = await client(["workspace.read"]), names = (await c.listTools()).tools.map((t) => t.name);
     expect(names).toContain("read_file"); expect(names).toContain("propose_patch"); expect(names).not.toContain("request_command");
+    const info = json(await c.callTool({ name: "workspace_info", arguments: { workspace: broker.registry.register({ root }).id } }));
+    expect(info.capabilities.command_tools).toMatchObject({
+      registered_on_server: false,
+      authorized_for_caller: false,
+      unavailable_reason: "service_uninitialized",
+    });
     expect((await admin("")).status).toBe(404);
   });
 });

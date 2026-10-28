@@ -25,6 +25,14 @@ Repository branches and Git worktrees are separate concepts:
 
 The repository-ref tools require the `git.repository.read` OAuth scope.
 
+For the active workspace, use the bounded read surface according to the review
+need: `read_file` for one file, `read_files` for a small ordered batch,
+`search_workspace` for paginated search/context, and `git_diff` with
+`view: summary` for a compact change inventory. Use `git_diff`/`git_compare` in
+`view: full` when byte-level content is required, and use `git_history` for
+bounded metadata from an exact committed ref. `workspace_info` remains the
+identity and capability diagnostic entry point.
+
 ## Initial setup
 
 Use ChatGPT in a web browser when creating or repairing a custom Plugin.
@@ -114,6 +122,31 @@ Which repository branch refs exist?
 For review of a committed branch, prefer the repository-ref tools instead of
 creating or switching a worktree only to make the branch readable.
 
+## Read and capability diagnostics
+
+Call `workspace_info` before diagnosing an unexpected tool or permission result.
+Its additive `capabilities` object reports only the current caller's sanitized
+scope view and broker capability state. For `command_tools`, inspect:
+
+- `registered_on_server`: whether `request_command` and
+  `get_command_request` are registered by this broker instance;
+- `authorized_for_caller`: whether the current token has `workspace.command`;
+- `unavailable_reason`: for example `service_uninitialized`,
+  `platform_unsupported` or `scope_missing`.
+
+`registered_on_server: false` is a broker/platform initialization problem, not
+proof that OAuth is missing. A registered capability with
+`authorized_for_caller: false` is a scope problem and must not create pending
+command state. Conversely, a successful broker-side registration check does not
+prove that ChatGPT has refreshed its cached `tools/list`; verify external tool
+visibility separately and do not infer `connector_refresh_required` from
+`workspace_info` alone.
+
+When a newly added read tool such as `read_files` or `git_history` is absent,
+restart the intended broker and refresh MCP tool discovery before changing OAuth
+state. These tools preserve the existing workspace/worktree selectors and their
+existing read scopes; they do not grant write or command authority.
+
 ## C2C upgrade model
 
 Use the smallest recovery action that matches the change.
@@ -121,7 +154,7 @@ Use the smallest recovery action that matches the change.
 | Change | Required action |
 | --- | --- |
 | Broker implementation changed, existing MCP surface and scopes unchanged | Restart the broker. |
-| New MCP tools were added | Restart the broker and refresh ChatGPT Plugin/tool discovery. Use a new conversation only if the current conversation still exposes the old tool surface. |
+| New MCP tools were added (`read_files`, `git_history`, or command visibility changed) | Restart the broker and refresh ChatGPT Plugin/tool discovery. Use a new conversation only if the current conversation still exposes the old tool surface. |
 | A new OAuth scope was added | Perform a fresh OAuth authorization. Refreshing an old token is insufficient. |
 | ChatGPT reconnect keeps the previous OAuth scope request | Remove and recreate only that ChatGPT Plugin entry using the same current MCP URL, then perform fresh OAuth authorization. |
 | Public MCP URL changed | Remove and recreate the Plugin using the new URL. |

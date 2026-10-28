@@ -1,6 +1,20 @@
 import { spawn, spawnSync } from "node:child_process";
 import { IgnoreRules } from "./ignore.js";
-import { runGit, sanitizedGitEnvironment } from "./git.js";
+import {
+  gitPathsKey,
+  gitSummaryForChange,
+  gitSummaryLimits,
+  paginateGitSummaries,
+  parseGitNameStatus,
+  parseGitNumstat,
+  runGit,
+  sanitizedGitEnvironment,
+  type GitChangeRecord,
+  type GitChangeSummary,
+  type GitDiffView,
+  type GitNumstatRecord,
+  type GitSummaryTruncationReason,
+} from "./git.js";
 import {
   resolveLocalWorktree,
   type WorktreeRunner,
@@ -22,6 +36,14 @@ const DEFAULT_COMPARE_PAGE_BYTES = 64 * 1024;
 const MAX_COMPARE_PAGE_BYTES = 256 * 1024;
 const MAX_COMPARE_BYTES = 64 * 1024 * 1024;
 const MAX_GIT_OUTPUT_BYTES = MAX_COMPARE_BYTES + 1;
+const DEFAULT_HISTORY_LIMIT = 20;
+const MAX_HISTORY_LIMIT = 100;
+const MAX_HISTORY_OFFSET = 10_000;
+const MAX_HISTORY_SCAN_COMMITS = 10_000;
+const MAX_HISTORY_PATHS_PER_COMMIT = 50;
+const MAX_HISTORY_SUBJECT_BYTES = 500;
+const MAX_HISTORY_AUTHOR_BYTES = 200;
+const MAX_HISTORY_OUTPUT_BYTES = 8 * 1024 * 1024;
 
 export type SnapshotErrorCode =
   | "REPOSITORY_SCOPE_UNAVAILABLE"
@@ -41,6 +63,7 @@ export type SnapshotErrorCode =
   | "FILE_TOO_LARGE"
   | "NO_MERGE_BASE"
   | "DIFF_TOO_LARGE"
+  | "HISTORY_TOO_LARGE"
   | "SEARCH_FAILED"
   | "GIT_READ_FAILED";
 
@@ -185,6 +208,8 @@ export interface CompareSnapshotOptions {
   path?: string;
   offset?: number;
   maxBytes?: number;
+  view?: GitDiffView;
+  summaryOffset?: number;
   expectedBaseCommit?: string;
   expectedTargetCommit?: string;
 }
@@ -196,6 +221,7 @@ export interface CompareSnapshotResult {
   baseCommit: string;
   targetCommit: string;
   mergeBase: string;
+  view: GitDiffView;
   offset: number;
   maxBytes: number;
   totalBytes: number;
@@ -203,6 +229,50 @@ export interface CompareSnapshotResult {
   hasMore: boolean;
   nextOffset: number | null;
   diff: string;
+  summary?: GitChangeSummary[];
+  summaryOffset?: number;
+  summaryLimit?: number;
+  summaryCount?: number;
+  totalSummaryFiles?: number;
+  nextSummaryOffset?: number | null;
+  summaryTruncated?: boolean;
+  truncationReason?: GitSummaryTruncationReason;
+}
+
+export interface HistorySnapshotOptions {
+  ref: string;
+  path?: string;
+  limit?: number;
+  offset?: number;
+  expectedCommit?: string;
+}
+
+export type HistoryChangeType = "add" | "modify" | "delete" | "rename" | "copy" | "typechange" | "unmerged" | "unknown";
+
+export interface HistoryPathChange {
+  path: string;
+  changeType: HistoryChangeType;
+}
+
+export interface HistoryEntry {
+  commit: string;
+  timestamp: string;
+  author: string;
+  subject: string;
+  paths: HistoryPathChange[];
+  pathsTruncated: boolean;
+}
+
+export interface HistorySnapshotResult {
+  ref: string;
+  commit: string;
+  offset: number;
+  limit: number;
+  entries: HistoryEntry[];
+  hasMore: boolean;
+  nextOffset: number | null;
+  truncated: boolean;
+  truncationReason: "scan_limit" | "output_limit" | null;
 }
 
 interface RawGitResult {
@@ -864,23 +934,6 @@ function comparePathMatches(candidate: string, requestedPath: string): boolean {
   return !requestedPath || candidate === requestedPath || candidate.startsWith(`${requestedPath}/`);
 }
 
-function parseChangedPathGroups(output: Buffer): string[][] {
-  const tokens = output.toString("utf8").split("\0");
-  const groups: string[][] = [];
-  for (let index = 0; index < tokens.length; ) {
-    const status = tokens[index++];
-    if (!status) break;
-    if (status.startsWith("R") || status.startsWith("C")) {
-      const oldPath = tokens[index++];
-      const newPath = tokens[index++];
-      if (oldPath && newPath) groups.push([oldPath, newPath]);
-    } else if (tokens[index]) {
-      groups.push([tokens[index++]]);
-    }
-  }
-  return groups;
-}
-
 function chunkPaths(paths: string[]): string[][] {
   const batches: string[][] = [];
   let current: string[] = [];
@@ -893,6 +946,24 @@ function chunkPaths(paths: string[]): string[][] {
       bytes = 0;
     }
     current.push(value);
+    bytes += cost;
+  }
+  if (current.length > 0) batches.push(current);
+  return batches;
+}
+
+function chunkChangeGroups(changes: GitChangeRecord[]): GitChangeRecord[][] {
+  const batches: GitChangeRecord[][] = [];
+  let current: GitChangeRecord[] = [];
+  let bytes = 0;
+  for (const change of changes) {
+    const cost = change.paths.reduce((sum, value) => sum + Buffer.byteLength(value, "utf8") + 12, 0);
+    if (current.length > 0 && (current.length >= 50 || bytes + cost > 32 * 1024)) {
+      batches.push(current);
+      current = [];
+      bytes = 0;
+    }
+    current.push(change);
     bytes += cost;
   }
   if (current.length > 0) batches.push(current);
@@ -925,8 +996,20 @@ export function compareSnapshots(
   owner: RepositorySnapshotOwner,
   options: CompareSnapshotOptions
 ): CompareSnapshotResult {
+  const view = options.view ?? "full";
   const offset = boundedInteger(options.offset, 0, Number.MAX_SAFE_INTEGER);
-  if (offset > 0 && (!options.expectedBaseCommit || !options.expectedTargetCommit)) {
+  const summaryOffset = boundedInteger(options.summaryOffset, 0, Number.MAX_SAFE_INTEGER);
+  if (view !== "full" && view !== "summary") {
+    throw new SnapshotError("INVALID_ARGUMENT", "view must be either 'full' or 'summary'.");
+  }
+  if (view === "summary" && offset !== 0) {
+    throw new SnapshotError("INVALID_ARGUMENT", "offset is byte-oriented and must be zero when view is 'summary'.");
+  }
+  if (view === "full" && summaryOffset !== 0) {
+    throw new SnapshotError("INVALID_ARGUMENT", "summary_offset is only valid when view is 'summary'.");
+  }
+  const continuationOffset = view === "full" ? offset : summaryOffset;
+  if (continuationOffset > 0 && (!options.expectedBaseCommit || !options.expectedTargetCommit)) {
     throw new SnapshotError(
       "CONTINUATION_PRECONDITION_REQUIRED",
       "Compare continuation requests must include both resolved commit preconditions."
@@ -969,14 +1052,53 @@ export function compareSnapshots(
     if (names.overflow) throw new SnapshotError("DIFF_TOO_LARGE", "The comparison exceeds the 64 MiB limit.");
     commandFailure();
   }
-  const safePaths = [
-    ...new Set(
-      parseChangedPathGroups(names.stdout)
-        .filter((group) => group.every((candidate) => !owner.ignoreRules.isSensitive(candidate)))
-        .filter((group) => group.some((candidate) => comparePathMatches(candidate, path)))
-        .flat()
-    ),
-  ];
+  const safeChanges = parseGitNameStatus(names.stdout)
+    .filter((change) => change.paths.every((candidate) => !owner.ignoreRules.isSensitive(candidate)))
+    .filter((change) => change.paths.some((candidate) => comparePathMatches(candidate, path)));
+  const maxBytes = boundedPositiveInteger(options.maxBytes, DEFAULT_COMPARE_PAGE_BYTES, MAX_COMPARE_PAGE_BYTES);
+  if (view === "summary") {
+    const summaryChanges = safeChanges.slice(0, gitSummaryLimits.maxFiles);
+    const summaryTruncated = safeChanges.length > gitSummaryLimits.maxFiles;
+    const stats = new Map<string, GitNumstatRecord>();
+    for (const batch of chunkChangeGroups(summaryChanges)) {
+      const result = runSnapshotGit(owner.root, [
+        "diff",
+        "--numstat",
+        "-z",
+        "--find-renames=1%",
+        "--no-ext-diff",
+        "--no-textconv",
+        mergeBase,
+        target.commit,
+        "--",
+        ...batch.flatMap((change) => change.paths).map((candidate) => `:(literal)${candidate}`),
+      ], MAX_GIT_OUTPUT_BYTES);
+      if (!result.ok) {
+        if (result.overflow) throw new SnapshotError("DIFF_TOO_LARGE", "The comparison exceeds the 64 MiB limit.");
+        commandFailure();
+      }
+      for (const record of parseGitNumstat(result.stdout)) stats.set(gitPathsKey(record.paths), record);
+    }
+    const summaries = summaryChanges.map((change) => gitSummaryForChange(change, stats));
+    return {
+      comparison: "merge_base_to_target",
+      baseRef: base.ref,
+      targetRef: target.ref,
+      baseCommit: base.commit,
+      targetCommit: target.commit,
+      mergeBase,
+      view: "summary",
+      offset: 0,
+      maxBytes,
+      totalBytes: 0,
+      returnedBytes: 0,
+      diff: "",
+      nextOffset: null,
+      ...paginateGitSummaries(summaries, summaryOffset, summaryTruncated),
+    };
+  }
+
+  const safePaths = [...new Set(safeChanges.flatMap((change) => change.paths))];
   let full = Buffer.alloc(0);
   for (const batch of chunkPaths(safePaths)) {
     const result = runSnapshotGit(owner.root, [
@@ -999,7 +1121,6 @@ export function compareSnapshots(
       throw new SnapshotError("DIFF_TOO_LARGE", "The comparison exceeds the 64 MiB limit.");
     }
   }
-  const maxBytes = boundedPositiveInteger(options.maxBytes, DEFAULT_COMPARE_PAGE_BYTES, MAX_COMPARE_PAGE_BYTES);
   const page = diffPage(full, offset, maxBytes);
   return {
     comparison: "merge_base_to_target",
@@ -1008,9 +1129,201 @@ export function compareSnapshots(
     baseCommit: base.commit,
     targetCommit: target.commit,
     mergeBase,
+    view: "full",
     offset,
     maxBytes,
     totalBytes: full.length,
+    ...page,
+  };
+}
+
+interface RawHistoryPath {
+  status: string;
+  path: string;
+}
+
+interface RawHistoryEntry {
+  commit: string;
+  timestamp: string;
+  author: string;
+  subject: string;
+  paths: RawHistoryPath[];
+}
+
+function boundedUtf8(value: string, maxBytes: number): string {
+  const data = Buffer.from(value, "utf8");
+  if (data.length <= maxBytes) return value;
+  const suffix = "…";
+  let end = Math.max(0, maxBytes - Buffer.byteLength(suffix, "utf8"));
+  while (end > 0) {
+    const text = data.subarray(0, end).toString("utf8");
+    if (!text.endsWith("�")) return text + suffix;
+    end--;
+  }
+  return suffix;
+}
+
+function historyChangeType(status: string): HistoryChangeType {
+  switch (status[0]) {
+    case "A": return "add";
+    case "M": return "modify";
+    case "D": return "delete";
+    case "R": return "rename";
+    case "C": return "copy";
+    case "T": return "typechange";
+    case "U": return "unmerged";
+    default: return "unknown";
+  }
+}
+
+function isCommitHash(value: string): boolean {
+  return /^[0-9a-f]{40}$/i.test(value);
+}
+
+function stripHistoryPrefix(value: string): string {
+  return value.replace(/^\n+/, "");
+}
+
+function parseHistoryLog(output: Buffer): RawHistoryEntry[] {
+  const tokens = output.toString("utf8").split("\0");
+  const entries: RawHistoryEntry[] = [];
+  let index = 0;
+  while (index < tokens.length) {
+    const commit = stripHistoryPrefix(tokens[index++]);
+    if (!commit) continue;
+    if (!isCommitHash(commit)) continue;
+    const timestamp = tokens[index++] ?? "";
+    const author = tokens[index++] ?? "";
+    const subject = tokens[index++] ?? "";
+    const paths: RawHistoryPath[] = [];
+    while (index < tokens.length) {
+      const rawStatus = tokens[index++];
+      if (!rawStatus) continue;
+      const status = stripHistoryPrefix(rawStatus);
+      if (isCommitHash(status)) {
+        index--;
+        break;
+      }
+      const path = tokens[index++];
+      if (path === undefined) break;
+      paths.push({ status, path });
+    }
+    entries.push({ commit, timestamp, author, subject, paths });
+  }
+  return entries;
+}
+
+function historyTimestamp(value: string): string {
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds)) return "";
+  return new Date(seconds * 1000).toISOString();
+}
+
+function historyPage(
+  entries: HistoryEntry[],
+  offset: number,
+  limit: number,
+  scanTruncated: boolean
+): {
+  entries: HistoryEntry[];
+  hasMore: boolean;
+  nextOffset: number | null;
+  truncated: boolean;
+  truncationReason: "scan_limit" | "output_limit" | null;
+} {
+  const start = Math.min(offset, entries.length);
+  const page: HistoryEntry[] = [];
+  let outputTruncated = false;
+  for (let index = start; index < entries.length && page.length < limit; index++) {
+    const candidate = [...page, entries[index]];
+    if (
+      page.length > 0 &&
+      Buffer.byteLength(JSON.stringify(candidate), "utf8") > MAX_RETURNED_TEXT_BYTES
+    ) {
+      outputTruncated = true;
+      break;
+    }
+    page.push(entries[index]);
+  }
+  const hasMore = start + page.length < entries.length;
+  return {
+    entries: page,
+    hasMore,
+    nextOffset: hasMore ? start + page.length : null,
+    truncated: outputTruncated || scanTruncated,
+    truncationReason: outputTruncated ? "output_limit" : scanTruncated ? "scan_limit" : null,
+  };
+}
+
+export function gitHistory(
+  owner: RepositorySnapshotOwner,
+  options: HistorySnapshotOptions
+): HistorySnapshotResult {
+  const path = normalizeRepositoryPath(options.path);
+  assertReadablePath(owner, path);
+  assertSnapshotRepositorySupported(owner);
+  const publicRef = resolveBranchRef(owner, options.ref);
+  const offset = boundedInteger(options.offset, 0, MAX_HISTORY_OFFSET);
+  const limit = boundedPositiveInteger(options.limit, DEFAULT_HISTORY_LIMIT, MAX_HISTORY_LIMIT);
+  if (offset > 0 && !options.expectedCommit) {
+    throw new SnapshotError(
+      "CONTINUATION_PRECONDITION_REQUIRED",
+      "History continuation requests must include the resolved commit precondition."
+    );
+  }
+  assertExpectedCommit(options.expectedCommit, publicRef.commit);
+
+  const args = [
+    "log",
+    "--no-renames",
+    "--date-order",
+    `--max-count=${MAX_HISTORY_SCAN_COMMITS + 1}`,
+    "--format=%H%x00%ct%x00%an%x00%s%x00",
+    "--name-status",
+    "-z",
+    publicRef.commit,
+    "--",
+    ...(path ? [`:(literal)${path}`] : []),
+  ];
+  const result = runSnapshotGit(owner.root, args, MAX_HISTORY_OUTPUT_BYTES + 1);
+  if (!result.ok) {
+    if (result.overflow) throw new SnapshotError("HISTORY_TOO_LARGE", "The history result exceeds the bounded read limit.");
+    commandFailure();
+  }
+
+  const rawEntries = parseHistoryLog(result.stdout);
+  const scanTruncated = rawEntries.length > MAX_HISTORY_SCAN_COMMITS;
+  const visibleEntries = rawEntries.slice(0, MAX_HISTORY_SCAN_COMMITS).map((entry) => {
+    const paths: HistoryPathChange[] = [];
+    let pathsTruncated = false;
+    for (const changed of entry.paths) {
+      if (owner.ignoreRules.isSensitive(changed.path)) continue;
+      if (paths.length >= MAX_HISTORY_PATHS_PER_COMMIT) {
+        pathsTruncated = true;
+        continue;
+      }
+      const boundedPath = boundedUtf8(changed.path, 1024);
+      if (boundedPath !== changed.path) pathsTruncated = true;
+      paths.push({ path: boundedPath, changeType: historyChangeType(changed.status) });
+    }
+    if (entry.paths.length > paths.length && paths.length >= MAX_HISTORY_PATHS_PER_COMMIT) {
+      pathsTruncated = true;
+    }
+    return {
+      commit: entry.commit,
+      timestamp: historyTimestamp(entry.timestamp),
+      author: boundedUtf8(entry.author, MAX_HISTORY_AUTHOR_BYTES),
+      subject: boundedUtf8(entry.subject, MAX_HISTORY_SUBJECT_BYTES),
+      paths,
+      pathsTruncated,
+    } satisfies HistoryEntry;
+  });
+  const page = historyPage(visibleEntries, offset, limit, scanTruncated);
+  return {
+    ref: publicRef.ref,
+    commit: publicRef.commit,
+    offset,
+    limit,
     ...page,
   };
 }

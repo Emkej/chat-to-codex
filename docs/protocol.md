@@ -11,6 +11,32 @@ repository branches. When the broker token has `git.repository.read`, use
 bounded reads from other committed branches. These repository snapshot tools
 are broker-only and require a registered main worktree.
 
+## Inspection surface
+
+The read surface is bounded and keeps each operation's authorization boundary:
+
+- `read_file` reads one file; `read_files` batches 1–10 equivalent reads in input
+  order, returning per-item errors and a shared response-budget result. Callers
+  may lower the default 256 KiB serialized-response cap to 16–256 KiB with
+  `max_total_bytes`; every item preserves its requested line range.
+- `search_workspace` supports deterministic offsets, bounded context lines and
+  `files_only`; it also caps cumulative scan time at 2 seconds. If that scan
+  budget is exhausted, the result is marked with
+  `truncation_reason: "scan_limit"`, `has_more: null` and no `next_offset`,
+  because completeness is unknown.
+- `git_diff` and `git_compare` accept `view: full | summary`. Full mode keeps the
+  existing byte pagination; summary mode uses a separate `summary_offset`, bounded
+  file pages and Git-safe text/binary/rename metadata. `git_diff` does not include
+  untracked files; use `git_status` for those paths.
+- `git_history` reads bounded metadata from an exact repository ref and requires
+  the repository-read scope. Pages include the pinned commit so continuation can
+  reject ref drift; patches, fetches and checkouts are not exposed.
+- `workspace_info` additively reports sanitized capability diagnostics. For command
+  tools, `registered_on_server`, `authorized_for_caller` and `unavailable_reason`
+  distinguish broker registration from the current caller's `workspace.command`
+  grant. Broker state alone never proves that a remote connector refreshed its tool
+  list.
+
 ## States
 
 ```

@@ -5,6 +5,7 @@ import {
   SnapshotError,
   browseSnapshot,
   compareSnapshots,
+  gitHistory,
   listBranches,
   normalizeRepositoryPath,
   resolveBranchRef,
@@ -51,6 +52,137 @@ function snapshotObjectStore(root: string): string {
 }
 
 describe("repository snapshot domain", () => {
+  it("returns bounded exact-ref history metadata without sensitive paths or emails", () => {
+    const root = makeTmpDir("git-snapshot-history");
+    makeGitRepo(root);
+    write(root, "history-safe.txt", "safe baseline\n");
+    write(root, ".env", "HISTORY_SECRET=do-not-list\n");
+    git(root, "add", "-f", ".env", "history-safe.txt");
+    git(root, "commit", "-m", "history safe and secret");
+    write(root, "history-safe.txt", "safe changed\n");
+    git(root, "add", "history-safe.txt");
+    git(root, "commit", "-m", "history latest change");
+    const commit = git(root, "rev-parse", "HEAD").trim();
+
+    try {
+      const owner = resolveRepositoryOwner(root);
+      const first = gitHistory(owner, { ref: "refs/heads/main", limit: 1 });
+      expect(first).toMatchObject({ ref: "refs/heads/main", commit, offset: 0, limit: 1, hasMore: true, nextOffset: 1 });
+      expect(first.entries).toHaveLength(1);
+      expect(first.entries[0]).toMatchObject({ subject: "history latest change", paths: [{ path: "history-safe.txt", changeType: "modify" }] });
+      expect(first.entries[0].author).not.toContain("@");
+      expect(JSON.stringify(first)).not.toContain(".env");
+      expect(JSON.stringify(first)).not.toContain("HISTORY_SECRET");
+
+      const second = gitHistory(owner, {
+        ref: "refs/heads/main",
+        limit: 1,
+        offset: first.nextOffset!,
+        expectedCommit: first.commit,
+      });
+      expect(second.offset).toBe(1);
+      expect(second.entries[0].subject).toBe("history safe and secret");
+      expect(second.entries[0].paths).toContainEqual({ path: "history-safe.txt", changeType: "add" });
+      expect(second.entries[0].paths.some((entry) => entry.path === ".env")).toBe(false);
+
+      expect(() => gitHistory(owner, {
+        ref: "refs/heads/main",
+        offset: 1,
+      })).toThrowError(expect.objectContaining({ code: "CONTINUATION_PRECONDITION_REQUIRED" }));
+      expect(() => gitHistory(owner, {
+        ref: "refs/heads/main",
+        offset: 1,
+        expectedCommit: "0".repeat(40),
+      })).toThrowError(expect.objectContaining({ code: "REF_CHANGED" }));
+    } finally {
+      cleanup(root);
+    }
+  });
+
+  it("returns bounded merge-base summaries with binary and rename statistics", () => {
+    const root = makeTmpDir("git-snapshot-summary");
+    makeGitRepo(root);
+    write(root, "summary-modified.txt", "before\n");
+    write(root, "summary-delete.txt", "delete me\n");
+    write(root, "summary-rename.txt", "rename me\n");
+    fs.writeFileSync(path.join(root, "summary-binary.bin"), Buffer.from([0, 1, 2]));
+    git(root, "add", "summary-modified.txt", "summary-delete.txt", "summary-rename.txt", "summary-binary.bin");
+    git(root, "commit", "-m", "summary baseline");
+    git(root, "checkout", "-b", "summary-target");
+
+    write(root, "summary-modified.txt", "before\nafter\n");
+    fs.writeFileSync(path.join(root, "summary-binary.bin"), Buffer.from([0, 1, 3]));
+    fs.rmSync(path.join(root, "summary-delete.txt"));
+    git(root, "mv", "summary-rename.txt", "summary-renamed\nname.txt");
+    write(root, "summary-added.txt", "one\ntwo\n");
+    git(root, "add", "-A");
+    git(root, "commit", "-m", "summary target");
+    const targetCommit = git(root, "rev-parse", "HEAD").trim();
+    git(root, "checkout", "main");
+
+    try {
+      const owner = resolveRepositoryOwner(root);
+      const result = compareSnapshots(owner, {
+        baseRef: "refs/heads/main",
+        targetRef: "refs/heads/summary-target",
+        view: "summary",
+      });
+      expect(result.view).toBe("summary");
+      expect(result.targetCommit).toBe(targetCommit);
+      expect(result.summary).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          changeType: "modify",
+          path: "summary-modified.txt",
+          additions: 1,
+          deletions: 0,
+        }),
+        expect.objectContaining({
+          changeType: "delete",
+          oldPath: "summary-delete.txt",
+          newPath: null,
+          additions: 0,
+          deletions: 1,
+        }),
+        expect.objectContaining({
+          changeType: "rename",
+          oldPath: "summary-rename.txt",
+          newPath: "summary-renamed\nname.txt",
+          additions: 0,
+          deletions: 0,
+        }),
+        expect.objectContaining({
+          changeType: "modify",
+          path: "summary-binary.bin",
+          additions: null,
+          deletions: null,
+        }),
+        expect.objectContaining({
+          changeType: "add",
+          path: "summary-added.txt",
+          additions: 2,
+          deletions: 0,
+        }),
+      ]));
+      expect(result.summaryCount).toBe(5);
+      expect(result.hasMore).toBe(false);
+      expect(result.nextSummaryOffset).toBeNull();
+      expect(() => compareSnapshots(owner, {
+        baseRef: "refs/heads/main",
+        targetRef: "refs/heads/summary-target",
+        view: "summary",
+        offset: 1,
+      })).toThrowError(expect.objectContaining({ code: "INVALID_ARGUMENT" }));
+      expect(() => compareSnapshots(owner, {
+        baseRef: "refs/heads/main",
+        targetRef: "refs/heads/summary-target",
+        view: "full",
+        summaryOffset: 1,
+      })).toThrowError(expect.objectContaining({ code: "INVALID_ARGUMENT" }));
+    } finally {
+      cleanup(root);
+    }
+  });
+
   it("discovers and inspects an unchecked-out local branch", async () => {
     const { root, hiddenCommit } = createBranchFixture();
     try {

@@ -1,0 +1,68 @@
+{
+  "contract_version": 1,
+  "name": "change-012-s12-bounded-search-and-live-checkpoint",
+  "status": "partial",
+  "repository": {
+    "branch": "main",
+    "head": "d54112312f31db8c5e37c67fe76b7c0a7ce6cdfe",
+    "implementation_commit": "pending"
+  },
+  "local_validation": [
+    {
+      "name": "typecheck",
+      "status": "passed",
+      "argv": ["pnpm", "typecheck"]
+    },
+    {
+      "name": "search-tests",
+      "status": "passed",
+      "tests": 26,
+      "argv": ["pnpm", "vitest", "run", "tests/search.test.ts"]
+    },
+    {
+      "name": "mcp-worktree-tests",
+      "status": "passed",
+      "tests": 26,
+      "argv": ["pnpm", "vitest", "run", "tests/mcp-integration.test.ts", "tests/mcp-worktrees.test.ts"]
+    },
+    {
+      "name": "affected-checkpoint",
+      "status": "passed",
+      "tests": 123,
+      "test_files": 9,
+      "argv": ["pnpm", "vitest", "run", "tests/search.test.ts", "tests/git.test.ts", "tests/git-snapshot.test.ts", "tests/bulk-read.test.ts", "tests/broker.test.ts", "tests/command-broker.test.ts", "tests/local-e2e-broker.test.ts", "tests/mcp-integration.test.ts", "tests/mcp-worktrees.test.ts"]
+    },
+    {
+      "name": "diff-check",
+      "status": "passed",
+      "argv": ["git", "diff", "--check"]
+    }
+  ],
+  "live_checkpoint": {
+    "workspace": "chat-to-codex-aa044b94",
+    "profile": "test",
+    "broker_revision": "00b83ee",
+    "workspace_info": {
+      "status": "passed",
+      "git_commit": "d541123",
+      "dirty": true
+    },
+    "read_file": {
+      "status": "passed",
+      "path": "src/workspace/search.ts",
+      "returned_lines": "1-20",
+      "content_usable": true
+    },
+    "git_browse": {
+      "status": "passed",
+      "ref": "refs/heads/main",
+      "commit": "d54112312f31db8c5e37c67fe76b7c0a7ce6cdfe",
+      "path": "docs/changes/change-012-mcp-read-efficiency-and-capability-diagnostics.md",
+      "content_usable": true
+    },
+    "command_visibility": {
+      "status": "unverified",
+      "reason": "The available wrapper is stale at broker revision 00b83ee and exposes no request_command/get_command_request wrapper or raw tools/list endpoint; scope-denied invocation was not run."
+    }
+  }
+}

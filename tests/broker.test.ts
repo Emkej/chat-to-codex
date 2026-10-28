@@ -95,6 +95,7 @@ describe("broker tool surface", () => {
       "git_browse",
       "git_compare",
       "git_diff",
+      "git_history",
       "git_search",
       "git_status",
       "list_branches",
@@ -104,6 +105,7 @@ describe("broker tool surface", () => {
       "list_write_requests",
       "propose_patch",
       "read_file",
+      "read_files",
       "request_command",
       "search_workspace",
       "test_status",
@@ -196,6 +198,84 @@ describe("broker tool surface", () => {
       );
       expect(compared.comparison).toBe("merge_base_to_target");
       expect(compared.diff).toContain("BRANCH_MARKER.txt");
+
+      const summary = jsonOf<{
+        view: string;
+        summary: { change_type: string; path: string; additions: number | null; deletions: number | null }[];
+        summary_count: number;
+        has_more: boolean;
+        next_summary_offset: number | null;
+      }>(
+        await repositoryClient.callTool({
+          name: "git_compare",
+          arguments: {
+            workspace: flowId,
+            base_ref: "refs/heads/main",
+            target_ref: "refs/heads/repo-snapshot",
+            view: "summary",
+          },
+        })
+      );
+      expect(summary.view).toBe("summary");
+      expect(summary.summary).toContainEqual({
+        change_type: "add",
+        path: "BRANCH_MARKER.txt",
+        old_path: null,
+        new_path: "BRANCH_MARKER.txt",
+        additions: 1,
+        deletions: 0,
+      });
+      expect(summary.summary_count).toBe(1);
+      expect(summary.has_more).toBe(false);
+      expect(summary.next_summary_offset).toBeNull();
+
+      const history = jsonOf<{
+        ref: string;
+        commit: string;
+        entries: { commit: string; author: string; subject: string; paths: { path: string; change_type: string }[] }[];
+        has_more: boolean;
+        next_offset: number | null;
+      }>(await repositoryClient.callTool({
+        name: "git_history",
+        arguments: {
+          workspace: flowId,
+          ref: "refs/heads/repo-snapshot",
+          limit: 1,
+        },
+      }));
+      expect(history.ref).toBe("refs/heads/repo-snapshot");
+      expect(history.entries[0]).toMatchObject({
+        subject: "add repository snapshot marker",
+        paths: [{ path: "BRANCH_MARKER.txt", change_type: "add" }],
+      });
+      expect(history.entries[0].author).not.toContain("@");
+      expect(history.has_more).toBe(true);
+      expect(history.next_offset).toBe(1);
+
+      const historyContinuation = await repositoryClient.callTool({
+        name: "git_history",
+        arguments: {
+          workspace: flowId,
+          ref: "refs/heads/repo-snapshot",
+          limit: 1,
+          offset: 1,
+          expected_commit: history.commit,
+        },
+      });
+      expect(jsonOf<{ offset: number }>(historyContinuation).offset).toBe(1);
+
+      const invalidSummaryPage = await repositoryClient.callTool({
+        name: "git_compare",
+        arguments: {
+          workspace: flowId,
+          base_ref: "refs/heads/main",
+          target_ref: "refs/heads/repo-snapshot",
+          view: "summary",
+          offset: 1,
+        },
+      });
+      expect(invalidSummaryPage.isError).toBe(true);
+      expect(jsonOf(invalidSummaryPage).error).toBe("INVALID_ARGUMENT");
     } finally {
       await repositoryClient.close();
     }
@@ -314,12 +394,30 @@ describe("workspace-scoped reads", () => {
       git: { isRepo: boolean };
       workspaceName: string;
       broker: { version: string; revision: string | null; profile: string | null };
+      capabilities: {
+        granted_scopes: string[];
+        command_tools: {
+          tool_names: string[];
+          required_scopes: string[];
+          registered_on_server: boolean;
+          authorized_for_caller: boolean | null;
+          unavailable_reason: string | null;
+        };
+      };
     }>("workspace_info", { workspace: flowId });
     expect(flow.workspaceName).toBe("Flow");
     expect(flow.git.isRepo).toBe(true);
     expect(flow.broker.version).toBe(VERSION);
     expect(flow.broker.profile).toBe(process.env.C2C_PROFILE?.trim() || null);
     expect(flow.broker.revision === null || /^[0-9a-f]{7,64}$/i.test(flow.broker.revision)).toBe(true);
+    expect(flow.capabilities.command_tools).toMatchObject({
+      tool_names: ["request_command", "get_command_request"],
+      required_scopes: ["workspace.command"],
+      registered_on_server: true,
+      authorized_for_caller: false,
+      unavailable_reason: "scope_missing",
+    });
+    expect(flow.capabilities.granted_scopes).not.toContain("workspace.command");
 
     const linkee = await call<{ broker: typeof flow.broker }>("workspace_info", { workspace: linkeeId });
     expect(linkee.broker).toEqual(flow.broker);

@@ -29,6 +29,18 @@ export interface GitCommandResult {
   code: number | null;
 }
 
+export type GitDiffErrorCode = "INVALID_ARGUMENT" | "GIT_READ_FAILED";
+
+export class GitDiffError extends Error {
+  readonly code: GitDiffErrorCode;
+
+  constructor(message: string, code: GitDiffErrorCode = "INVALID_ARGUMENT") {
+    super(message);
+    this.code = code;
+    this.name = "GitDiffError";
+  }
+}
+
 export interface WorkspaceLike {
   root: string;
   ignoreRules?: IgnoreRules;
@@ -150,16 +162,71 @@ export function gitStatus(target: GitTarget): GitStatusResult {
 
 export type DiffMode = "unstaged" | "staged" | "head";
 
+export type GitDiffView = "full" | "summary";
+
+export type GitChangeType =
+  | "add"
+  | "modify"
+  | "delete"
+  | "rename"
+  | "copy"
+  | "typechange"
+  | "unmerged"
+  | "unknown";
+
+export interface GitChangeSummary {
+  changeType: GitChangeType;
+  path: string;
+  oldPath: string | null;
+  newPath: string | null;
+  additions: number | null;
+  deletions: number | null;
+}
+
+export interface GitChangeRecord {
+  status: string;
+  paths: string[];
+}
+
+export interface GitNumstatRecord {
+  paths: string[];
+  additions: number | null;
+  deletions: number | null;
+}
+
+export type GitSummaryTruncationReason = "summary_limit" | "output_limit" | null;
+
+export interface GitSummaryPage {
+  summary: GitChangeSummary[];
+  summaryOffset: number;
+  summaryLimit: number;
+  summaryCount: number;
+  totalSummaryFiles: number;
+  hasMore: boolean;
+  nextSummaryOffset: number | null;
+  summaryTruncated: boolean;
+  truncationReason: GitSummaryTruncationReason;
+}
+
+export const gitSummaryLimits = {
+  maxFiles: 10_000,
+  pageSize: 100,
+  maxResponseBytes: 256 * 1024,
+} as const;
+
 export interface GitDiffOptions {
   mode?: DiffMode;
   path?: string;
   offset?: number;
   maxBytes?: number;
+  view?: GitDiffView;
+  summaryOffset?: number;
 }
 
-export interface GitDiffResult {
+export interface GitDiffFullResult {
   isRepo: boolean;
   mode: DiffMode;
+  view: "full";
   totalBytes: number;
   offset: number;
   returnedBytes: number;
@@ -167,6 +234,24 @@ export interface GitDiffResult {
   nextOffset: number | null;
   diff: string;
 }
+
+export interface GitDiffSummaryResult {
+  isRepo: boolean;
+  mode: DiffMode;
+  view: "summary";
+  diff: string;
+  summary: GitChangeSummary[];
+  summaryOffset: number;
+  summaryLimit: number;
+  summaryCount: number;
+  totalSummaryFiles: number;
+  hasMore: boolean;
+  nextSummaryOffset: number | null;
+  summaryTruncated: boolean;
+  truncationReason: GitSummaryTruncationReason;
+}
+
+export type GitDiffResult = GitDiffFullResult | GitDiffSummaryResult;
 
 function getDiffModeArgs(mode: DiffMode): string[] {
   if (mode === "staged") return ["--cached"];
@@ -203,6 +288,158 @@ function isPathInScope(filePath: string, scope?: string): boolean {
   return filePath === scope || filePath.startsWith(scope + "/");
 }
 
+function parseCount(value: string): number | null {
+  if (value === "-") return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
+}
+
+export function parseGitNameStatus(output: Buffer | string): GitChangeRecord[] {
+  const tokens = (Buffer.isBuffer(output) ? output.toString("utf8") : output).split("\0");
+  const changes: GitChangeRecord[] = [];
+  for (let index = 0; index < tokens.length; ) {
+    const status = tokens[index++];
+    if (!status) break;
+    const pathCount = status.startsWith("R") || status.startsWith("C") ? 2 : 1;
+    const paths = tokens.slice(index, index + pathCount);
+    index += pathCount;
+    if (paths.length === pathCount && paths.every(Boolean)) changes.push({ status, paths });
+  }
+  return changes;
+}
+
+export function parseGitNumstat(output: Buffer | string): GitNumstatRecord[] {
+  const tokens = (Buffer.isBuffer(output) ? output.toString("utf8") : output).split("\0");
+  const records: GitNumstatRecord[] = [];
+  for (let index = 0; index < tokens.length; ) {
+    const header = tokens[index++];
+    if (!header) break;
+    const firstTab = header.indexOf("\t");
+    const secondTab = firstTab < 0 ? -1 : header.indexOf("\t", firstTab + 1);
+    if (firstTab < 0 || secondTab < 0) continue;
+    const pathInHeader = header.slice(secondTab + 1);
+    const paths = pathInHeader
+      ? [pathInHeader]
+      : [tokens[index++], tokens[index++]].filter((value): value is string => Boolean(value));
+    if (paths.length === 0) continue;
+    records.push({
+      paths,
+      additions: parseCount(header.slice(0, firstTab)),
+      deletions: parseCount(header.slice(firstTab + 1, secondTab)),
+    });
+  }
+  return records;
+}
+
+export function gitChangeType(status: string): GitChangeType {
+  switch (status[0]) {
+    case "A": return "add";
+    case "M": return "modify";
+    case "D": return "delete";
+    case "R": return "rename";
+    case "C": return "copy";
+    case "T": return "typechange";
+    case "U": return "unmerged";
+    default: return "unknown";
+  }
+}
+
+export function gitPathsKey(paths: string[]): string {
+  return JSON.stringify(paths);
+}
+
+export function gitSummaryForChange(
+  change: GitChangeRecord,
+  stats: Map<string, GitNumstatRecord>
+): GitChangeSummary {
+  const type = gitChangeType(change.status);
+  const [oldPath, newPath] = change.paths.length > 1
+    ? [change.paths[0], change.paths[1]]
+    : type === "delete"
+      ? [change.paths[0], null]
+      : type === "add"
+        ? [null, change.paths[0]]
+        : [null, null];
+  const stat = stats.get(gitPathsKey(change.paths));
+  return {
+    changeType: type,
+    path: newPath ?? oldPath ?? change.paths[0],
+    oldPath,
+    newPath,
+    additions: stat?.additions ?? null,
+    deletions: stat?.deletions ?? null,
+  };
+}
+
+function chunkChangeGroups(changes: GitChangeRecord[]): GitChangeRecord[][] {
+  const batches: GitChangeRecord[][] = [];
+  let current: GitChangeRecord[] = [];
+  let currentBytes = 0;
+  for (const change of changes) {
+    const cost = change.paths.reduce((sum, value) => sum + Buffer.byteLength(value, "utf8") + 12, 0);
+    if (current.length > 0 && (current.length >= 50 || currentBytes + cost > 32 * 1024)) {
+      batches.push(current);
+      current = [];
+      currentBytes = 0;
+    }
+    current.push(change);
+    currentBytes += cost;
+  }
+  if (current.length > 0) batches.push(current);
+  return batches;
+}
+
+export function paginateGitSummaries(
+  summaries: GitChangeSummary[],
+  summaryOffset: number,
+  summaryTruncated: boolean
+): GitSummaryPage {
+  const start = Math.min(summaryOffset, summaries.length);
+  const page: GitChangeSummary[] = [];
+  let reason: GitSummaryTruncationReason = summaryTruncated ? "summary_limit" : null;
+  for (let index = start; index < summaries.length && page.length < gitSummaryLimits.pageSize; index++) {
+    const candidate = [...page, summaries[index]];
+    if (
+      page.length > 0 &&
+      Buffer.byteLength(JSON.stringify(candidate), "utf8") > gitSummaryLimits.maxResponseBytes
+    ) {
+      reason = "output_limit";
+      break;
+    }
+    page.push(summaries[index]);
+  }
+  const hasMore = start + page.length < summaries.length;
+  return {
+    summary: page,
+    summaryOffset: start,
+    summaryLimit: gitSummaryLimits.pageSize,
+    summaryCount: page.length,
+    totalSummaryFiles: summaries.length,
+    hasMore,
+    nextSummaryOffset: hasMore ? start + page.length : null,
+    summaryTruncated: reason !== null,
+    truncationReason: reason,
+  };
+}
+
+function emptyGitDiffSummary(mode: DiffMode, summaryOffset: number): GitDiffSummaryResult {
+  return {
+    isRepo: false,
+    mode,
+    view: "summary",
+    diff: "",
+    summary: [],
+    summaryOffset,
+    summaryLimit: gitSummaryLimits.pageSize,
+    summaryCount: 0,
+    totalSummaryFiles: 0,
+    hasMore: false,
+    nextSummaryOffset: null,
+    summaryTruncated: false,
+    truncationReason: null,
+  };
+}
+
 export function gitDiff(
   target: GitTarget,
   opts: GitDiffOptions = {},
@@ -215,7 +452,18 @@ export function gitDiff(
       : new IgnoreRules(root);
 
   const mode = opts.mode ?? "unstaged";
+  const view = opts.view ?? "full";
   const offset = Math.max(0, Math.floor(opts.offset ?? 0));
+  const summaryOffset = Math.max(0, Math.floor(opts.summaryOffset ?? 0));
+  if (view !== "full" && view !== "summary") {
+    throw new GitDiffError("view must be either 'full' or 'summary'.");
+  }
+  if (view === "summary" && offset !== 0) {
+    throw new GitDiffError("offset is byte-oriented and must be zero when view is 'summary'.");
+  }
+  if (view === "full" && summaryOffset !== 0) {
+    throw new GitDiffError("summary_offset is only valid when view is 'summary'.");
+  }
   const maxBytes = Math.min(256 * 1024, Math.max(1024, Math.floor(opts.maxBytes ?? 64 * 1024)));
   const modeArgs = getDiffModeArgs(mode);
 
@@ -233,9 +481,11 @@ export function gitDiff(
   ];
   const listResult = runGit(target, listArgs);
   if (!listResult.ok) {
+    if (view === "summary") return emptyGitDiffSummary(mode, summaryOffset);
     return {
       isRepo: false,
       mode,
+      view: "full",
       totalBytes: 0,
       offset: 0,
       returnedBytes: 0,
@@ -245,39 +495,52 @@ export function gitDiff(
     };
   }
 
-  const tokens = listResult.stdout.split("\0");
-  const safePaths: string[] = [];
-  for (let i = 0; i < tokens.length; ) {
-    const status = tokens[i++];
-    if (!status) break;
-    if (status.startsWith("R") || status.startsWith("C")) {
-      const oldPath = tokens[i++];
-      const newPath = tokens[i++];
-      if (oldPath && newPath) {
-        // Layer 1: Security - EITHER side sensitive -> completely unsafe
-        const isSafe = !ignoreRules.isSensitive(oldPath) && !ignoreRules.isSensitive(newPath);
-        // Layer 2: Scope - EITHER side in scope -> relevant
-        const isRelevant = isPathInScope(oldPath, relPath) || isPathInScope(newPath, relPath);
-        if (isSafe && isRelevant) {
-          safePaths.push(oldPath, newPath);
-        }
+  const changes = parseGitNameStatus(listResult.stdout);
+  const safeChanges = changes.filter((change) => {
+    const isSafe = change.paths.every((filePath) => !ignoreRules.isSensitive(filePath));
+    const isRelevant = change.paths.some((filePath) => isPathInScope(filePath, relPath));
+    return isSafe && isRelevant;
+  });
+  if (view === "summary") {
+    const summaryChanges = safeChanges.slice(0, gitSummaryLimits.maxFiles);
+    const summaryTruncated = safeChanges.length > gitSummaryLimits.maxFiles;
+    const stats = new Map<string, GitNumstatRecord>();
+    for (const batch of chunkChangeGroups(summaryChanges)) {
+      const pathspecs = batch.flatMap((change) => change.paths).map((filePath) => `:(literal)${filePath}`);
+      const numstat = runGit(target, [
+        "diff",
+        "--numstat",
+        "-z",
+        "--find-renames=1%",
+        "--no-ext-diff",
+        "--no-textconv",
+        ...modeArgs,
+        "--",
+        ...pathspecs,
+      ]);
+      if (!numstat.ok) {
+        throw new GitDiffError("Git summary statistics are unavailable.", "GIT_READ_FAILED");
       }
-    } else {
-      const filePath = tokens[i++];
-      if (filePath) {
-        const isSafe = !ignoreRules.isSensitive(filePath);
-        const isRelevant = isPathInScope(filePath, relPath);
-        if (isSafe && isRelevant) {
-          safePaths.push(filePath);
-        }
-      }
+      for (const record of parseGitNumstat(numstat.stdout)) stats.set(gitPathsKey(record.paths), record);
     }
+    const summaries = summaryChanges.map((change) => gitSummaryForChange(change, stats));
+    return {
+      isRepo: true,
+      mode,
+      view: "summary",
+      diff: "",
+      ...paginateGitSummaries(summaries, summaryOffset, summaryTruncated),
+    };
   }
+
+  const safePaths: string[] = [];
+  for (const change of safeChanges) safePaths.push(...change.paths);
 
   if (safePaths.length === 0) {
     return {
       isRepo: true,
       mode,
+      view: "full",
       totalBytes: 0,
       offset: 0,
       returnedBytes: 0,
@@ -311,6 +574,7 @@ export function gitDiff(
       return {
         isRepo: false,
         mode,
+        view: "full",
         totalBytes: 0,
         offset: 0,
         returnedBytes: 0,
@@ -326,6 +590,7 @@ export function gitDiff(
         return {
           isRepo: false,
           mode,
+          view: "full",
           totalBytes: 0,
           offset: 0,
           returnedBytes: 0,
@@ -355,6 +620,7 @@ export function gitDiff(
   return {
     isRepo: true,
     mode,
+    view: "full",
     totalBytes: full.length,
     offset,
     returnedBytes: sliceLen,

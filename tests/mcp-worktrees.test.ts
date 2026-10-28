@@ -112,6 +112,23 @@ describe("MCP worktree routing", () => {
     );
     expect(selected.content).toContain("linked-only");
 
+    const bulkSelected = jsonOf<{
+      items: { index: number; status: string; content?: string }[];
+      returned_count: number;
+      skipped_count: number;
+    }>(await client.callTool({
+      name: "read_files",
+      arguments: {
+        workspace: registration.id,
+        worktree: worktreeId,
+        files: [{ path: "linked-marker.txt" }, { path: "../main-marker.txt" }],
+      },
+    }));
+    expect(bulkSelected.items[0]).toMatchObject({ index: 0, status: "ok", content: "linked-only" });
+    expect(bulkSelected.items[1]).toMatchObject({ index: 1, status: "error" });
+    expect(bulkSelected.returned_count).toBe(1);
+    expect(bulkSelected.skipped_count).toBe(0);
+
     write(linked, ".env", "LINKED_SECRET=do-not-return\n");
     const traversal = await client.callTool({
       name: "read_file",
@@ -382,13 +399,13 @@ describe("MCP worktree routing", () => {
     }
   });
 
-  it("keeps the legacy bridge exact-root-only and at nine tools", async () => {
+  it("keeps the legacy bridge exact-root-only and at ten tools", async () => {
     const root = makeTmpDir("mcp-legacy-root");
     dirs.push(root);
     write(root, "hello.txt", "hello\n");
     const client = await connectServer({ workspace: new Workspace(root), logger: nullLogger });
     const { tools } = await client.listTools();
-    expect(tools).toHaveLength(9);
+    expect(tools).toHaveLength(10);
     expect(tools.map((tool) => tool.name)).not.toContain("list_worktrees");
 
     const result = await client.callTool({

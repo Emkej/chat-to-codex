@@ -128,6 +128,107 @@ describe("gitStatus", () => {
 });
 
 describe("gitDiff pagination", () => {
+  it("returns bounded file summaries with text, binary and rename statistics", () => {
+    const summaryRepo = makeTmpDir("git-summary");
+    makeGitRepo(summaryRepo);
+    write(summaryRepo, "summary-modified.txt", "before\n");
+    write(summaryRepo, "summary-delete.txt", "delete me\n");
+    write(summaryRepo, "summary-rename.txt", "rename me\n");
+    fs.writeFileSync(path.join(summaryRepo, "summary-binary.bin"), Buffer.from([0, 1, 2]));
+    git(summaryRepo, "add", "summary-modified.txt", "summary-delete.txt", "summary-rename.txt", "summary-binary.bin");
+    git(summaryRepo, "commit", "-m", "summary baseline");
+
+    write(summaryRepo, "summary-modified.txt", "before\nafter\n");
+    fs.writeFileSync(path.join(summaryRepo, "summary-binary.bin"), Buffer.from([0, 1, 3]));
+    fs.rmSync(path.join(summaryRepo, "summary-delete.txt"));
+    git(summaryRepo, "mv", "summary-rename.txt", "summary-renamed\nname.txt");
+    write(summaryRepo, "summary-added.txt", "one\ntwo\n");
+    git(summaryRepo, "add", "-A");
+
+    try {
+      const result = gitDiff(summaryRepo, { mode: "staged", view: "summary" });
+      expect(result.view).toBe("summary");
+      expect(result.summary).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          changeType: "modify",
+          path: "summary-modified.txt",
+          additions: 1,
+          deletions: 0,
+        }),
+        expect.objectContaining({
+          changeType: "delete",
+          path: "summary-delete.txt",
+          oldPath: "summary-delete.txt",
+          newPath: null,
+          additions: 0,
+          deletions: 1,
+        }),
+        expect.objectContaining({
+          changeType: "rename",
+          oldPath: "summary-rename.txt",
+          newPath: "summary-renamed\nname.txt",
+          additions: 0,
+          deletions: 0,
+        }),
+        expect.objectContaining({
+          changeType: "modify",
+          path: "summary-binary.bin",
+          additions: null,
+          deletions: null,
+        }),
+        expect.objectContaining({
+          changeType: "add",
+          path: "summary-added.txt",
+          additions: 2,
+          deletions: 0,
+        }),
+      ]));
+      expect(result.summaryCount).toBe(5);
+      expect(result.hasMore).toBe(false);
+      expect(result.nextSummaryOffset).toBeNull();
+      expect(() => gitDiff(summaryRepo, { view: "summary", offset: 1 })).toThrowError(
+        expect.objectContaining({ code: "INVALID_ARGUMENT" })
+      );
+      expect(() => gitDiff(summaryRepo, { view: "full", summaryOffset: 1 })).toThrowError(
+        expect.objectContaining({ code: "INVALID_ARGUMENT" })
+      );
+    } finally {
+      cleanup(summaryRepo);
+    }
+  });
+
+  it("pages summaries by file without including untracked files", () => {
+    const summaryRepo = makeTmpDir("git-summary-page");
+    makeGitRepo(summaryRepo);
+    const pageFiles: string[] = [];
+    for (let index = 0; index < 105; index++) {
+      const file = `summary-page-${String(index).padStart(3, "0")}.txt`;
+      pageFiles.push(file);
+      write(summaryRepo, file, `line-${index}\n`);
+    }
+    write(summaryRepo, "summary-untracked.txt", "not in git diff\n");
+    git(summaryRepo, "add", ...pageFiles);
+    try {
+      const first = gitDiff(summaryRepo, { mode: "staged", view: "summary" });
+      expect(first.summaryCount).toBe(100);
+      expect(first.hasMore).toBe(true);
+      expect(first.nextSummaryOffset).toBe(100);
+      expect(first.summary.some((item) => item.path === "summary-untracked.txt")).toBe(false);
+
+      const second = gitDiff(summaryRepo, {
+        mode: "staged",
+        view: "summary",
+        summaryOffset: first.nextSummaryOffset!,
+      });
+      expect(second.summaryCount).toBe(5);
+      expect(second.hasMore).toBe(false);
+      expect(second.nextSummaryOffset).toBeNull();
+    } finally {
+      git(summaryRepo, "reset", "--hard", "HEAD");
+      cleanup(summaryRepo);
+    }
+  });
+
   it("disables configured external diff execution", () => {
     const script = path.join(repo, "external-diff.sh");
     const marker = path.join(repo, "external-diff-ran");

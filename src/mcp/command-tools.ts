@@ -6,6 +6,12 @@ import { commandCreationReceipt, commandReceipt } from "../command-requests/rece
 import type { CommandRequestService } from "../command-requests/service.js";
 import type { Workspace } from "../workspace/manager.js";
 
+export const COMMAND_CAPABILITY = {
+  id: "command_tools",
+  toolNames: ["request_command", "get_command_request"] as const,
+  requiredScopes: [COMMAND_SCOPE] as const,
+} as const;
+
 type Result = { content: { type: "text"; text: string }[]; isError?: boolean };
 type Target = { workspace: Workspace; registration: { id: string } | null; worktreeId?: string };
 interface Dependencies {
@@ -30,7 +36,7 @@ export function registerCommandTools(server: McpServer, deps: Dependencies): voi
     return deps.fail(args.worktree !== undefined && code !== "UNKNOWN_WORKSPACE" && code !== "WORKSPACE_UNAVAILABLE"
       ? "WORKTREE_UNAVAILABLE" : "WORKSPACE_UNAVAILABLE", "Command target is unavailable.");
   }
-  server.registerTool("request_command", {
+  server.registerTool(COMMAND_CAPABILITY.toolNames[0], {
     title: "Request a locally approved command",
     description: "Save exact argv/cwd for explicit local c2c approve cr_... approval. Creation starts no process. Approval is not sandboxing; output may disclose local data. Requires workspace.command.",
     // Invalid values reach domain validation instead of escaping as SDK-specific error text.
@@ -47,7 +53,7 @@ export function registerCommandTools(server: McpServer, deps: Dependencies): voi
       return deps.ok(commandCreationReceipt(record));
     } catch (error) { return deps.mapError(error); }
   });
-  server.registerTool("get_command_request", {
+  server.registerTool(COMMAND_CAPABILITY.toolNames[1], {
     title: "Inspect one command request",
     description: "Observational receipt read for the selected target. running alone does not confirm spawn; inspect started_at. Nonzero exit remains completed. Inspect output_incomplete before claiming complete capture. Requires workspace.command.",
     inputSchema: { ...selectors, request_id: z.string().catch(""), max_output_bytes: z.number().catch(NaN).optional().describe("UTF-8 bytes per stream, default 8192, integer 0–65536") },

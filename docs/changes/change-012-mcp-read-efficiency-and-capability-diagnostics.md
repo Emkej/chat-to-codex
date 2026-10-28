@@ -1,6 +1,6 @@
 # CHANGE-012: MCP Read Efficiency, Search Completeness, and Capability Diagnostics
 
-- **Status:** Draft — review pass complete; pending implementation
+- **Status:** Partial — implementation and focused validation complete; external A1 and full-suite gates remain
 - **Date:** 2026-10-28
 - **Scope:** `chat-to-codex` installation broker MCP surface; existing workspace/worktree readers and repository snapshot readers
 - **Baseline:** local `main` at `00b83ee` (clean working tree; verified 2026-10-28)

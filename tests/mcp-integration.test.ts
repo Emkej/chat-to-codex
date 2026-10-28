@@ -55,7 +55,7 @@ afterAll(async () => {
 });
 
 describe("MCP tools over Streamable HTTP", () => {
-  it("lists all nine read-only tools including list_workspaces", async () => {
+  it("lists all ten read-only tools including list_workspaces", async () => {
     const { tools } = await client.listTools();
     const names = tools.map((tool) => tool.name).sort();
     expect(names).toEqual([
@@ -65,6 +65,7 @@ describe("MCP tools over Streamable HTTP", () => {
       "list_directory",
       "list_workspaces",
       "read_file",
+      "read_files",
       "search_workspace",
       "test_status",
       "workspace_info",
@@ -123,6 +124,46 @@ describe("MCP tools over Streamable HTTP", () => {
     expect(textOf(result)).not.toContain("supersecret");
   });
 
+  it("read_files preserves order and returns bounded per-item errors", async () => {
+    const result = jsonOf<{
+      items: { index: number; path: string; status: string; content?: string; error?: { code: string } }[];
+      item_count: number;
+      returned_count: number;
+      skipped_count: number;
+      truncated: boolean;
+      response_bytes: number;
+    }>(await client.callTool({
+      name: "read_files",
+      arguments: {
+        files: [
+          { path: "hello.txt" },
+          { path: ".env", start_line: 2, end_line: 3 },
+          { path: "missing.txt" },
+          { path: "src/index.ts", start_line: 1, end_line: 1 },
+        ],
+        max_total_bytes: 16 * 1024,
+      },
+    }));
+    expect(result.response_bytes).toBeLessThanOrEqual(16 * 1024);
+    expect(result.items.map((item) => item.index)).toEqual([0, 1, 2, 3]);
+    expect(result.items[0]).toMatchObject({ path: "hello.txt", status: "ok" });
+    expect(result.items[0].content).toContain("Hello from Chat to Codex!");
+    expect(result.items[1]).toMatchObject({
+      path: ".env",
+      start_line: 2,
+      end_line: 3,
+      status: "error",
+      error: { code: "ACCESS_DENIED_SENSITIVE_FILE" },
+    });
+    expect(result.items[2]).toMatchObject({ path: "missing.txt", status: "error", error: { code: "FILE_NOT_FOUND" } });
+    expect(result.items[3]).toMatchObject({ path: "src/index.ts", status: "ok" });
+    expect(result.item_count).toBe(4);
+    expect(result.returned_count).toBe(2);
+    expect(result.skipped_count).toBe(0);
+    expect(result.truncated).toBe(false);
+    expect(result.response_bytes).toBeLessThanOrEqual(256 * 1024);
+  });
+
   it("read_file denies paths outside the workspace", async () => {
     const result = await client.callTool({ name: "read_file", arguments: { path: "../../etc/hosts" } });
     expect(result.isError).toBe(true);
@@ -153,6 +194,23 @@ describe("MCP tools over Streamable HTTP", () => {
     expect(search.matches.some((match) => match.path === "src/index.ts")).toBe(true);
   });
 
+  it("search_workspace exposes compatible pagination metadata and bounded context options", async () => {
+    const result = await client.callTool({
+      name: "search_workspace",
+      arguments: { query: "answer", limit: 1, offset: 0, context_lines: 1, files_only: false },
+    });
+    const search = jsonOf<{
+      matches: { path: string; line: number; context?: { complete: boolean } }[];
+      has_more: boolean;
+      next_offset: number | null;
+      mode: string;
+    }>(result);
+    expect(search.matches[0]).toMatchObject({ path: "src/index.ts", line: 1 });
+    expect(search.mode).toBe("matches");
+    expect(search.has_more).toBe(false);
+    expect(search.next_offset).toBeNull();
+  });
+
   it("git_status reports the dirty file", async () => {
     const result = await client.callTool({ name: "git_status", arguments: {} });
     const status = jsonOf<{ isRepo: boolean; unstaged: { path: string }[] }>(result);
@@ -165,6 +223,31 @@ describe("MCP tools over Streamable HTTP", () => {
     const diff = jsonOf<{ diff: string; hasMore: boolean }>(result);
     expect(diff.diff).toContain("answer = 43");
     expect(diff.hasMore).toBe(false);
+  });
+
+  it("git_diff summary returns compact change statistics", async () => {
+    const result = jsonOf<{
+      view: string;
+      summary: {
+        change_type: string;
+        path: string;
+        additions: number | null;
+        deletions: number | null;
+      }[];
+      summary_count: number;
+      has_more: boolean;
+    }>(await client.callTool({ name: "git_diff", arguments: { mode: "unstaged", view: "summary" } }));
+    expect(result.view).toBe("summary");
+    expect(result.summary).toContainEqual({
+      change_type: "modify",
+      path: "src/index.ts",
+      old_path: null,
+      new_path: null,
+      additions: 1,
+      deletions: 1,
+    });
+    expect(result.summary_count).toBe(1);
+    expect(result.has_more).toBe(false);
   });
 
   it("git_diff paginates large diffs", async () => {

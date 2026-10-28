@@ -48,7 +48,10 @@ setup`, `c2c broker start`).
 | Workspace traversal | `realpath` canonicalization; containment check against the canonical root; case-insensitive comparison on macOS/Windows |
 | Symlink escape | Canonicalization resolves symlinks before the containment check |
 | Sensitive files | Deny-by-default patterns (.env*, keys, SSH, cloud creds, keychains…) enforced at resolve time; `git diff` adds pathspec excludes; `.env.example` allowed |
-| Oversized file / diff DoS | read_file caps lines and bytes; git_diff paginates with hard caps; search caps matches and file sizes |
+| Oversized file / diff DoS | read_file caps lines and bytes; git_diff paginates with hard caps; search caps matches, per-file size and cumulative scan time |
+| Bulk-read fanout / response DoS | `read_files` accepts at most ten items, reuses `read_file` security checks, and enforces one shared serialized-response budget with explicit per-item truncation/skips |
+| History enumeration / metadata leakage | `git_history` requires exact repository refs, bounded limits and scans, filters sensitive paths, omits author emails and patch bodies, and rejects ref drift across pages |
+| Capability diagnostic leakage | `workspace_info` reports only sanitized current-caller scopes and capability state; it never exposes tokens, credential metadata or other clients' grants |
 | Tunnel exposure | Broker binds loopback only; public surface is HTTPS via the tunnel with OAuth on `/mcp`; `/health` through the tunnel returns only service/version/status (installation identity is loopback-only) |
 | Admin API abuse | Loopback-only + random admin token (0600 runtime file) + proxy-forwarded requests rejected; unauthenticated probes get 404; session/workspace admin endpoints are not reachable through the Claude MCP tunnel |
 | Stale session / revoked workspace | Session heartbeats fail closed on unknown ids; workspace removal stops new sessions; MCP reads fail closed for revoked ids |
@@ -70,6 +73,10 @@ Broker-only `workspace.command` is also explicit and non-default: both command
 creation and captured-output inspection require it. Fresh OAuth consent covers
 locally approved execution and possible output disclosure, including when the
 command scope is requested alone. Old tokens never acquire it on refresh.
+Read additions keep their separate boundaries: `read_file`, `read_files` and
+`workspace_info` require `workspace.read`; `search_workspace` requires
+`workspace.search`; `git_diff` requires `git.read`; and `git_compare` plus
+`git_history` require `git.repository.read`.
 Access tokens: 1 hour. Refresh tokens: 30 days, rotated. Installation-level
 tokens authorize the broker; workspace access resolves through the local
 registry and, when requested, the registered main worktree's current
@@ -172,6 +179,12 @@ validated by the broker. With `git.repository.read`, it may also request
 bounded content from exact branch refs through `list_branches`, `git_browse`,
 `git_search`, and `git_compare`; these calls cannot fetch, checkout, or mutate
 the repository.
+
+It may also request bounded current-workspace reads through `read_file`,
+`read_files`, `search_workspace`, `git_diff`, and `workspace_info`, or bounded
+commit metadata through `git_history`. These operations retain their existing
+path, scope, ref and output limits; capability diagnostics do not imply that a
+remote connector has refreshed its own tool list.
 
 Separately, `workspace.command` permits one-shot command requests and bounded
 receipt reads. Only explicit local id approval starts the stored command.
