@@ -1059,8 +1059,10 @@ export function compareSnapshots(
   if (view === "summary") {
     const summaryChanges = safeChanges.slice(0, gitSummaryLimits.maxFiles);
     const summaryTruncated = safeChanges.length > gitSummaryLimits.maxFiles;
+    const summaryStart = Math.min(summaryOffset, summaryChanges.length);
+    const pageChanges = summaryChanges.slice(summaryStart, summaryStart + gitSummaryLimits.pageSize);
     const stats = new Map<string, GitNumstatRecord>();
-    for (const batch of chunkChangeGroups(summaryChanges)) {
+    for (const batch of chunkChangeGroups(pageChanges)) {
       const result = runSnapshotGit(owner.root, [
         "diff",
         "--numstat",
@@ -1079,7 +1081,9 @@ export function compareSnapshots(
       }
       for (const record of parseGitNumstat(result.stdout)) stats.set(gitPathsKey(record.paths), record);
     }
-    const summaries = summaryChanges.map((change) => gitSummaryForChange(change, stats));
+    const summaries = pageChanges.map((change) => gitSummaryForChange(change, stats));
+    const page = paginateGitSummaries(summaries, 0, summaryTruncated);
+    const hasMore = summaryStart + page.summaryCount < summaryChanges.length;
     return {
       comparison: "merge_base_to_target",
       baseRef: base.ref,
@@ -1094,7 +1098,11 @@ export function compareSnapshots(
       returnedBytes: 0,
       diff: "",
       nextOffset: null,
-      ...paginateGitSummaries(summaries, summaryOffset, summaryTruncated),
+      ...page,
+      summaryOffset: summaryStart,
+      totalSummaryFiles: summaryChanges.length,
+      hasMore,
+      nextSummaryOffset: hasMore ? summaryStart + page.summaryCount : null,
     };
   }
 
@@ -1273,11 +1281,12 @@ export function gitHistory(
   }
   assertExpectedCommit(options.expectedCommit, publicRef.commit);
 
+  const scanLimit = Math.min(MAX_HISTORY_SCAN_COMMITS + 1, offset + limit + 1);
   const args = [
     "log",
     "--no-renames",
     "--date-order",
-    `--max-count=${MAX_HISTORY_SCAN_COMMITS + 1}`,
+    "--max-count=" + scanLimit,
     "--format=%H%x00%ct%x00%an%x00%s%x00",
     "--name-status",
     "-z",

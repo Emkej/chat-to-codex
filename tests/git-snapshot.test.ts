@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import {
@@ -12,7 +13,7 @@ import {
   resolveRepositoryOwner,
   searchSnapshot,
 } from "../src/workspace/git-snapshot.js";
-import { cleanup, git, makeGitRepo, makeTmpDir, write } from "./helpers.js";
+import { captureGitCommandTrace, cleanup, git, makeGitRepo, makeTmpDir, write } from "./helpers.js";
 
 function createBranchFixture(): { root: string; hiddenCommit: string } {
   const root = makeTmpDir("git-snapshot");
@@ -99,6 +100,145 @@ describe("repository snapshot domain", () => {
     }
   });
 
+  it("scans only through the requested history page and preserves history bounds", () => {
+    const root = makeTmpDir("git-snapshot-history-pages");
+    makeGitRepo(root);
+    for (let index = 0; index < 100; index++) {
+      git(root, "commit", "--allow-empty", "-m", "history entry " + index);
+    }
+    const allCommits = git(root, "log", "--format=%H", "refs/heads/main").trim().split("\n");
+    let trace: ReturnType<typeof captureGitCommandTrace> | undefined;
+
+    try {
+      const owner = resolveRepositoryOwner(root);
+      trace = captureGitCommandTrace(root);
+      const first = gitHistory(owner, { ref: "refs/heads/main", limit: 20 });
+      expect(first.entries.map((entry) => entry.commit)).toEqual(allCommits.slice(0, 20));
+      expect(first).toMatchObject({ offset: 0, limit: 20, hasMore: true, nextOffset: 20, truncated: false });
+      expect(trace.read().map((args) => args.find((arg) => arg.startsWith("--max-count=")))).toEqual([
+        "--max-count=21",
+      ]);
+
+      trace.clear();
+      const second = gitHistory(owner, {
+        ref: "refs/heads/main",
+        limit: 20,
+        offset: first.nextOffset!,
+        expectedCommit: first.commit,
+      });
+      expect(second.entries.map((entry) => entry.commit)).toEqual(allCommits.slice(20, 40));
+      expect(first.entries.some((entry) => second.entries.some((next) => next.commit === entry.commit))).toBe(false);
+      expect(second).toMatchObject({ offset: 20, hasMore: true, nextOffset: 40, truncated: false });
+      expect(trace.read().map((args) => args.find((arg) => arg.startsWith("--max-count=")))).toEqual([
+        "--max-count=41",
+      ]);
+
+      trace.clear();
+      const last = gitHistory(owner, {
+        ref: "refs/heads/main",
+        limit: 20,
+        offset: 100,
+        expectedCommit: first.commit,
+      });
+      expect(last.entries.map((entry) => entry.commit)).toEqual(allCommits.slice(100));
+      expect(last).toMatchObject({ offset: 100, hasMore: false, nextOffset: null, truncated: false });
+      expect(trace.read().map((args) => args.find((arg) => arg.startsWith("--max-count=")))).toEqual([
+        "--max-count=121",
+      ]);
+
+      trace.clear();
+      const bounded = gitHistory(owner, {
+        ref: "refs/heads/main",
+        limit: 1000,
+        offset: Number.MAX_SAFE_INTEGER,
+        expectedCommit: first.commit,
+      });
+      expect(bounded).toMatchObject({
+        offset: 10_000,
+        limit: 100,
+        entries: [],
+        hasMore: false,
+        truncated: false,
+        truncationReason: null,
+      });
+      expect(trace.read().map((args) => args.find((arg) => arg.startsWith("--max-count=")))).toEqual([
+        "--max-count=10001",
+      ]);
+
+      trace.clear();
+      const minimumPage = gitHistory(owner, { ref: "refs/heads/main", limit: 0 });
+      expect(minimumPage).toMatchObject({ limit: 1, entries: [expect.any(Object)], hasMore: true });
+      expect(trace.read().map((args) => args.find((arg) => arg.startsWith("--max-count=")))).toEqual([
+        "--max-count=2",
+      ]);
+
+      git(root, "commit", "--allow-empty", "-m", "move history ref");
+      expect(() => gitHistory(owner, {
+        ref: "refs/heads/main",
+        limit: 20,
+        offset: first.nextOffset!,
+        expectedCommit: first.commit,
+      })).toThrowError(expect.objectContaining({ code: "REF_CHANGED" }));
+    } finally {
+      trace?.restore();
+      cleanup(root);
+    }
+  });
+
+  it("signals incomplete history when the hard scan limit is reached", () => {
+    const root = makeTmpDir("git-snapshot-history-scan-limit");
+    makeGitRepo(root);
+    const baseCommit = git(root, "rev-parse", "HEAD").trim();
+    const commands: string[] = [];
+    for (let index = 0; index < 10_000; index++) {
+      const message = "history entry " + index;
+      commands.push(
+        "commit refs/heads/main",
+        "mark :" + (index + 1),
+        "committer c2c-test <test@c2c.local> " + (1_700_000_000 + index) + " +0000",
+        "data " + Buffer.byteLength(message, "utf8"),
+        message,
+        "from " + (index === 0 ? baseCommit : ":" + index),
+      );
+    }
+    const imported = spawnSync("git", ["fast-import", "--quiet"], {
+      cwd: root,
+      encoding: "utf8",
+      input: commands.join("\n") + "\n",
+      env: {
+        ...process.env,
+        GIT_CONFIG_GLOBAL: "/dev/null",
+        GIT_CONFIG_SYSTEM: "/dev/null",
+      },
+      maxBuffer: 8 * 1024 * 1024,
+    });
+    expect(imported.status, imported.stderr).toBe(0);
+    const commit = git(root, "rev-parse", "refs/heads/main").trim();
+    let trace: ReturnType<typeof captureGitCommandTrace> | undefined;
+
+    try {
+      const owner = resolveRepositoryOwner(root);
+      trace = captureGitCommandTrace(root);
+      const page = gitHistory(owner, {
+        ref: "refs/heads/main",
+        limit: 20,
+        offset: 9_990,
+        expectedCommit: commit,
+      });
+      expect(page.entries).toHaveLength(10);
+      expect(page.hasMore).toBe(false);
+      expect(page.nextOffset).toBeNull();
+      expect(page.truncated).toBe(true);
+      expect(page.truncationReason).toBe("scan_limit");
+      expect(trace.read().map((args) => args.find((arg) => arg.startsWith("--max-count=")))).toEqual([
+        "--max-count=10001",
+      ]);
+    } finally {
+      trace?.restore();
+      cleanup(root);
+    }
+  });
+
   it("returns bounded merge-base summaries with binary and rename statistics", () => {
     const root = makeTmpDir("git-snapshot-summary");
     makeGitRepo(root);
@@ -179,6 +319,69 @@ describe("repository snapshot domain", () => {
         summaryOffset: 1,
       })).toThrowError(expect.objectContaining({ code: "INVALID_ARGUMENT" }));
     } finally {
+      cleanup(root);
+    }
+  });
+
+  it("computes numstat only for each safe merge-base summary page", () => {
+    const root = makeTmpDir("git-snapshot-summary-pages");
+    makeGitRepo(root);
+    git(root, "checkout", "-b", "summary-page-target");
+    const pageFiles: string[] = [];
+    for (let index = 0; index < 1000; index++) {
+      const file = "summary-compare-" + String(index).padStart(4, "0") + ".txt";
+      pageFiles.push(file);
+      write(root, file, "changed line\n");
+    }
+    write(root, ".env", "SUMMARY_COMPARE_SECRET=must-not-leak\n");
+    git(root, "add", "-A");
+    git(root, "commit", "-m", "add comparison summary files");
+    git(root, "checkout", "main");
+
+    let trace: ReturnType<typeof captureGitCommandTrace> | undefined;
+    try {
+      const owner = resolveRepositoryOwner(root);
+      trace = captureGitCommandTrace(root);
+      const first = compareSnapshots(owner, {
+        baseRef: "refs/heads/main",
+        targetRef: "refs/heads/summary-page-target",
+        view: "summary",
+      });
+      expect(first.comparison).toBe("merge_base_to_target");
+      expect(first.mergeBase).toBe(git(root, "rev-parse", "main").trim());
+      expect(first.summaryOffset).toBe(0);
+      expect(first.summaryCount).toBe(100);
+      expect(first.totalSummaryFiles).toBe(1000);
+      expect(first.hasMore).toBe(true);
+      expect(first.nextSummaryOffset).toBe(100);
+      expect(first.summary?.map((item) => item.path)).toEqual(pageFiles.slice(0, 100));
+      expect(first.summary?.every((item) => item.additions === 1 && item.deletions === 0)).toBe(true);
+      expect(JSON.stringify(first)).not.toContain(".env");
+      expect(JSON.stringify(first)).not.toContain("SUMMARY_COMPARE_SECRET");
+      const firstNumstat = trace.read().filter((args) => args.includes("--numstat"));
+      expect(firstNumstat).toHaveLength(2);
+      expect(firstNumstat.flatMap((args) => args.slice(args.indexOf("--") + 1))).toHaveLength(100);
+
+      trace.clear();
+      const second = compareSnapshots(owner, {
+        baseRef: "refs/heads/main",
+        targetRef: "refs/heads/summary-page-target",
+        view: "summary",
+        summaryOffset: first.nextSummaryOffset!,
+        expectedBaseCommit: first.baseCommit,
+        expectedTargetCommit: first.targetCommit,
+      });
+      expect(second.summaryOffset).toBe(100);
+      expect(second.summaryCount).toBe(100);
+      expect(second.hasMore).toBe(true);
+      expect(second.nextSummaryOffset).toBe(200);
+      expect(second.summary?.map((item) => item.path)).toEqual(pageFiles.slice(100, 200));
+      expect(first.summary?.some((item) => second.summary?.some((next) => next.path === item.path))).toBe(false);
+      const secondNumstat = trace.read().filter((args) => args.includes("--numstat"));
+      expect(secondNumstat).toHaveLength(2);
+      expect(secondNumstat.flatMap((args) => args.slice(args.indexOf("--") + 1))).toHaveLength(100);
+    } finally {
+      trace?.restore();
       cleanup(root);
     }
   });

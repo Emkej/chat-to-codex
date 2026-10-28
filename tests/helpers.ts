@@ -49,6 +49,56 @@ export function git(dir: string, ...args: string[]): string {
   return result.stdout;
 }
 
+export interface GitCommandTrace {
+  read(): string[][];
+  clear(): void;
+  restore(): void;
+}
+
+export function captureGitCommandTrace(root: string): GitCommandTrace {
+  const resolvedGit = spawnSync("which", ["git"], { encoding: "utf8" });
+  const realGit = resolvedGit.status === 0 ? resolvedGit.stdout?.trim() : "";
+  if (!realGit) throw new Error("Could not resolve the Git executable for command tracing.");
+
+  const bin = path.join(root, "git-trace-bin");
+  const tracePath = path.join(root, "git-command-trace.jsonl");
+  const wrapper = path.join(bin, "git");
+  fs.mkdirSync(bin, { recursive: true });
+  fs.writeFileSync(tracePath, "");
+  fs.writeFileSync(wrapper, [
+    "#!" + process.execPath,
+    "const fs = require('node:fs');",
+    "const { spawnSync } = require('node:child_process');",
+    "const args = process.argv.slice(2);",
+    "if (args.includes('--numstat') || args.some((arg) => arg.startsWith('--max-count='))) {",
+    "  fs.appendFileSync(" + JSON.stringify(tracePath) + ", JSON.stringify(args) + '\\n');",
+    "}",
+    "const result = spawnSync(" + JSON.stringify(realGit) + ", args, { stdio: 'inherit' });",
+    "if (result.error) { process.stderr.write(result.error.message + '\\n'); process.exit(1); }",
+    "process.exit(result.status === null ? 1 : result.status);",
+    "",
+  ].join("\n"));
+  fs.chmodSync(wrapper, 0o755);
+
+  const originalPath = process.env.PATH;
+  process.env.PATH = [bin, originalPath].filter(Boolean).join(path.delimiter);
+  return {
+    read() {
+      return fs.readFileSync(tracePath, "utf8")
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => JSON.parse(line) as string[]);
+    },
+    clear() {
+      fs.writeFileSync(tracePath, "");
+    },
+    restore() {
+      if (originalPath === undefined) delete process.env.PATH;
+      else process.env.PATH = originalPath;
+    },
+  };
+}
+
 export function makeGitRepo(dir: string): void {
   git(dir, "init", "-b", "main");
   write(dir, "hello.txt", "Hello from Chat to Codex!\n");

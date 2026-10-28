@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import { gitDiff, gitInfo, gitStatus } from "../src/workspace/git.js";
-import { makeTmpDir, cleanup, write, makeGitRepo, git } from "./helpers.js";
+import { captureGitCommandTrace, makeTmpDir, cleanup, write, makeGitRepo, git } from "./helpers.js";
 
 let repo: string;
 let plain: string;
@@ -197,33 +197,69 @@ describe("gitDiff pagination", () => {
     }
   });
 
-  it("pages summaries by file without including untracked files", () => {
+  it("pages safe summaries and computes numstat only for the requested page", () => {
     const summaryRepo = makeTmpDir("git-summary-page");
     makeGitRepo(summaryRepo);
     const pageFiles: string[] = [];
-    for (let index = 0; index < 105; index++) {
-      const file = `summary-page-${String(index).padStart(3, "0")}.txt`;
+    for (let index = 0; index < 1000; index++) {
+      const file = `summary-page-${String(index).padStart(4, "0")}.txt`;
       pageFiles.push(file);
       write(summaryRepo, file, `line-${index}\n`);
     }
+    write(summaryRepo, ".env", "SUMMARY_SECRET=must-not-leak\n");
     write(summaryRepo, "summary-untracked.txt", "not in git diff\n");
     git(summaryRepo, "add", ...pageFiles);
+    git(summaryRepo, "add", "-f", ".env");
+    let trace: ReturnType<typeof captureGitCommandTrace> | undefined;
     try {
+      trace = captureGitCommandTrace(summaryRepo);
       const first = gitDiff(summaryRepo, { mode: "staged", view: "summary" });
       expect(first.summaryCount).toBe(100);
+      expect(first.totalSummaryFiles).toBe(1000);
       expect(first.hasMore).toBe(true);
       expect(first.nextSummaryOffset).toBe(100);
       expect(first.summary.some((item) => item.path === "summary-untracked.txt")).toBe(false);
+      expect(first.summary.some((item) => item.path === ".env")).toBe(false);
+      expect(JSON.stringify(first)).not.toContain("SUMMARY_SECRET");
+      expect(first.summary.map((item) => item.path)).toEqual(pageFiles.slice(0, 100));
+      expect(first.summary.every((item) => item.additions === 1 && item.deletions === 0)).toBe(true);
+      const firstNumstat = trace.read().filter((args) => args.includes("--numstat"));
+      expect(firstNumstat).toHaveLength(2);
+      expect(firstNumstat.flatMap((args) => args.slice(args.indexOf("--") + 1))).toHaveLength(100);
 
+      trace.clear();
       const second = gitDiff(summaryRepo, {
         mode: "staged",
         view: "summary",
         summaryOffset: first.nextSummaryOffset!,
       });
-      expect(second.summaryCount).toBe(5);
-      expect(second.hasMore).toBe(false);
-      expect(second.nextSummaryOffset).toBeNull();
+      expect(second.summaryOffset).toBe(100);
+      expect(second.summaryCount).toBe(100);
+      expect(second.hasMore).toBe(true);
+      expect(second.nextSummaryOffset).toBe(200);
+      expect(second.summary.map((item) => item.path)).toEqual(pageFiles.slice(100, 200));
+      expect(new Set(first.summary.map((item) => item.path)).size).toBe(100);
+      expect(first.summary.some((item) => second.summary.some((next) => next.path === item.path))).toBe(false);
+      const secondNumstat = trace.read().filter((args) => args.includes("--numstat"));
+      expect(secondNumstat).toHaveLength(2);
+      expect(secondNumstat.flatMap((args) => args.slice(args.indexOf("--") + 1))).toHaveLength(100);
+
+      trace.clear();
+      const beyondEnd = gitDiff(summaryRepo, {
+        mode: "staged",
+        view: "summary",
+        summaryOffset: Number.MAX_SAFE_INTEGER,
+      });
+      expect(beyondEnd).toMatchObject({
+        summaryOffset: 1000,
+        summaryCount: 0,
+        totalSummaryFiles: 1000,
+        hasMore: false,
+        nextSummaryOffset: null,
+      });
+      expect(trace.read().filter((args) => args.includes("--numstat"))).toHaveLength(0);
     } finally {
+      trace?.restore();
       git(summaryRepo, "reset", "--hard", "HEAD");
       cleanup(summaryRepo);
     }
