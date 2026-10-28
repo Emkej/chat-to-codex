@@ -87,6 +87,15 @@ function assertExistingDirectoryPath(workspaceRoot: string, candidate: string): 
   if (relative.startsWith("..") || path.isAbsolute(relative)) {
     throw new WriteRequestError("WRITE_ACCESS_DENIED", "Create path is outside the selected workspace.");
   }
+  let rootStat: fs.Stats;
+  try {
+    rootStat = fs.lstatSync(workspaceRoot);
+  } catch (error) {
+    throw new WriteRequestError("WRITE_STALE", "A create parent changed before commit.",
+      error instanceof Error ? { cause: error } : undefined);
+  }
+  if (rootStat.isSymbolicLink()) throw new WriteRequestError("WRITE_SYMLINK_DENIED", "Create parents cannot use symbolic links.");
+  if (!rootStat.isDirectory()) throw new WriteRequestError("WRITE_STALE", "A create parent is no longer a directory.");
   let current = workspaceRoot;
   for (const component of relative.split(path.sep).filter(Boolean)) {
     current = path.join(current, component);
@@ -143,8 +152,7 @@ function plannedCreateDirectories(prepared: PreparedPatch): string[] {
   });
 }
 
-function createDirectories(prepared: PreparedPatch): string[] {
-  const created: string[] = [];
+function createDirectories(prepared: PreparedPatch, created: string[]): void {
   for (const directory of plannedCreateDirectories(prepared)) {
     const owner = prepared.files.find((file) => (file.createDirectories ?? []).includes(directory));
     if (!owner) throw new WriteRequestError("WRITE_STALE", "Create directory ownership could not be revalidated.");
@@ -167,18 +175,19 @@ function createDirectories(prepared: PreparedPatch): string[] {
       if (!existing.isDirectory()) throw new WriteRequestError("WRITE_STALE", "A create parent is no longer a directory.");
     }
   }
-  return created;
 }
 
-function removeCreatedDirectories(directories: string[]): RollbackResult {
+function removeCreatedDirectories(directories: string[], workspaceRoot: string): RollbackResult {
   const unresolvedPaths: string[] = [];
   for (const directory of [...directories].reverse()) {
     try {
+      assertExistingDirectoryPath(workspaceRoot, path.dirname(directory));
       const stat = fs.lstatSync(directory);
       if (stat.isSymbolicLink() || !stat.isDirectory() || fs.readdirSync(directory).length > 0) {
         unresolvedPaths.push(directory);
         continue;
       }
+      assertExistingDirectoryPath(workspaceRoot, path.dirname(directory));
       fs.rmdirSync(directory);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") unresolvedPaths.push(directory);
@@ -190,9 +199,11 @@ function removeCreatedDirectories(directories: string[]): RollbackResult {
 function restoreOne(staged: StagedFile): boolean {
   const { file } = staged;
   if (!staged.committed) return true;
-  if (currentHashOrNull(file) !== file.resultSha256) return false;
   try {
+    assertExistingDirectoryPath(file.workspaceRoot, path.dirname(file.absolutePath));
+    if (currentHashOrNull(file) !== file.resultSha256) return false;
     if (file.operation === "create") {
+      assertExistingDirectoryPath(file.workspaceRoot, path.dirname(file.absolutePath));
       fs.unlinkSync(file.absolutePath);
       staged.committed = false;
       return true;
@@ -201,6 +212,7 @@ function restoreOne(staged: StagedFile): boolean {
     const restorePath = writeTemp(file, "rollback", file.beforeBytes, file.beforeMode, true);
     try {
       if (currentHashOrNull(file) !== file.resultSha256) return false;
+      assertExistingDirectoryPath(file.workspaceRoot, path.dirname(file.absolutePath));
       fs.renameSync(restorePath, file.absolutePath);
       staged.committed = false;
       return true;
@@ -300,9 +312,10 @@ export async function commitPreparedPatch(
   hooks?: ApplyHooks
 ): Promise<ApplyTransaction> {
   const staged = await stageAll(prepared, requestId);
-  let createdDirectories: string[] = [];
+  const createdDirectories: string[] = [];
+  const workspaceRoot = prepared.files[0].workspaceRoot;
   try {
-    createdDirectories = createDirectories(prepared);
+    createDirectories(prepared, createdDirectories);
     for (const [index, entry] of staged.entries()) {
       await hooks?.beforeCommit?.(index, entry.file);
       commitOne(entry);
@@ -311,7 +324,7 @@ export async function commitPreparedPatch(
   } catch (error) {
     const failure = applyError(error);
     const rollback = await rollbackCommitted(staged, hooks);
-    const directoryRollback = removeCreatedDirectories(createdDirectories);
+    const directoryRollback = removeCreatedDirectories(createdDirectories, workspaceRoot);
     for (const entry of staged) removeKnownTemp(entry);
     if (!rollback.ok || !directoryRollback.ok) {
       throw new WriteRequestError("WRITE_ROLLBACK_FAILED", "Patch failed and one or more targets could not be safely restored.",
@@ -325,7 +338,7 @@ export async function commitPreparedPatch(
     async rollback() {
       if (finished) return { ok: true, unresolvedPaths: [] };
       const files = await rollbackCommitted(staged, hooks);
-      const directories = removeCreatedDirectories(createdDirectories);
+      const directories = removeCreatedDirectories(createdDirectories, workspaceRoot);
       for (const entry of staged) removeKnownTemp(entry);
       finished = true;
       return {

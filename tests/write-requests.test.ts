@@ -494,6 +494,31 @@ describe("write-request lifecycle", () => {
     expect(fs.readFileSync(path.join(receiptRoot, "nested/new.txt"), "utf8")).toBe("new\n");
   });
 
+  it("rolls back directories created before a later mkdir failure", async () => {
+    const root = directory("request-nested-mkdir-rollback");
+    const state = directory("request-nested-mkdir-rollback-state");
+    const service = serviceFor(new Workspace(root), state);
+    const firstDirectory = path.join(root, "nested");
+    const failingDirectory = path.join(firstDirectory, "deeper");
+    const originalMkdirSync = fs.mkdirSync;
+    const mkdirSpy = vi.spyOn(fs, "mkdirSync").mockImplementation((directory, options) => {
+      if (String(directory) === failingDirectory) throw new Error("injected directory creation failure");
+      return originalMkdirSync(directory, options);
+    });
+    try {
+      const pending = await service.createManualRequest({
+        workspaceId: "ws-1",
+        patch: createPatch("nested/deeper/new.txt", "new\n"),
+      });
+      await expect(service.approveManualRequest(pending.id)).rejects.toMatchObject({ code: "WRITE_APPLY_FAILED" });
+    } finally {
+      mkdirSpy.mockRestore();
+    }
+    expect(fs.existsSync(firstDirectory)).toBe(false);
+    expect(fs.existsSync(failingDirectory)).toBe(false);
+    expect(fs.readdirSync(root).filter((name) => name.startsWith(".c2c-tmp-")).length).toBe(0);
+  });
+
   it("marks a proposed nested create stale when an ancestor becomes a symlink", async () => {
     const root = directory("request-nested-stale-symlink");
     const state = directory("request-nested-stale-symlink-state");
@@ -880,6 +905,52 @@ describe("write-request lifecycle", () => {
     await expect(service.approveManualRequest(pending.id)).rejects.toMatchObject({ code: "WRITE_ROLLBACK_FAILED" });
     expect(fs.readFileSync(path.join(root, "first.txt"), "utf8")).toBe("external edit\n");
     await expect(service.createManualRequest({ workspaceId: "ws-1", patch: updatePatch("second.txt", "second", "next") }))
+      .rejects.toMatchObject({ code: "WRITE_ROLLBACK_FAILED" });
+  });
+
+  it("preserves external files when a rollback ancestor becomes a symlink", async () => {
+    const root = directory("request-rollback-ancestor-symlink");
+    const state = directory("request-rollback-ancestor-symlink-state");
+    const external = directory("request-rollback-ancestor-symlink-external");
+    write(external, "deeper/new.txt", "new\n");
+    write(root, "later.txt", "before\n");
+    const nested = path.join(root, "nested");
+    const deeper = path.join(nested, "deeper");
+    const target = path.join(deeper, "new.txt");
+    const probe = path.join(root, "symlink-probe");
+    try {
+      fs.symlinkSync(external, probe, "dir");
+      fs.unlinkSync(probe);
+    } catch {
+      return;
+    }
+
+    const service = serviceFor(new Workspace(root), state, {
+      applyHooks: {
+        beforeCommit(index) {
+          if (index === 1) throw new Error("injected second commit failure");
+        },
+        beforeRollbackOwnershipCheck(_index, file) {
+          if (file.path !== "nested/deeper/new.txt") return;
+          fs.unlinkSync(target);
+          fs.rmdirSync(deeper);
+          fs.rmdirSync(nested);
+          fs.symlinkSync(external, nested, "dir");
+        },
+      },
+    });
+    const pending = await service.createManualRequest({
+      workspaceId: "ws-1",
+      patch: createPatch("nested/deeper/new.txt", "new\n") + updatePatch("later.txt"),
+    });
+    await expect(service.approveManualRequest(pending.id)).rejects.toMatchObject({ code: "WRITE_ROLLBACK_FAILED" });
+
+    expect(fs.readFileSync(path.join(external, "deeper/new.txt"), "utf8")).toBe("new\n");
+    expect(fs.existsSync(path.join(external, "deeper"))).toBe(true);
+    expect(fs.lstatSync(nested).isSymbolicLink()).toBe(true);
+    expect(fs.readFileSync(path.join(root, "later.txt"), "utf8")).toBe("before\n");
+    expect((await service.getRequest(pending.id)).status).toBe("failed");
+    await expect(service.createManualRequest({ workspaceId: "ws-1", patch: updatePatch("later.txt", "before", "next") }))
       .rejects.toMatchObject({ code: "WRITE_ROLLBACK_FAILED" });
   });
 

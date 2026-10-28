@@ -1,0 +1,41 @@
+{
+  "task": "CHANGE-013 rollback corrective fixes",
+  "branch": "main",
+  "baseHead": "4d9654849e63f39d1c8c237a6f0b241330fa546e",
+  "regressionEvidence": {
+    "beforeFix": {
+      "command": "pnpm exec vitest run tests/write-requests.test.ts -t \"rolls back directories created before a later mkdir failure|preserves external files when a rollback ancestor becomes a symlink\"",
+      "result": "failed as expected: both new regression tests failed against the original implementation",
+      "observations": [
+        "partial mkdir rollback left the first created directory present",
+        "ancestor symlink rollback removed the external file"
+      ]
+    },
+    "afterFix": {
+      "command": "pnpm exec vitest run tests/write-requests.test.ts -t \"rolls back directories created before a later mkdir failure|preserves external files when a rollback ancestor becomes a symlink\"",
+      "result": "passed: 2 tests"
+    }
+  },
+  "verification": [
+    {
+      "command": "pnpm exec vitest run tests/write-requests.test.ts tests/write-request-admin.test.ts tests/write-request-cli.test.ts tests/write-request-observation.test.ts tests/write-request-observation-admin.test.ts tests/mcp-write-requests.test.ts tests/manager-write-requests.test.ts tests/manager-write-service.test.ts tests/manager-write-integration.test.ts",
+      "result": "passed: 9 files, 106 tests"
+    },
+    {
+      "command": "pnpm typecheck",
+      "result": "passed"
+    },
+    {
+      "command": "pnpm build",
+      "result": "passed"
+    },
+    {
+      "command": "pnpm test",
+      "result": "failed: 616 passed, 1 failed across 58 files; unrelated tests/manager-detail.test.ts expects \"Alpha\" but current output is \"Alpha \""
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ]
+}
