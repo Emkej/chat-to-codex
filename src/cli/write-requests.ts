@@ -130,10 +130,27 @@ function say(message: string): void {
   process.stdout.write(message + "\n");
 }
 
+function invokedCliName(): string {
+  const raw = process.argv[1] ?? "c2c";
+  const name = raw.split(/[\\/]/).at(-1)?.replace(/\.[^.]+$/, "") ?? "c2c";
+  return name || "c2c";
+}
+
 function describeRequest(record: CliWriteRequest): void {
   const target = record.worktree_id ? `${record.workspace_id}/${record.worktree_id}` : record.workspace_id;
-  say(`${record.request_id}  ${record.status}  ${target}  ${record.files.length} file(s)`);
-  for (const file of record.files) say(`  ${file.action} ${file.path}`);
+  say(`${escapeTerminalText(record.request_id)}  ${escapeTerminalText(record.status)}  ${escapeTerminalText(target)}  ${record.files.length} file(s)`);
+  for (const file of record.files) {
+    say(`  ${escapeTerminalText(file.action)} ${escapeTerminalText(file.path)} (+${file.additions}/-${file.deletions})`);
+  }
+  if (record.expires_at) say(`  expires: ${escapeTerminalText(record.expires_at)}`);
+}
+
+function describePatchActions(requestId: string): void {
+  const executable = escapeTerminalText(invokedCliName());
+  const id = escapeTerminalText(requestId);
+  say(`  review: ${executable} pending ${id} --diff`);
+  say(`  approve: ${executable} approve ${id}`);
+  say(`  reject: ${executable} reject ${id}`);
 }
 
 function reportError(error: unknown, json: boolean): void {
@@ -190,6 +207,7 @@ export function registerWriteRequestCommands(program: Command): void {
             describeRequest(item);
             if (options.diff && item.patch !== undefined) say(item.patch);
             else if (options.diff) say("Patch content is unavailable for this terminal request.");
+            if (item.status === "pending") describePatchActions(item.request_id);
           }
           return;
         }
@@ -211,6 +229,9 @@ export function registerWriteRequestCommands(program: Command): void {
         for (const item of items) {
           describeRequest(item);
           if (options.diff && item.patch !== undefined) say(item.patch);
+        }
+        if (requests.length === 1 && commands.length === 0 && items[0]?.status === "pending") {
+          describePatchActions(items[0].request_id);
         }
         for (const command of commands) describeCommand(command);
       } catch (error) {

@@ -7,6 +7,8 @@ import {
   WriteRequestError,
   type WriteOperation,
   type WritePrecondition,
+  type PatchErrorReason,
+  type WriteRequestErrorDetails,
   type WriteRequestFile,
 } from "./types.js";
 
@@ -45,6 +47,9 @@ export interface PreparedWriteFile extends WriteRequestFile {
   beforeBytes: Buffer | null;
   beforeMode?: number;
   resultBytes: Buffer;
+  workspaceRoot: string;
+  createDirectories?: string[];
+  stagingDirectory?: string;
 }
 
 export interface PreparedPatch {
@@ -53,8 +58,22 @@ export interface PreparedPatch {
   preconditions: WritePrecondition[];
 }
 
-function fail(code: ConstructorParameters<typeof WriteRequestError>[0], message: string): never {
-  throw new WriteRequestError(code, message);
+function fail(
+  code: ConstructorParameters<typeof WriteRequestError>[0],
+  message: string,
+  details?: WriteRequestErrorDetails
+): never {
+  throw new WriteRequestError(code, message, details ? { details } : undefined);
+}
+
+function patchDetails(pathName: string, hunkIndex: number, hunk: Hunk, reason: PatchErrorReason): WriteRequestErrorDetails {
+  return {
+    kind: "patch",
+    path: pathName,
+    hunkIndex: hunkIndex + 1,
+    oldLine: hunk.oldStart,
+    reason,
+  };
 }
 
 function unsupported(message: string): never {
@@ -154,7 +173,7 @@ function normalizedPair(oldPath: string, newPath: string): { path: string; opera
   return fail("PATCH_INVALID", "Update patches must name the same logical path.");
 }
 
-function validateRelativePatchPath(input: string): string {
+export function validateRelativePatchPath(input: string): string {
   if (input.trim() !== input) return fail("PATCH_INVALID", "Patch paths cannot have surrounding whitespace.");
   const value = input.replace(/\\/g, "/");
   if (
@@ -245,7 +264,8 @@ function assertNoSymlinkComponents(workspace: Workspace, candidate: string): voi
     try {
       if (fs.lstatSync(current).isSymbolicLink()) return fail("WRITE_SYMLINK_DENIED", "Patch targets cannot use symbolic links.");
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code === "ENOENT" || code === "ENOTDIR") return;
       throw error;
     }
   }
@@ -313,17 +333,21 @@ function preferredEol(lines: TextLine[]): "\n" | "\r\n" {
   return lines.find((line) => line.eol !== "")?.eol as "\n" | "\r\n" | undefined ?? "\n";
 }
 
-function applyHunks(sourceText: string, hunks: Hunk[]): string {
+function applyHunks(sourceText: string, hunks: Hunk[], pathName: string): string {
   const source = splitTextLines(sourceText);
   const result: TextLine[] = [];
   let sourceCursor = 0;
 
-  for (const hunk of hunks) {
+  for (const [hunkIndex, hunk] of hunks.entries()) {
     const start = hunk.oldCount === 0 ? hunk.oldStart : hunk.oldStart - 1;
     const resultStart = hunk.newCount === 0 ? hunk.newStart : hunk.newStart - 1;
     const untouchedCount = start - sourceCursor;
     if (untouchedCount < 0 || start > source.length || resultStart !== result.length + untouchedCount) {
-      return fail("PATCH_DOES_NOT_APPLY", "Patch hunk positions do not match the source text.");
+      return fail(
+        "PATCH_DOES_NOT_APPLY",
+        "Patch hunk positions do not match the source text.",
+        patchDetails(pathName, hunkIndex, hunk, "POSITION_MISMATCH")
+      );
     }
     result.push(...source.slice(sourceCursor, start));
     sourceCursor = start;
@@ -341,7 +365,16 @@ function applyHunks(sourceText: string, hunks: Hunk[]): string {
       }
       const current = source[sourceCursor];
       if (!current || current.text !== line.text || (current.eol === "") !== line.noNewline) {
-        return fail("PATCH_DOES_NOT_APPLY", "Patch hunk does not exactly match the source text.");
+        return fail(
+          "PATCH_DOES_NOT_APPLY",
+          "Patch hunk does not exactly match the source text.",
+          patchDetails(
+            pathName,
+            hunkIndex,
+            hunk,
+            !current || current.text !== line.text ? "CONTEXT_MISMATCH" : "NO_NEWLINE_MISMATCH"
+          )
+        );
       }
       if (line.kind === "context") result.push(current);
       sourceCursor++;
@@ -354,7 +387,12 @@ function applyHunks(sourceText: string, hunks: Hunk[]): string {
   }
   result.push(...source.slice(sourceCursor));
   if (result.some((line, index) => line.eol === "" && index !== result.length - 1)) {
-    return fail("PATCH_DOES_NOT_APPLY", "A no-newline marker may appear only at end of file.");
+    const hunk = hunks.at(-1);
+    return fail(
+      "PATCH_DOES_NOT_APPLY",
+      "A no-newline marker may appear only at end of file.",
+      hunk ? patchDetails(pathName, hunks.length - 1, hunk, "NO_NEWLINE_MISMATCH") : undefined
+    );
   }
   return result.map((line) => line.text + line.eol).join("");
 }
@@ -401,7 +439,7 @@ export function hashBoundedFile(file: string): string {
 
 function buildResult(beforeBytes: Buffer, operation: PatchSection): Buffer {
   const { text, bom } = decodeSource(beforeBytes);
-  const resultText = applyHunks(text, operation.hunks);
+  const resultText = applyHunks(text, operation.hunks, operation.path);
   const encoded = new TextEncoder().encode(resultText);
   const result = bom ? Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(encoded)]) : Buffer.from(encoded);
   if (result.includes(0)) return unsupported("NUL bytes are not supported in text patches.");
@@ -413,7 +451,8 @@ function targetExists(abs: string): fs.Stats | null {
   try {
     return fs.lstatSync(abs);
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === "ENOENT" || code === "ENOTDIR") return null;
     throw error;
   }
 }
@@ -435,6 +474,83 @@ function checkWritableParent(abs: string): void {
   }
 }
 
+interface CreateParentPlan {
+  directories: string[];
+  stagingDirectory: string;
+}
+
+function createParentPlan(workspace: Workspace, targetAbs: string): CreateParentPlan {
+  const directories: string[] = [];
+  let current = path.dirname(targetAbs);
+  for (;;) {
+    const exists = targetExists(current);
+    if (exists) {
+      if (exists.isSymbolicLink()) return fail("WRITE_SYMLINK_DENIED", "Create parents cannot use symbolic links.");
+      if (!exists.isDirectory()) return fail("WRITE_PARENT_MISSING", "Create target parent must be a real directory.");
+      try {
+        fs.accessSync(current, fs.constants.W_OK);
+      } catch (error) {
+        throw new WriteRequestError("WRITE_ACCESS_DENIED", "Target parent is not writable.", { cause: error });
+      }
+      return { directories, stagingDirectory: current };
+    }
+    directories.unshift(current);
+    const parent = path.dirname(current);
+    if (parent === current || !isWithin(current, workspace.root)) {
+      return fail("WRITE_ACCESS_DENIED", "Create target parent is outside the selected workspace.");
+    }
+    current = parent;
+  }
+}
+
+function isStrictDescendant(candidate: string, ancestor: string): boolean {
+  const relative = path.relative(pathCase(ancestor), pathCase(candidate));
+  return relative !== "" && !relative.startsWith(".." + path.sep) && relative !== ".." && !path.isAbsolute(relative);
+}
+
+export interface TextEditSource {
+  path: string;
+  absolutePath: string;
+  bytes: Buffer;
+  text: string;
+  bom: boolean;
+  mode: number;
+  eol: "lf" | "crlf" | "mixed";
+}
+
+export function readTextEditSource(
+  workspace: Workspace,
+  requestedPath: string,
+  protectedRoots: readonly string[] = []
+): TextEditSource {
+  const normalizedPath = validateRelativePatchPath(requestedPath);
+  assertNoSymlinkComponents(workspace, path.resolve(workspace.root, normalizedPath));
+  const target = resolveWritePath(workspace, normalizedPath);
+  assertWritablePathPolicy(workspace, target.rel, target.abs, protectedRoots, normalizedPath);
+  const exists = targetExists(target.abs);
+  if (!exists || exists.isSymbolicLink() || !exists.isFile()) {
+    return fail("WRITE_TARGET_NOT_FILE", "Text-edit targets must be existing regular files.");
+  }
+  checkWritableParent(target.abs);
+  const source = readBoundedSource(target.abs);
+  const decoded = decodeSource(source.bytes);
+  const hasCrLf = decoded.text.includes("\r\n");
+  const withoutCrLf = decoded.text.replace(/\r\n/g, "");
+  if (withoutCrLf.includes("\r")) {
+    return unsupported("Text-edit targets cannot contain lone carriage returns.");
+  }
+  const hasLf = withoutCrLf.includes("\n");
+  return {
+    path: target.rel,
+    absolutePath: target.abs,
+    bytes: source.bytes,
+    text: decoded.text,
+    bom: decoded.bom,
+    mode: source.mode,
+    eol: hasCrLf && hasLf ? "mixed" : hasCrLf ? "crlf" : "lf",
+  };
+}
+
 /** Parse, secure, and prepare every file entirely in memory before any write. */
 export function preparePatch(
   workspace: Workspace,
@@ -454,6 +570,13 @@ export function preparePatch(
     const key = pathCase(path.resolve(target.abs));
     if (seen.has(key)) return fail("PATCH_INVALID", "Patch contains duplicate normalized target paths.");
     seen.add(key);
+  }
+  for (const parent of resolved.filter((target) => target.section.operation === "create")) {
+    for (const child of resolved) {
+      if (isStrictDescendant(child.abs, parent.abs)) {
+        return fail("PATCH_INVALID", "A create target cannot also be a parent of another patch target.");
+      }
+    }
   }
 
   const files: PreparedWriteFile[] = [];
@@ -487,6 +610,7 @@ export function preparePatch(
         beforeBytes,
         beforeMode,
         resultBytes,
+        workspaceRoot: workspace.root,
       });
       preconditions.push({ path: target.rel, expected: "sha256", baseSha256 });
       continue;
@@ -497,7 +621,7 @@ export function preparePatch(
       return fail("WRITE_TARGET_EXISTS", "Create target already exists.");
     }
     assertWritablePathPolicy(workspace, target.rel, target.abs, protectedRoots, target.section.path);
-    checkWritableParent(target.abs);
+    const createPlan = createParentPlan(workspace, target.abs);
     const resultBytes = buildResult(Buffer.alloc(0), target.section);
     const resultSha256 = sha256(resultBytes);
     const additions = target.section.hunks.flatMap((hunk) => hunk.lines).filter((line) => line.kind === "add").length;
@@ -511,13 +635,25 @@ export function preparePatch(
       absolutePath: target.abs,
       beforeBytes: null,
       resultBytes,
+      workspaceRoot: workspace.root,
+      createDirectories: createPlan.directories,
+      stagingDirectory: createPlan.stagingDirectory,
     });
     preconditions.push({ path: target.rel, expected: "absent" });
   }
 
   return {
     files,
-    receiptFiles: files.map(({ absolutePath: _absolutePath, beforeBytes: _beforeBytes, beforeMode: _beforeMode, resultBytes: _resultBytes, ...record }) => record),
+    receiptFiles: files.map(({
+      absolutePath: _absolutePath,
+      beforeBytes: _beforeBytes,
+      beforeMode: _beforeMode,
+      resultBytes: _resultBytes,
+      workspaceRoot: _workspaceRoot,
+      createDirectories: _createDirectories,
+      stagingDirectory: _stagingDirectory,
+      ...record
+    }) => record),
     preconditions,
   };
 }

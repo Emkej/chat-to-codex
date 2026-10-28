@@ -32,14 +32,21 @@ function applyError(error: unknown): WriteRequestError {
     error instanceof Error ? { cause: error } : undefined);
 }
 
-function tempPath(file: PreparedWriteFile, requestId: string): string {
+function tempPath(file: PreparedWriteFile, requestId: string, stagingDirectory = path.dirname(file.absolutePath)): string {
   const targetHash = createHash("sha256").update(file.absolutePath).digest("hex").slice(0, 12);
   const id = requestId.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32);
-  return path.join(path.dirname(file.absolutePath), ".c2c-tmp-" + targetHash + "-" + id + "-" + randomBytes(8).toString("hex"));
+  return path.join(stagingDirectory, ".c2c-tmp-" + targetHash + "-" + id + "-" + randomBytes(8).toString("hex"));
 }
 
-function writeTemp(file: PreparedWriteFile, id: string, bytes: Buffer, mode: number, preserveMode: boolean): string {
-  const temp = tempPath(file, id);
+function writeTemp(
+  file: PreparedWriteFile,
+  id: string,
+  bytes: Buffer,
+  mode: number,
+  preserveMode: boolean,
+  stagingDirectory = path.dirname(file.absolutePath)
+): string {
+  const temp = tempPath(file, id, stagingDirectory);
   let descriptor: number | undefined;
   try {
     descriptor = fs.openSync(temp, fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_WRONLY, mode);
@@ -73,6 +80,111 @@ function currentHashOrNull(file: PreparedWriteFile): string | null {
   } catch {
     return null;
   }
+}
+
+function assertExistingDirectoryPath(workspaceRoot: string, candidate: string): void {
+  const relative = path.relative(workspaceRoot, candidate);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
+    throw new WriteRequestError("WRITE_ACCESS_DENIED", "Create path is outside the selected workspace.");
+  }
+  let current = workspaceRoot;
+  for (const component of relative.split(path.sep).filter(Boolean)) {
+    current = path.join(current, component);
+    let stat: fs.Stats;
+    try {
+      stat = fs.lstatSync(current);
+    } catch (error) {
+      throw new WriteRequestError("WRITE_STALE", "A create parent changed before commit.",
+        error instanceof Error ? { cause: error } : undefined);
+    }
+    if (stat.isSymbolicLink()) throw new WriteRequestError("WRITE_SYMLINK_DENIED", "Create parents cannot use symbolic links.");
+    if (!stat.isDirectory()) throw new WriteRequestError("WRITE_STALE", "A create parent is no longer a directory.");
+  }
+}
+
+function assertCreateTargetReady(file: PreparedWriteFile): void {
+  const relative = path.relative(file.workspaceRoot, file.absolutePath);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
+    throw new WriteRequestError("WRITE_ACCESS_DENIED", "Create target is outside the selected workspace.");
+  }
+  let current = file.workspaceRoot;
+  const components = relative.split(path.sep).filter(Boolean);
+  for (const [index, component] of components.entries()) {
+    current = path.join(current, component);
+    let stat: fs.Stats;
+    try {
+      stat = fs.lstatSync(current);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT" && index === components.length - 1) return;
+      throw new WriteRequestError("WRITE_STALE", "A create ancestor changed before commit.",
+        error instanceof Error ? { cause: error } : undefined);
+    }
+    if (index === components.length - 1) {
+      if (stat.isSymbolicLink()) throw new WriteRequestError("WRITE_SYMLINK_DENIED", "Create targets cannot use symbolic links.");
+      throw new WriteRequestError("WRITE_STALE", "A create target appeared before commit.");
+    }
+    if (stat.isSymbolicLink()) throw new WriteRequestError("WRITE_SYMLINK_DENIED", "Create parents cannot use symbolic links.");
+    if (!stat.isDirectory()) throw new WriteRequestError("WRITE_STALE", "A create parent is no longer a directory.");
+  }
+}
+
+function plannedCreateDirectories(prepared: PreparedPatch): string[] {
+  const paths = new Map<string, string>();
+  for (const file of prepared.files) {
+    for (const directory of file.createDirectories ?? []) {
+      const key = process.platform === "win32" || process.platform === "darwin" ? directory.toLowerCase() : directory;
+      paths.set(key, directory);
+    }
+  }
+  return [...paths.values()].sort((left, right) => {
+    const leftDepth = left.split(path.sep).length;
+    const rightDepth = right.split(path.sep).length;
+    return leftDepth - rightDepth || left.localeCompare(right);
+  });
+}
+
+function createDirectories(prepared: PreparedPatch): string[] {
+  const created: string[] = [];
+  for (const directory of plannedCreateDirectories(prepared)) {
+    const owner = prepared.files.find((file) => (file.createDirectories ?? []).includes(directory));
+    if (!owner) throw new WriteRequestError("WRITE_STALE", "Create directory ownership could not be revalidated.");
+    assertExistingDirectoryPath(owner.workspaceRoot, path.dirname(directory));
+    try {
+      const existing = fs.lstatSync(directory);
+      if (existing.isSymbolicLink()) throw new WriteRequestError("WRITE_SYMLINK_DENIED", "Create parents cannot use symbolic links.");
+      if (!existing.isDirectory()) throw new WriteRequestError("WRITE_STALE", "A create parent is no longer a directory.");
+      continue;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+    try {
+      fs.mkdirSync(directory, { mode: 0o777 });
+      created.push(directory);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+      const existing = fs.lstatSync(directory);
+      if (existing.isSymbolicLink()) throw new WriteRequestError("WRITE_SYMLINK_DENIED", "Create parents cannot use symbolic links.");
+      if (!existing.isDirectory()) throw new WriteRequestError("WRITE_STALE", "A create parent is no longer a directory.");
+    }
+  }
+  return created;
+}
+
+function removeCreatedDirectories(directories: string[]): RollbackResult {
+  const unresolvedPaths: string[] = [];
+  for (const directory of [...directories].reverse()) {
+    try {
+      const stat = fs.lstatSync(directory);
+      if (stat.isSymbolicLink() || !stat.isDirectory() || fs.readdirSync(directory).length > 0) {
+        unresolvedPaths.push(directory);
+        continue;
+      }
+      fs.rmdirSync(directory);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") unresolvedPaths.push(directory);
+    }
+  }
+  return { ok: unresolvedPaths.length === 0, unresolvedPaths };
 }
 
 function restoreOne(staged: StagedFile): boolean {
@@ -149,6 +261,7 @@ function commitOne(staged: StagedFile): void {
     return;
   }
   try {
+    assertCreateTargetReady(file);
     fs.linkSync(stagedPath, file.absolutePath);
     staged.committed = true;
     fs.unlinkSync(stagedPath);
@@ -165,9 +278,11 @@ async function stageAll(prepared: PreparedPatch, requestId: string): Promise<Sta
   try {
     for (const file of prepared.files) {
       const mode = file.operation === "update" ? file.beforeMode! : 0o666;
+      const stagingDirectory = file.operation === "create" ? file.stagingDirectory : undefined;
+      if (stagingDirectory) assertExistingDirectoryPath(file.workspaceRoot, stagingDirectory);
       staged.push({
         file,
-        tempPath: writeTemp(file, requestId, file.resultBytes, mode, file.operation === "update"),
+        tempPath: writeTemp(file, requestId, file.resultBytes, mode, file.operation === "update", stagingDirectory),
         committed: false,
       });
     }
@@ -185,7 +300,9 @@ export async function commitPreparedPatch(
   hooks?: ApplyHooks
 ): Promise<ApplyTransaction> {
   const staged = await stageAll(prepared, requestId);
+  let createdDirectories: string[] = [];
   try {
+    createdDirectories = createDirectories(prepared);
     for (const [index, entry] of staged.entries()) {
       await hooks?.beforeCommit?.(index, entry.file);
       commitOne(entry);
@@ -194,10 +311,11 @@ export async function commitPreparedPatch(
   } catch (error) {
     const failure = applyError(error);
     const rollback = await rollbackCommitted(staged, hooks);
+    const directoryRollback = removeCreatedDirectories(createdDirectories);
     for (const entry of staged) removeKnownTemp(entry);
-    if (!rollback.ok) {
+    if (!rollback.ok || !directoryRollback.ok) {
       throw new WriteRequestError("WRITE_ROLLBACK_FAILED", "Patch failed and one or more targets could not be safely restored.",
-        failure);
+        new AggregateError([failure, ...rollback.unresolvedPaths.map((value) => new Error(value)), ...directoryRollback.unresolvedPaths.map((value) => new Error(value))]));
     }
     throw failure;
   }
@@ -206,10 +324,14 @@ export async function commitPreparedPatch(
   return {
     async rollback() {
       if (finished) return { ok: true, unresolvedPaths: [] };
-      const result = await rollbackCommitted(staged, hooks);
+      const files = await rollbackCommitted(staged, hooks);
+      const directories = removeCreatedDirectories(createdDirectories);
       for (const entry of staged) removeKnownTemp(entry);
       finished = true;
-      return result;
+      return {
+        ok: files.ok && directories.ok,
+        unresolvedPaths: [...files.unresolvedPaths, ...directories.unresolvedPaths],
+      };
     },
     async cleanup() {
       if (finished) return;

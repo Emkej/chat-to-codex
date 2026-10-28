@@ -6,6 +6,7 @@ import { Workspace, WorkspaceError } from "../workspace/manager.js";
 import { WorktreeError } from "../workspace/worktrees.js";
 import { commitPreparedPatch, type ApplyHooks } from "./apply.js";
 import { preparePatch, type PreparedPatch } from "./patch.js";
+import { createTextEditPatch, type TextEdit } from "./text-edits.js";
 import {
   terminalExpired,
   terminalReceiptPastRetention,
@@ -135,6 +136,20 @@ export class WriteRequestService {
       const record = initialRecord(this.newId(), target, "manual-local", prepared, this.now(), input.patch);
       this.store.create(record);
       return toReceipt(record);
+    });
+  }
+
+  async createTextEditRequest(input: {
+    workspaceId: string;
+    worktreeId?: string;
+    edits: readonly TextEdit[];
+  }): Promise<WriteRequestReceipt> {
+    const target = await this.resolve(input.workspaceId, input.worktreeId);
+    const patch = createTextEditPatch(target.workspace, input.edits, this.protectedRoots);
+    return this.createManualRequest({
+      workspaceId: input.workspaceId,
+      ...(input.worktreeId ? { worktreeId: input.worktreeId } : {}),
+      patch,
     });
   }
 

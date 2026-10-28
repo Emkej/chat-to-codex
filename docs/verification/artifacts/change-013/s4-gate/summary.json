@@ -1,0 +1,121 @@
+{
+  "contract_version": 2,
+  "name": "change-013-s4-gate",
+  "status": "passed",
+  "counts": {
+    "passed": 5,
+    "failed": 0,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 5,
+  "skipped": 0,
+  "total": 5,
+  "results": [
+    {
+      "name": "typecheck",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 3.975,
+      "attempt": 1,
+      "argv": [
+        "pnpm",
+        "typecheck"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-013/s4-gate",
+      "stdout_log": "01-typecheck.stdout.log",
+      "stderr_log": "01-typecheck.stderr.log",
+      "error": null
+    },
+    {
+      "name": "build",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 4.483,
+      "attempt": 1,
+      "argv": [
+        "pnpm",
+        "build"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-013/s4-gate",
+      "stdout_log": "02-build.stdout.log",
+      "stderr_log": "02-build.stderr.log",
+      "error": null
+    },
+    {
+      "name": "live-broker-e2e",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 3.58,
+      "attempt": 1,
+      "argv": [
+        "pnpm",
+        "test:e2e"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-013/s4-gate",
+      "stdout_log": "03-live-broker-e2e.stdout.log",
+      "stderr_log": "03-live-broker-e2e.stderr.log",
+      "error": null
+    },
+    {
+      "name": "broker-surface",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 4.785,
+      "attempt": 1,
+      "argv": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "tests/broker.test.ts",
+        "--reporter=dot"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-013/s4-gate",
+      "stdout_log": "04-broker-surface.stdout.log",
+      "stderr_log": "04-broker-surface.stderr.log",
+      "error": null
+    },
+    {
+      "name": "diff-check",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.021,
+      "attempt": 1,
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-013/s4-gate",
+      "stdout_log": "05-diff-check.stdout.log",
+      "stderr_log": "05-diff-check.stderr.log",
+      "error": null
+    }
+  ],
+  "attempts": [
+    {
+      "number": 1,
+      "checks": [
+        "typecheck",
+        "build",
+        "live-broker-e2e",
+        "broker-surface",
+        "diff-check"
+      ],
+      "statuses": {
+        "typecheck": "passed",
+        "build": "passed",
+        "live-broker-e2e": "passed",
+        "broker-surface": "passed",
+        "diff-check": "passed"
+      }
+    }
+  ]
+}

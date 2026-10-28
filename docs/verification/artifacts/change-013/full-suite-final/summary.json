@@ -1,0 +1,44 @@
+{
+  "contract_version": 2,
+  "name": "change-013-full-suite-final",
+  "status": "failed",
+  "counts": {
+    "passed": 0,
+    "failed": 1,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 0,
+  "skipped": 0,
+  "total": 1,
+  "results": [
+    {
+      "name": "full-vitest",
+      "status": "failed",
+      "exit_code": 1,
+      "duration_seconds": 37.308,
+      "attempt": 1,
+      "argv": [
+        "pnpm",
+        "test"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-013/full-suite-final",
+      "stdout_log": "01-full-vitest.stdout.log",
+      "stderr_log": "01-full-vitest.stderr.log",
+      "error": null
+    }
+  ],
+  "attempts": [
+    {
+      "number": 1,
+      "checks": [
+        "full-vitest"
+      ],
+      "statuses": {
+        "full-vitest": "failed"
+      }
+    }
+  ]
+}

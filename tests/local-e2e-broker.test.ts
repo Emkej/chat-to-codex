@@ -164,6 +164,7 @@ describe("local E2E — broker-first multi-project", () => {
       "list_worktrees",
       "list_write_requests",
       "propose_patch",
+      "propose_text_edits",
       "read_file",
       "read_files",
       "request_command",

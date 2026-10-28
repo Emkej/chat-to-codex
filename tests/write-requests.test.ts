@@ -28,6 +28,10 @@ function multiUpdatePatch(): string {
     "--- a/second.txt\n+++ b/second.txt\n@@ -1 +1 @@\n-second\n+changed-second\n";
 }
 
+function createPatch(pathName: string, content: string): string {
+  return `--- /dev/null\n+++ b/${pathName}\n@@ -0,0 +1 @@\n+${content}`;
+}
+
 function serviceFor(
   workspace: Workspace,
   stateDir: string,
@@ -145,11 +149,18 @@ describe("unified text patch preparation", () => {
     expect(prepared.receiptFiles[0]).toMatchObject({ additions: 2, deletions: 2 });
   });
 
-  it("rejects fuzzy-only matches and malformed ranges", () => {
+  it("reports bounded hunk diagnostics for exact-match failures", () => {
     const root = directory("patch-exact");
     write(root, "file.txt", "before\n");
-    expect(() => preparePatch(new Workspace(root), updatePatch("file.txt", "else", "after")))
-      .toThrowError(expect.objectContaining({ code: "PATCH_DOES_NOT_APPLY" }));
+    try {
+      preparePatch(new Workspace(root), updatePatch("file.txt", "else", "after"));
+      throw new Error("Expected patch preparation to fail");
+    } catch (error) {
+      expect(error).toMatchObject({
+        code: "PATCH_DOES_NOT_APPLY",
+        details: { kind: "patch", path: "file.txt", hunkIndex: 1, oldLine: 1, reason: "CONTEXT_MISMATCH" },
+      });
+    }
     expect(() => preparePatch(new Workspace(root), "--- a/file.txt\n+++ b/file.txt\n@@ nope @@\n"))
       .toThrowError(expect.objectContaining({ code: "PATCH_INVALID" }));
   });
@@ -384,6 +395,123 @@ describe("write-request lifecycle", () => {
     write(root, "new.txt", "external create\n");
     await expect(service.approveManualRequest(create.id)).rejects.toMatchObject({ code: "WRITE_STALE" });
     expect(fs.readFileSync(path.join(root, "new.txt"), "utf8")).toBe("external create\n");
+  });
+
+  it("creates shared missing parent directories only during approval", async () => {
+    const root = directory("request-nested-create");
+    const state = directory("request-nested-create-state");
+    const service = serviceFor(new Workspace(root), state);
+    const pending = await service.createManualRequest({
+      workspaceId: "ws-1",
+      patch: createPatch("docs/nested/first.txt", "first\n") + createPatch("docs/nested/second.txt", "second\n"),
+    });
+
+    expect(fs.existsSync(path.join(root, "docs"))).toBe(false);
+    const applied = await service.approveManualRequest(pending.id);
+    expect(applied.status).toBe("applied");
+    expect(fs.readFileSync(path.join(root, "docs/nested/first.txt"), "utf8")).toBe("first\n");
+    expect(fs.readFileSync(path.join(root, "docs/nested/second.txt"), "utf8")).toBe("second\n");
+  });
+
+  it("rejects create target conflicts, non-directory parents, and symlink ancestors", async () => {
+    const conflictRoot = directory("request-create-conflict");
+    const conflictState = directory("request-create-conflict-state");
+    const conflictService = serviceFor(new Workspace(conflictRoot), conflictState);
+    await expect(conflictService.createManualRequest({
+      workspaceId: "ws-1",
+      patch: createPatch("docs", "file\n") + createPatch("docs/child.txt", "child\n"),
+    })).rejects.toMatchObject({ code: "PATCH_INVALID" });
+    expect(fs.existsSync(path.join(conflictRoot, "docs"))).toBe(false);
+
+    const collisionRoot = directory("request-create-parent-file");
+    const collisionState = directory("request-create-parent-file-state");
+    write(collisionRoot, "docs", "not a directory\n");
+    const collisionService = serviceFor(new Workspace(collisionRoot), collisionState);
+    await expect(collisionService.createManualRequest({
+      workspaceId: "ws-1",
+      patch: createPatch("docs/child.txt", "child\n"),
+    })).rejects.toMatchObject({ code: "WRITE_PARENT_MISSING" });
+
+    const symlinkRoot = directory("request-create-symlink-parent");
+    const symlinkState = directory("request-create-symlink-parent-state");
+    const external = directory("request-create-symlink-external");
+    const link = path.join(symlinkRoot, "linked");
+    try {
+      fs.symlinkSync(external, link, "dir");
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "EPERM") return;
+      throw error;
+    }
+    const symlinkService = serviceFor(new Workspace(symlinkRoot), symlinkState);
+    await expect(symlinkService.createManualRequest({
+      workspaceId: "ws-1",
+      patch: createPatch("linked/child.txt", "child\n"),
+    })).rejects.toMatchObject({ code: "WRITE_SYMLINK_DENIED" });
+    expect(fs.existsSync(path.join(external, "child.txt"))).toBe(false);
+  });
+
+  it("removes transaction-created directories on commit and receipt failures", async () => {
+    const root = directory("request-nested-rollback");
+    const state = directory("request-nested-rollback-state");
+    write(root, "later.txt", "before\n");
+    const service = serviceFor(new Workspace(root), state, {
+      applyHooks: { beforeCommit(index) { if (index === 1) throw new Error("injected second commit failure"); } },
+    });
+    const pending = await service.createManualRequest({
+      workspaceId: "ws-1",
+      patch: createPatch("nested/new.txt", "new\n") + updatePatch("later.txt"),
+    });
+    await expect(service.approveManualRequest(pending.id)).rejects.toMatchObject({ code: "WRITE_APPLY_FAILED" });
+    expect(fs.existsSync(path.join(root, "nested"))).toBe(false);
+    expect(fs.readFileSync(path.join(root, "later.txt"), "utf8")).toBe("before\n");
+
+    class FailFirstAppliedReceiptStore extends WriteRequestStore {
+      failApplied = false;
+      override update(record: WriteRequestRecord): void {
+        if (this.failApplied && record.status === "applied") {
+          this.failApplied = false;
+          throw new WriteRequestError("WRITE_RECEIPT_PERSIST_FAILED", "injected receipt failure");
+        }
+        super.update(record);
+      }
+    }
+
+    const receiptRoot = directory("request-nested-receipt-rollback");
+    const receiptState = directory("request-nested-receipt-rollback-state");
+    const store = new FailFirstAppliedReceiptStore(receiptState);
+    const receiptService = serviceFor(new Workspace(receiptRoot), receiptState, { store });
+    const receiptPending = await receiptService.createManualRequest({
+      workspaceId: "ws-1",
+      patch: createPatch("nested/new.txt", "new\n"),
+    });
+    store.failApplied = true;
+    await expect(receiptService.approveManualRequest(receiptPending.id))
+      .rejects.toMatchObject({ code: "WRITE_RECEIPT_PERSIST_FAILED" });
+    expect(fs.existsSync(path.join(receiptRoot, "nested"))).toBe(false);
+    expect((await receiptService.getRequest(receiptPending.id, true)).status).toBe("pending");
+
+    await receiptService.approveManualRequest(receiptPending.id);
+    expect(fs.readFileSync(path.join(receiptRoot, "nested/new.txt"), "utf8")).toBe("new\n");
+  });
+
+  it("marks a proposed nested create stale when an ancestor becomes a symlink", async () => {
+    const root = directory("request-nested-stale-symlink");
+    const state = directory("request-nested-stale-symlink-state");
+    const external = directory("request-nested-stale-symlink-external");
+    const service = serviceFor(new Workspace(root), state);
+    const pending = await service.createManualRequest({
+      workspaceId: "ws-1",
+      patch: createPatch("nested/new.txt", "new\n"),
+    });
+    try {
+      fs.symlinkSync(external, path.join(root, "nested"), "dir");
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "EPERM") return;
+      throw error;
+    }
+    await expect(service.approveManualRequest(pending.id)).rejects.toMatchObject({ code: "WRITE_STALE" });
+    expect(fs.existsSync(path.join(external, "new.txt"))).toBe(false);
+    expect((await service.getRequest(pending.id)).status).toBe("stale");
   });
 
   it("persists target-unavailable state as stale and scrubs the pending patch", async () => {

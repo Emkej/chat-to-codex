@@ -36,7 +36,11 @@ import { resolveRegisteredWorkspaceTarget } from "../workspaces/targets.js";
 import type { BrokerRuntimeIdentity } from "../broker/runtime-identity.js";
 import type { SessionRegistry } from "../workspaces/sessions.js";
 import type { WriteRequestService } from "../write-requests/service.js";
-import { WriteRequestError, type WriteRequestReceipt } from "../write-requests/types.js";
+import {
+  WriteRequestError,
+  type WriteRequestErrorDetails,
+  type WriteRequestReceipt,
+} from "../write-requests/types.js";
 import { PRODUCT_NAME, VERSION } from "../version.js";
 import { CommandRequestError } from "../command-requests/types.js";
 import type { CommandRequestService } from "../command-requests/service.js";
@@ -69,18 +73,57 @@ function okWithStructuredData(data: unknown): ToolResult {
   return { ...ok(data), structuredContent: { data } };
 }
 
-function fail(code: string, message: string): ToolResult {
+function fail(code: string, message: string, details?: Record<string, unknown>): ToolResult {
   return {
-    content: [{ type: "text", text: JSON.stringify({ error: code, message }) }],
+    content: [{ type: "text", text: JSON.stringify({ error: code, message, ...(details ? { details } : {}) }) }],
     isError: true,
   };
+}
+
+function safeDetailPath(value: string): string | undefined {
+  if (
+    value.length === 0 ||
+    value.length > 1024 ||
+    value.startsWith("/") ||
+    value.includes("\\") ||
+    value.includes("\0") ||
+    /^[A-Za-z]:/.test(value) ||
+    value.split("/").some((part) => part.length === 0 || part === "." || part === "..")
+  ) {
+    return undefined;
+  }
+  return value;
+}
+
+function safeDetailNumber(value: number, minimum: number, maximum: number): number | undefined {
+  return Number.isSafeInteger(value) && value >= minimum && value <= maximum ? value : undefined;
+}
+
+function toRemoteWriteErrorDetails(details: WriteRequestErrorDetails | undefined): Record<string, unknown> | undefined {
+  if (!details) return undefined;
+  const pathValue = safeDetailPath(details.path);
+  if (!pathValue) return undefined;
+  if (details.kind === "patch") {
+    const hunkIndex = safeDetailNumber(details.hunkIndex, 1, 1_000_000);
+    const oldLine = safeDetailNumber(details.oldLine, 0, 2_000_000);
+    if (hunkIndex === undefined || oldLine === undefined) return undefined;
+    return {
+      path: pathValue,
+      hunk_index: hunkIndex,
+      old_line: oldLine,
+      reason: details.reason,
+    };
+  }
+  const editIndex = safeDetailNumber(details.editIndex, 1, 50);
+  if (editIndex === undefined) return undefined;
+  return { path: pathValue, edit_index: editIndex, reason: details.reason };
 }
 
 function mapError(error: unknown): ToolResult {
   if (error instanceof GitDiffError) return fail(error.code, error.message);
   if (error instanceof CommandRequestError) return fail(error.code, error.message);
   if (error instanceof SnapshotError) return fail(error.code, error.message);
-  if (error instanceof WriteRequestError) return fail(error.code, error.message);
+  if (error instanceof WriteRequestError) return fail(error.code, error.message, toRemoteWriteErrorDetails(error.details));
   if (error instanceof WorkspaceError) return fail(error.code, error.message);
   if (error instanceof WorktreeError) {
     if (error.code === "WORKTREE_DISCOVERY_FAILED") {
@@ -142,6 +185,8 @@ function toProposalResult(receipt: WriteRequestReceipt) {
   return {
     request_id: receipt.id,
     status: receipt.status,
+    workspace_id: receipt.workspaceId,
+    ...(receipt.worktreeId ? { worktree_id: receipt.worktreeId } : {}),
     files: remoteWriteFiles(receipt.files),
     ...(receipt.expiresAt ? { expires_at: receipt.expiresAt } : {}),
   };
@@ -157,6 +202,8 @@ function toRemoteWriteReceipt(receipt: WriteRequestReceipt) {
     request_id: receipt.id,
     status: receipt.status,
     approval_mode: receipt.approvalMode,
+    workspace_id: receipt.workspaceId,
+    ...(receipt.worktreeId ? { worktree_id: receipt.worktreeId } : {}),
     files: remoteWriteFiles(receipt.files, true),
     created_at: receipt.createdAt,
     ...(receipt.expiresAt ? { expires_at: receipt.expiresAt } : {}),
@@ -1042,6 +1089,41 @@ export function createMcpServer(ctx: McpContext): McpServer {
     );
 
     server.registerTool(
+      "propose_text_edits",
+      {
+        title: "Propose exact text edits",
+        description:
+          `Validate exact, unambiguous text replacements and save them as a pending local request for explicit approval. ` +
+          `This does not modify workspace files. Requires workspace.write. ${UNTRUSTED_NOTE}`,
+        inputSchema: {
+          ...workspaceArg,
+          edits: z.array(z.object({
+            path: z.string().min(1).describe("Workspace-relative file path"),
+            old_text: z.string().min(1).describe("Exactly one existing text occurrence"),
+            new_text: z.string().describe("Replacement text; an empty string deletes the old text"),
+          })).min(1).max(50),
+        },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+      },
+      async (args, extra) => {
+        const denied = requireScope(extra.authInfo, "workspace.write");
+        if (denied) return denied;
+        const target = resolveTarget(ctx, args);
+        if ("content" in target) return target;
+        try {
+          const receipt = await writeRequests.createTextEditRequest({
+            workspaceId: target.registration?.id ?? target.workspace.id,
+            ...(target.worktreeId ? { worktreeId: target.worktreeId } : {}),
+            edits: args.edits.map((edit) => ({ path: edit.path, oldText: edit.old_text, newText: edit.new_text })),
+          });
+          return ok(toProposalResult(receipt));
+        } catch (error) {
+          return mapError(error);
+        }
+      }
+    );
+
+    server.registerTool(
       "list_write_requests",
       {
         title: "List write requests",
@@ -1083,7 +1165,7 @@ export function createMcpServer(ctx: McpContext): McpServer {
           `Raw patches and local absolute paths are never returned. ${UNTRUSTED_NOTE}`,
         inputSchema: {
           ...workspaceArg,
-          request_id: z.string().min(1).describe("Opaque request id returned by propose_patch or a receipt tool"),
+          request_id: z.string().min(1).describe("Opaque request id returned by a proposal or receipt tool"),
         },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },

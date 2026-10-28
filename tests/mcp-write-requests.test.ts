@@ -51,6 +51,13 @@ async function propose(client: Client, workspace: string, before: string, after:
   });
 }
 
+async function proposeTextEdits(client: Client, workspace: string, oldText: string, newText: string) {
+  return client.callTool({
+    name: "propose_text_edits",
+    arguments: { workspace, edits: [{ path: "file.txt", old_text: oldText, new_text: newText }] },
+  });
+}
+
 beforeAll(async () => {
   profileStateDir = isolateStateDir();
   stateDir = makeTmpDir("mcp-write-state");
@@ -85,10 +92,16 @@ describe("broker MCP write-request tools", () => {
   it("registers truthful proposal and read-only receipt annotations", async () => {
     const { tools } = await writeClient.listTools();
     const proposal = tools.find((tool) => tool.name === "propose_patch");
+    const textProposal = tools.find((tool) => tool.name === "propose_text_edits");
     const list = tools.find((tool) => tool.name === "list_write_requests");
     const detail = tools.find((tool) => tool.name === "get_write_request");
 
     expect(proposal?.annotations).toMatchObject({
+      readOnlyHint: false,
+      destructiveHint: false,
+      openWorldHint: false,
+    });
+    expect(textProposal?.annotations).toMatchObject({
       readOnlyHint: false,
       destructiveHint: false,
       openWorldHint: false,
@@ -115,6 +128,7 @@ describe("broker MCP write-request tools", () => {
     }>(created);
     expect(receipt).toMatchObject({
       status: "pending",
+      workspace_id: workspaceAId,
       files: [{ path: "file.txt", action: "update", additions: 1, deletions: 1 }],
     });
     expect(receipt.request_id).toMatch(/^wr_[a-f0-9]{24}$/);
@@ -131,6 +145,36 @@ describe("broker MCP write-request tools", () => {
     expect(invalid.isError).toBe(true);
     expect(jsonOf(invalid).error).toBe("PATCH_INVALID");
     expect(fs.readFileSync(path.join(workspaceA, "file.txt"), "utf8")).toBe("before-a\n");
+
+    const mismatch = await writeClient.callTool({
+      name: "propose_patch",
+      arguments: { workspace: workspaceAId, patch: patchUpdate("not-current", "after") },
+    });
+    expect(jsonOf(mismatch)).toMatchObject({
+      error: "PATCH_DOES_NOT_APPLY",
+      details: { path: "file.txt", hunk_index: 1, old_line: 1, reason: "CONTEXT_MISMATCH" },
+    });
+  });
+
+  it("proposes exact text edits through the same pending receipt lifecycle", async () => {
+    const denied = await proposeTextEdits(readClient, workspaceAId, "before-a", "denied");
+    expect(denied.isError).toBe(true);
+    expect(jsonOf(denied).error).toBe("INSUFFICIENT_SCOPE");
+
+    const created = await proposeTextEdits(writeClient, workspaceAId, "before-a", "after-text");
+    expect(created.isError).not.toBe(true);
+    expect(jsonOf(created)).toMatchObject({
+      status: "pending",
+      workspace_id: workspaceAId,
+      files: [{ path: "file.txt", action: "update", additions: 1, deletions: 1 }],
+    });
+    expect(fs.readFileSync(path.join(workspaceA, "file.txt"), "utf8")).toBe("before-a\n");
+
+    const mismatch = await proposeTextEdits(writeClient, workspaceAId, "not-current", "after");
+    expect(jsonOf(mismatch)).toMatchObject({
+      error: "PATCH_DOES_NOT_APPLY",
+      details: { path: "file.txt", edit_index: 1, reason: "NO_MATCH" },
+    });
   });
 
   it("returns scoped receipts without raw patches or absolute paths", async () => {
@@ -155,6 +199,7 @@ describe("broker MCP write-request tools", () => {
       request_id: createdA.request_id,
       status: "pending",
       approval_mode: "manual-local",
+      workspace_id: workspaceAId,
       files: [{ path: "file.txt", action: "update", additions: 1, deletions: 1, result_sha256: expect.any(String) }],
     });
     expect(JSON.stringify(list)).not.toContain(workspaceA);
@@ -226,6 +271,8 @@ describe("broker MCP write-request tools", () => {
       }));
       expect(mainReceipts.requests.map((request) => request.request_id)).toEqual([mainProposal.request_id]);
       expect(derivedReceipts.requests.map((request) => request.request_id)).toEqual([derivedProposal.request_id]);
+      expect(mainReceipts.requests[0]).toMatchObject({ workspace_id: registrationId });
+      expect(derivedReceipts.requests[0]).toMatchObject({ workspace_id: registrationId, worktree_id: worktreeId });
 
       const mainGet = await readClient.callTool({
         name: "get_write_request",

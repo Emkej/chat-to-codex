@@ -1,0 +1,52 @@
+{
+    "schemaVersion": 1,
+    "taskId": "change-013-patch-authoring-diagnostics",
+    "capturedAt": "2026-10-28T14:15:59+01:00",
+    "repositoryRoot": "/home/emkej/projects/chat-to-codex",
+    "worktree": "/home/emkej/projects/chat-to-codex",
+    "branch": "main",
+    "head": "f8e62744f2299b8b99b4978ad61d9df37f1122c8",
+    "tracker": "/home/emkej/.codex/workflows/scripts/track_dirty_paths.py",
+    "preExistingDirtyPaths": [],
+    "claimedPaths": [
+        "src/write-requests/types.ts",
+        "src/write-requests/patch.ts",
+        "src/mcp/server.ts",
+        "src/cli/write-requests.ts",
+        "tests/write-requests.test.ts",
+        "tests/mcp-write-requests.test.ts",
+        "tests/write-request-cli.test.ts",
+        "docs/verification/artifacts/change-013/ledger.md",
+        "docs/verification/artifacts/change-013/s1-baseline",
+        "docs/verification/artifacts/change-013/s1-implementation",
+        "docs/verification/artifacts/change-013/s1-gate",
+        "src/write-requests/service.ts",
+        "src/write-requests/text-edits.ts",
+        "tests/text-edits.test.ts",
+        "src/write-requests/apply.ts",
+        "docs/protocol.md",
+        "docs/local-e2e.md",
+        "docs/security.md",
+        "docs/architecture.md",
+        "docs/verification/artifacts/change-013/s4-gate",
+        "tests/broker.test.ts",
+        "tests/local-e2e-broker.test.ts",
+        "docs/changes/change-013-patch-authoring-diagnostics-and-create-paths.md",
+        "docs/verification/artifacts/change-013/final-gate",
+        "docs/verification/artifacts/change-013/full-suite-final",
+        "docs/verification/artifacts/change-013/s2-gate",
+        "docs/verification/artifacts/change-013/s3-gate",
+        "docs/verification/artifacts/change-013/full-suite"
+    ],
+    "closeoutClassification": {
+        "classifiedAt": "2026-10-28T14:38:15+01:00",
+        "head": "cff705c6c581cccac01ef4ce96e5195986182a89",
+        "prerequisiteCommit": "f8e62744f2299b8b99b4978ad61d9df37f1122c8",
+        "method": "committed task-owned implementation on main after prerequisite document commit",
+        "owned": {
+            "source": "claimedPaths"
+        },
+        "excludedPreExisting": [],
+        "unexpectedDisposition": null
+    }
+}

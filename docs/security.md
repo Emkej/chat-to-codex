@@ -56,7 +56,7 @@ setup`, `c2c broker start`).
 | Admin API abuse | Loopback-only + random admin token (0600 runtime file) + proxy-forwarded requests rejected; unauthenticated probes get 404; session/workspace admin endpoints are not reachable through the Claude MCP tunnel |
 | Stale session / revoked workspace | Session heartbeats fail closed on unknown ids; workspace removal stops new sessions; MCP reads fail closed for revoked ids |
 | Log credential leakage | Logger redacts token prefixes, bearer headers, token-like parameters, and pairing-code-shaped strings |
-| Prompt injection via repo | Tool descriptions state content is untrusted data; there is no direct file or command tool. `propose_patch` can only create a pending request; a local `c2c approve` is required before a workspace write. |
+| Prompt injection via repo | Tool descriptions state content is untrusted data; there is no direct file or command tool. `propose_patch` and `propose_text_edits` can only create pending requests; a local `c2c approve` is required before a workspace write. |
 
 ## Token & scope design
 
@@ -65,8 +65,8 @@ Scopes include `workspace.read`, `workspace.search`, `git.read`,
 requested `workspace.write`. `git.repository.read` is supported and included
 in broker default-read consent, while the legacy bridge's supported/default
 scope sets do not include it. The write scope is supported but is never part
-of default or implicit grants; only `propose_patch` requires it. Receipt tools
-require `workspace.read`. Tools enforce scopes individually
+of default or implicit grants; `propose_patch` and `propose_text_edits` require
+it. Receipt tools require `workspace.read`. Tools enforce scopes individually
 (`INSUFFICIENT_SCOPE`). Existing tokens retain their recorded scopes on
 refresh, so a connector must reauthorize to obtain repository access.
 Broker-only `workspace.command` is also explicit and non-default: both command
@@ -96,13 +96,15 @@ service, MCP write tools, and write-request admin router absent while retaining
 the existing read-only MCP surface.
 
 The observed ChatGPT host result is Probe A `BLOCKED` and Probe B `SUPPORTED`.
-The shipped path is `propose_patch` plus local `c2c approve`; native
+The shipped path is `propose_patch` or `propose_text_edits` plus local `c2c approve`; native
 `apply_patch` and the conditional manual clipboard/file/stdin import are not
 shipped. See the [capability probe evidence](verification/artifacts/spec-002/mcp-write-probes.md).
 
-`propose_patch` accepts only a unified text patch for create/update operations
-within the selected workspace or worktree. It prepares and validates the full
-patch, then stores a pending C2C request; it does not mutate project files.
+`propose_patch` accepts a unified text patch for create/update operations within
+the selected workspace or worktree. `propose_text_edits` accepts exact literal
+replacements for existing UTF-8 text files and converts them into that same
+unified patch representation. Both tools prepare and validate the full patch,
+then store a pending C2C request; neither mutates project files.
 The local broker re-resolves the target and rechecks security and content
 preconditions when `c2c approve` runs. Broker requests share one exclusive
 installation writer and serialized write lifecycle.

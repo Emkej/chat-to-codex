@@ -140,6 +140,28 @@ describe("registered write-request CLI commands", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it("shows counts, expiry, and executable-specific actions for one pending patch", async () => {
+    const originalExecutable = process.argv[1];
+    process.argv[1] = "c2ct";
+    try {
+      mockAdminApi((url) => {
+        if (url.pathname === "/admin/command-requests") return { requests: [] };
+        expect(url.pathname).toBe("/admin/write-requests");
+        return { requests: [receipt("wr_one")] };
+      });
+
+      const output = await runCommand(["pending"]);
+
+      expect(output).toContain("update docs/example.md (+1/-1)");
+      expect(output).toContain("expires: 2026-09-24T01:00:00.000Z");
+      expect(output).toContain("review: c2ct pending wr_one --diff");
+      expect(output).toContain("approve: c2ct approve wr_one");
+      expect(output).toContain("reject: c2ct reject wr_one");
+    } finally {
+      process.argv[1] = originalExecutable;
+    }
+  });
+
   it("shows the patch for the single pending request in JSON mode", async () => {
     const fetchMock = mockAdminApi((url) => {
       if (url.pathname === "/admin/command-requests") return { requests: [] };

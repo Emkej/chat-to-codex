@@ -36,9 +36,10 @@
 - **Bring your AI chat sessions to Codex.** The bridge never re-implements a coding harness.
 - **Conversation = control plane**: tiny `[C2C]` state messages (< 1 KB).
 - **MCP = data plane**: Claude pulls files/diffs/search results itself.
-- **No direct remote writer or executor**: `propose_patch` can create a pending
-  request when Probe B is supported; the local `c2c approve` path performs the
-  workspace write through the shared policy.
+- **No direct remote writer or executor**: `propose_patch` and
+  `propose_text_edits` can create pending requests when Probe B is supported;
+  the local `c2c approve` path performs the workspace write through the shared
+  policy.
   `request_command` stores exact argv/cwd for one explicit local approval;
   it never executes at creation. Approval is not sandboxing.
 - **The registered workspace is the durable security boundary**: the broker may
@@ -52,7 +53,7 @@
 | Module | Responsibility |
 | --- | --- |
 | `bridge/` | Express app assembly, loopback-only listener, port fallback, runtime state, admin API |
-| `mcp/` | Broker McpServer with 14 scoped readers, patch proposal/two receipt tools, and the separately scoped command request/receipt pair when initialized; legacy bridge remains at 9 readers. Stateless Streamable HTTP transport (fresh server per request, JSON responses) |
+| `mcp/` | Broker McpServer with 14 scoped readers, two patch proposal/two receipt tools, and the separately scoped command request/receipt pair when initialized; legacy bridge remains at 9 readers. Stateless Streamable HTTP transport (fresh server per request, JSON responses) |
 | `write-requests/` | Exact unified-text patch preparation, protected-path/precondition checks, broker lifecycle serialization, staging/rollback, and terminal receipt persistence |
 | `command-requests/` | Separate command store, observational receipts, serialized one-attempt lifecycle, exact argv runner, bounded capture and pidfd-safe interruption/recovery |
 | `auth/` | OAuth 2.1 authorization server: discovery metadata (RFC 8414 + Protected Resource Metadata), dynamic client registration (RFC 7591), authorization-code + PKCE (S256 only), refresh rotation, revocation (RFC 7009). Opaque tokens stored as SHA-256 hashes |
@@ -91,10 +92,10 @@ then read an immutable commit snapshot without checkout, fetch, or persistent
 snapshot state. `list_worktrees` describes checked-out linked worktrees only;
 absence there does not imply that a branch ref is absent.
 
-**Approved patch lifecycle**: `propose_patch` requires explicit
-`workspace.write`, resolves the same workspace/worktree target, and persists
-one pending receipt without changing project files. Local `c2c approve` or
-`c2c reject` uses the loopback token-protected admin API and the same
+**Approved patch lifecycle**: `propose_patch` and `propose_text_edits` require
+explicit `workspace.write`, resolve the same workspace/worktree target, and
+persist one pending receipt without changing project files. Local `c2c approve`
+or `c2c reject` uses the loopback token-protected admin API and the same
 broker-owned write service. The installation broker acquires exclusive
 write-state ownership before serving; its lifecycle mutex serializes C2C
 proposals, approvals, and rejections. The service revalidates writes; the

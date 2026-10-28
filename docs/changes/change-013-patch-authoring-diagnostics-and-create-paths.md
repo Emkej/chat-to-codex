@@ -1,6 +1,6 @@
 # CHANGE-013: Patch Authoring, Diagnostics, and Create-Path Ergonomics
 
-- **Status:** Reviewed draft — not authorized for implementation
+- **Status:** Partial — implementation and task-scoped validation complete; one unrelated full-suite failure remains
 - **Date:** 2026-10-28
 - **Project:** `chat-to-codex`
 - **Baseline:** `main` at `2a01d1b` (clean on 2026-10-28; recheck before implementation)
@@ -162,4 +162,8 @@ S1 and S2 do not depend on S3. Keep [CHANGE-010](change-010-pending-patch-diffto
 
 **Reviewed for KISS, low friction, and scope.** This revision removes alternative persistence architecture, redundant MCP command strings, and durable directory tracking. It retains one standard patch representation and one approval/rollback lifecycle.
 
-**Status remains a draft.** Implementation is not authorized. S3 has an explicit security feasibility gate; inability to safely support hostile ancestry changes must not block delivery of S1/S2.
+**Implementation authorization:** The task owner authorized implementation after
+this document was committed to `main`. S3 passed deterministic ancestor and
+rollback security checks; the implementation makes no claim of universal
+hostile-race freedom. The unrelated full-suite failure is recorded in the
+CHANGE-013 verification ledger and does not affect the task-owned tests.

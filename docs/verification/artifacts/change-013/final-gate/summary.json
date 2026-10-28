@@ -1,0 +1,108 @@
+{
+  "contract_version": 2,
+  "name": "change-013-final-gate",
+  "status": "passed",
+  "counts": {
+    "passed": 4,
+    "failed": 0,
+    "timed_out": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "passed": 4,
+  "skipped": 0,
+  "total": 4,
+  "results": [
+    {
+      "name": "typecheck",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 3.875,
+      "attempt": 1,
+      "argv": [
+        "pnpm",
+        "typecheck"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-013/final-gate",
+      "stdout_log": "01-typecheck.stdout.log",
+      "stderr_log": "01-typecheck.stderr.log",
+      "error": null
+    },
+    {
+      "name": "build",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 4.125,
+      "attempt": 1,
+      "argv": [
+        "pnpm",
+        "build"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-013/final-gate",
+      "stdout_log": "02-build.stdout.log",
+      "stderr_log": "02-build.stderr.log",
+      "error": null
+    },
+    {
+      "name": "task-tests",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 5.99,
+      "attempt": 1,
+      "argv": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "tests/write-requests.test.ts",
+        "tests/text-edits.test.ts",
+        "tests/mcp-write-requests.test.ts",
+        "tests/write-request-cli.test.ts",
+        "tests/broker.test.ts",
+        "tests/local-e2e-broker.test.ts",
+        "--reporter=dot"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-013/final-gate",
+      "stdout_log": "03-task-tests.stdout.log",
+      "stderr_log": "03-task-tests.stderr.log",
+      "error": null
+    },
+    {
+      "name": "diff-check",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.02,
+      "attempt": 1,
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "working_directory": "/home/emkej/projects/chat-to-codex",
+      "artifact_directory": "/home/emkej/projects/chat-to-codex/docs/verification/artifacts/change-013/final-gate",
+      "stdout_log": "04-diff-check.stdout.log",
+      "stderr_log": "04-diff-check.stderr.log",
+      "error": null
+    }
+  ],
+  "attempts": [
+    {
+      "number": 1,
+      "checks": [
+        "typecheck",
+        "build",
+        "task-tests",
+        "diff-check"
+      ],
+      "statuses": {
+        "typecheck": "passed",
+        "build": "passed",
+        "task-tests": "passed",
+        "diff-check": "passed"
+      }
+    }
+  ]
+}

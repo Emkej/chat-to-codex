@@ -235,10 +235,12 @@ Rules:
 ## Approved patch lifecycle and verification
 
 When the selected host path supports proposal writes, ChatGPT may call
-`propose_patch` with the existing opaque `workspace` and optional `worktree`
-selectors. This requires explicitly authorized `workspace.write` and creates
-a pending local C2C request; the MCP call does not change project files. The
-user can inspect it with `c2c pending [request-id] --diff`, then run
+`propose_patch` or `propose_text_edits` with the existing opaque `workspace`
+and optional `worktree` selectors. Both require explicitly authorized
+`workspace.write` and create a pending local C2C request; the MCP call does
+not change project files. `propose_text_edits` accepts ordered literal
+replacements and rejects zero or multiple matches. The user can inspect either
+request with `c2c pending [request-id] --diff`, then run
 `c2c approve [request-id]` or `c2c reject [request-id]`. With no request id,
 the CLI uses the concrete target containing its current directory and fails on
 ambiguous selection rather than choosing across workspaces.

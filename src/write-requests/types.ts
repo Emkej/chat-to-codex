@@ -59,14 +59,38 @@ export type WriteRequestErrorCode =
   | "WORKSPACE_UNAVAILABLE"
   | "WORKTREE_UNAVAILABLE";
 
+export type PatchErrorReason = "POSITION_MISMATCH" | "CONTEXT_MISMATCH" | "NO_NEWLINE_MISMATCH";
+
+export type WriteRequestErrorDetails =
+  | {
+      kind: "patch";
+      path: string;
+      hunkIndex: number;
+      oldLine: number;
+      reason: PatchErrorReason;
+    }
+  | {
+      kind: "text-edit";
+      path: string;
+      editIndex: number;
+      reason: "NO_MATCH" | "AMBIGUOUS_MATCH";
+    };
+
+export interface WriteRequestErrorOptions extends ErrorOptions {
+  details?: WriteRequestErrorDetails;
+}
+
 export class WriteRequestError extends Error {
+  public readonly details?: WriteRequestErrorDetails;
+
   constructor(
     public readonly code: WriteRequestErrorCode,
     message: string,
-    options?: ErrorOptions
+    options?: WriteRequestErrorOptions
   ) {
     super(message, options);
     this.name = "WriteRequestError";
+    this.details = options?.details;
   }
 }
 

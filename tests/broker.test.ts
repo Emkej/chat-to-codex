@@ -104,6 +104,7 @@ describe("broker tool surface", () => {
       "list_worktrees",
       "list_write_requests",
       "propose_patch",
+      "propose_text_edits",
       "read_file",
       "read_files",
       "request_command",
@@ -111,10 +112,15 @@ describe("broker tool surface", () => {
       "test_status",
       "workspace_info",
     ]);
-    for (const tool of tools.filter((item) => !["propose_patch", "request_command"].includes(item.name))) {
+    for (const tool of tools.filter((item) => !["propose_patch", "propose_text_edits", "request_command"].includes(item.name))) {
       expect(tool.annotations?.readOnlyHint).toBe(true);
     }
     expect(tools.find((tool) => tool.name === "propose_patch")?.annotations).toMatchObject({
+      readOnlyHint: false,
+      destructiveHint: false,
+      openWorldHint: false,
+    });
+    expect(tools.find((tool) => tool.name === "propose_text_edits")?.annotations).toMatchObject({
       readOnlyHint: false,
       destructiveHint: false,
       openWorldHint: false,
@@ -536,6 +542,7 @@ describe("broker without Linux write ownership", () => {
       const names = tools.map((tool) => tool.name);
       expect(names).toContain("list_workspaces");
       expect(names).not.toContain("propose_patch");
+      expect(names).not.toContain("propose_text_edits");
       expect(names).not.toContain("list_write_requests");
       expect(names).not.toContain("get_write_request");
       const workspaceList = await unsupportedClient.callTool({ name: "list_workspaces", arguments: {} });

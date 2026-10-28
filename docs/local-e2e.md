@@ -22,9 +22,10 @@ login.
 
 **Automated protocol result: YES.** A remote MCP client can connect through
 the installation broker, complete OAuth (DCR + PKCE + one-time pairing), use
-scoped reads and receipts, and submit a pending patch proposal only with
-explicit `workspace.write`. Proposal creates C2C pending state without changing
-project files; local `c2c approve` is required before the broker applies it.
+scoped reads and receipts, and submit pending patch proposals only with
+explicit `workspace.write`. Proposals create C2C pending state without
+changing project files; local `c2c approve` is required before the broker
+applies one.
 There is no native direct `apply_patch` path or direct remote command executor.
 Linux/WSL also supports separately scoped, explicitly locally approved one-shot
 command requests as described below.
@@ -82,9 +83,11 @@ C2C_E2E_URL=https://your-host.example.com pnpm test:e2e:live
 The recorded host result is Probe A `BLOCKED` / Probe B `SUPPORTED`. The
 current path is:
 
-1. ChatGPT calls `propose_patch` with the same opaque `workspace` and optional
-   `worktree` as read tools; the call requires explicitly authorized
-   `workspace.write` and creates only a pending request.
+1. ChatGPT calls `propose_patch` or `propose_text_edits` with the same opaque
+   `workspace` and optional `worktree` as read tools; both calls require
+   explicitly authorized `workspace.write` and create only a pending request.
+   Exact text edits reject zero or multiple matches and are stored as the same
+   unified patch representation as ordinary proposals.
 2. The user may inspect `c2c pending --diff`, then approves with
    `c2c approve [request-id]` or rejects with `c2c reject [request-id]`.
    Implicit selection uses the concrete target containing cwd and fails safely
@@ -141,12 +144,12 @@ artifacts for the actual checks and environment-specific evidence.
 - **OAuth**: DCR, PKCE S256, pairing limits, refresh rotation, RFC 7009
   revocation, unauthenticated `/mcp` → 401 with `WWW-Authenticate`.
 - **MCP surface**: fourteen scoped broker readers, including
-  `list_branches`, `git_browse`, `git_search`, and `git_compare`, one
-  `propose_patch` tool
+  `list_branches`, `git_browse`, `git_search`, and `git_compare`, two
+  proposal tools (`propose_patch` and `propose_text_edits`)
   (`readOnlyHint: false`, `destructiveHint: false`, `openWorldHint: false`),
-  and two read-only receipt tools. Proposal requires `workspace.write`; the
+  and two read-only receipt tools. Proposals require `workspace.write`; the
   read-only receipt tools require `workspace.read`. The legacy bridge remains
-  at nine read-only tools and exposes none of these three write-request tools.
+  at nine read-only tools and exposes none of these four write-request tools.
   Native `apply_patch` is absent for the recorded Probe A result.
 - **Multi-workspace**: cross-workspace isolation, invented ids fail closed,
   revoked workspaces fail closed, live sessions reflected in `list_workspaces`.
